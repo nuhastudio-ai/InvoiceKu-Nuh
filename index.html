@@ -1,0 +1,2190 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>InvoiceKu – Manajemen Invoice & Pelunasan</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy: #1e2d42;
+  --navy-mid: #2d4060;
+  --steel: #4a6080;
+  --steel-light: #6b8aaa;
+  --accent: #e8a838;
+  --accent-dark: #c8892a;
+  --bg: #eef1f5;
+  --surface: #ffffff;
+  --surface-2: #f4f6f9;
+  --text: #1a2333;
+  --text-muted: #5a6a7e;
+  --border: #d4dbe5;
+  --success: #27ae60;
+  --danger: #e74c3c;
+  --warning: #f39c12;
+  --info: #2980b9;
+  --radius: 12px;
+  --shadow: 0 4px 24px rgba(30,45,66,0.10);
+  --shadow-lg: 0 12px 48px rgba(30,45,66,0.16);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* ── TOP NAV ── */
+.topbar { background: var(--navy); padding: 0 20px; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 200; box-shadow: 0 2px 12px rgba(0,0,0,0.25); gap: 12px; }
+.topbar-brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.topbar-logo { width: 34px; height: 34px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; overflow: hidden; }
+.topbar-logo img { width: 100%; height: 100%; object-fit: contain; }
+.topbar-title { color: #fff; font-size: 16px; font-weight: 800; }
+.topbar-title span { color: var(--accent); }
+
+.tab-group { display: flex; gap: 3px; background: rgba(255,255,255,0.08); padding: 4px; border-radius: 10px; overflow-x: auto; flex-shrink: 0; }
+.tab-group::-webkit-scrollbar { display: none; }
+.tab-btn { padding: 6px 12px; border: none; background: transparent; color: rgba(255,255,255,0.65); font-family: inherit; font-size: 12px; font-weight: 600; border-radius: 7px; cursor: pointer; transition: all .2s; white-space: nowrap; }
+.tab-btn.active { background: var(--accent); color: var(--navy); }
+.tab-btn:not(.active):hover { background: rgba(255,255,255,0.12); color: #fff; }
+.topbar-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.btn-icon { width: 34px; height: 34px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.8); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .2s; font-size: 14px; }
+.btn-icon:hover { background: rgba(255,255,255,0.18); color: #fff; }
+
+/* ── LAYOUT ── */
+.app-container { display: grid; grid-template-columns: 420px 1fr; gap: 0; height: calc(100vh - 56px); }
+.app-container.hidden { display: none; }
+.full-page { display: none; height: calc(100vh - 56px); overflow-y: auto; background: var(--bg); padding: 24px 28px; flex-direction: column; gap: 20px; }
+.full-page.active { display: flex; }
+
+/* ── FORM PANEL ── */
+.form-panel { background: var(--surface); overflow-y: auto; border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+.form-panel::-webkit-scrollbar { width: 5px; }
+.form-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+.form-section { background: var(--surface-2); border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
+.section-header { padding: 10px 14px; background: var(--navy); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+.section-body { padding: 14px; display: flex; flex-direction: column; gap: 10px; max-height: 420px; overflow-y: auto; }
+.section-body::-webkit-scrollbar { width: 3px; }
+.section-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+/* Info-doc and short sections don't need scroll limit */
+.section-body.no-scroll { max-height: none; overflow-y: visible; }
+
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.field input, .field select, .field textarea { padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 8px; font-family: inherit; font-size: 12px; color: var(--text); background: var(--surface); transition: border-color .2s; outline: none; }
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--steel); }
+.field textarea { resize: vertical; min-height: 56px; }
+
+/* Toggle switch */
+.toggle-wrap { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.toggle-switch { position: relative; width: 36px; height: 20px; }
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-track { position: absolute; inset: 0; background: var(--border); border-radius: 20px; transition: background .2s; cursor: pointer; }
+.toggle-switch input:checked + .toggle-track { background: var(--success); }
+.toggle-track::after { content: ''; position: absolute; left: 3px; top: 3px; width: 14px; height: 14px; background: #fff; border-radius: 50%; transition: transform .2s; }
+.toggle-switch input:checked + .toggle-track::after { transform: translateX(16px); }
+.toggle-label { font-size: 12px; font-weight: 600; color: var(--text); }
+
+/* Customer autocomplete */
+.autocomplete-wrap { position: relative; }
+.autocomplete-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: var(--surface); border: 1.5px solid var(--border); border-radius: 8px; box-shadow: var(--shadow-lg); z-index: 300; max-height: 200px; overflow-y: auto; margin-top: 2px; }
+.autocomplete-item { padding: 9px 12px; cursor: pointer; font-size: 12px; border-bottom: 1px solid var(--border); transition: background .15s; }
+.autocomplete-item:last-child { border-bottom: none; }
+.autocomplete-item:hover { background: var(--surface-2); }
+.autocomplete-item .ac-name { font-weight: 700; color: var(--navy); }
+.autocomplete-item .ac-sub { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+
+/* ── ITEMS ── */
+.items-header { display: grid; grid-template-columns: 2fr 50px 90px 80px 28px; gap: 4px; padding: 6px 2px; font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.item-row { display: grid; grid-template-columns: 2fr 50px 90px 80px 28px; gap: 4px; align-items: center; padding: 3px 0; border-bottom: 1px solid var(--border); }
+.item-row:last-child { border-bottom: none; }
+.item-row input, .item-row select { padding: 6px 7px; border: 1.5px solid var(--border); border-radius: 6px; font-family: inherit; font-size: 11px; background: var(--surface); outline: none; width: 100%; transition: border-color .2s; }
+.item-row input:focus { border-color: var(--steel); }
+.item-total { font-size: 11px; font-weight: 700; color: var(--navy); text-align: right; }
+.btn-remove-item { width: 26px; height: 26px; border: none; background: #fde8e8; color: var(--danger); border-radius: 5px; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+.btn-remove-item:hover { background: var(--danger); color: #fff; }
+.btn-add-item { display: flex; align-items: center; gap: 6px; padding: 7px 10px; border: 1.5px dashed var(--border); border-radius: 8px; background: transparent; color: var(--steel); font-family: inherit; font-size: 11px; font-weight: 600; cursor: pointer; width: 100%; justify-content: center; transition: all .2s; margin-top: 6px; }
+.btn-add-item:hover { border-color: var(--steel); background: var(--surface-2); }
+
+#items-list { max-height: 220px; overflow-y: auto; }
+#items-list::-webkit-scrollbar { width: 3px; }
+#items-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.subtotals-box { display: flex; flex-direction: column; gap: 5px; padding: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
+.subtotal-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
+.subtotal-row.total { font-size: 13px; font-weight: 800; color: var(--navy); padding-top: 6px; border-top: 2px solid var(--navy); margin-top: 2px; }
+.subtotal-row input { width: 90px; padding: 3px 6px; border: 1.5px solid var(--border); border-radius: 5px; font-family: inherit; font-size: 12px; text-align: right; outline: none; }
+
+/* ── PAYMENT SECTION ── */
+.payment-db-row { display: flex; gap: 6px; align-items: center; padding: 7px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
+.payment-db-row .pm-info { flex: 1; font-size: 11px; color: var(--text); }
+.payment-db-row .pm-info strong { display: block; font-weight: 700; color: var(--navy); }
+.payment-db-row .pm-info span { color: var(--text-muted); }
+.payment-chip-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.payment-chip { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; cursor: pointer; border: 1.5px solid var(--border); background: var(--surface); color: var(--text-muted); transition: all .2s; }
+.payment-chip.selected { border-color: var(--navy); background: var(--navy); color: #fff; }
+.payment-chip:hover { border-color: var(--steel); }
+
+/* manual payment row */
+.manual-pay-row { display: flex; flex-direction: column; gap: 6px; padding: 10px; border: 1.5px dashed var(--border); border-radius: 8px; }
+.manual-pay-row .field-row { grid-template-columns: 1fr 1fr; }
+
+/* ── PRINT BAR ── */
+.print-bar { position: sticky; bottom: 0; background: var(--surface); border-top: 1px solid var(--border); padding: 12px 20px; display: flex; gap: 8px; z-index: 10; margin: -20px -20px 0; }
+.btn-print { flex: 1; padding: 11px; background: var(--navy); color: #fff; border: none; border-radius: 9px; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all .2s; }
+.btn-print:hover { background: var(--navy-mid); }
+.btn-save-db { flex: 1; padding: 11px; background: var(--success); color: #fff; border: none; border-radius: 9px; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all .2s; }
+.btn-save-db:hover { background: #219a52; }
+.btn-save-db:disabled { background: #95a5a6; cursor: not-allowed; }
+.btn-reset { padding: 11px 14px; background: var(--surface-2); border: 1.5px solid var(--border); border-radius: 9px; font-family: inherit; font-size: 12px; font-weight: 600; color: var(--text-muted); cursor: pointer; transition: all .2s; }
+.btn-reset:hover { border-color: var(--danger); color: var(--danger); background: #fde8e8; }
+
+/* ── PREVIEW PANEL ── */
+.preview-panel { overflow-y: auto; background: #d8dde5; padding: 24px; display: flex; justify-content: center; align-items: flex-start; }
+.preview-panel::-webkit-scrollbar { width: 5px; }
+.preview-panel::-webkit-scrollbar-thumb { background: #b0bac5; border-radius: 3px; }
+
+/* ── INVOICE DOC ── */
+#invoice-doc { width: 680px; background: #fff; box-shadow: var(--shadow-lg); border-radius: 4px; overflow: hidden; position: relative; }
+.doc-header { background: var(--navy); padding: 22px 28px 18px; display: flex; justify-content: space-between; align-items: flex-start; position: relative; }
+.doc-header::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--accent), transparent); }
+.doc-logo-area { display: flex; align-items: center; gap: 10px; }
+/* NO CIRCLE - logo apa adanya */
+.doc-logo { width: 52px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 20px; overflow: hidden; flex-shrink: 0; }
+.doc-logo img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.doc-company-name { font-family: 'DM Serif Display', serif; font-size: 18px; color: #fff; }
+.doc-company-tagline { font-size: 10px; color: rgba(255,255,255,0.55); margin-top: 2px; font-weight: 500; }
+.doc-title-area { text-align: right; }
+.doc-type-title { font-family: 'DM Serif Display', serif; font-size: 28px; color: #fff; line-height: 1; letter-spacing: -1px; }
+.doc-type-title.receipt-title { color: var(--accent); }
+.doc-inv-number { font-size: 10px; color: rgba(255,255,255,0.6); margin-top: 4px; font-weight: 500; }
+.doc-inv-number strong { color: #fff; }
+
+.doc-meta { padding: 14px 28px; display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #eaeef3; background: #f9fafb; }
+.doc-to-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; color: #888; font-weight: 700; }
+.doc-client-name { font-size: 16px; font-weight: 800; color: var(--navy); margin: 2px 0; font-family: 'DM Serif Display', serif; }
+.doc-client-info { font-size: 10px; color: #666; line-height: 1.5; }
+.doc-date-area { text-align: right; }
+.doc-date-row { font-size: 10px; color: #555; margin-bottom: 2px; }
+.doc-date-row strong { color: var(--navy); font-weight: 700; }
+
+.doc-body { padding: 16px 28px; }
+.receipt-paid-section { display: none; background: linear-gradient(135deg, #e8f5e9, #f1f8e9); border: 2px solid #a5d6a7; border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; align-items: center; gap: 12px; }
+.receipt-paid-icon { font-size: 22px; }
+.receipt-paid-text h3 { font-size: 12px; font-weight: 800; color: var(--success); }
+.receipt-paid-text p { font-size: 10px; color: #555; margin-top: 1px; }
+.doc-watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 80px; color: rgba(30,45,66,0.03); font-family: 'DM Serif Display', serif; pointer-events: none; white-space: nowrap; z-index: 0; }
+.doc-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; position: relative; z-index: 1; }
+.doc-table thead tr { background: var(--navy); color: #fff; }
+.doc-table thead th { padding: 7px 10px; text-align: left; font-size: 9px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; }
+.doc-table thead th:last-child { text-align: right; }
+.doc-table thead th:nth-child(2), .doc-table thead th:nth-child(3) { text-align: center; }
+.doc-table tbody tr:nth-child(even) { background: #f4f7fa; }
+.doc-table tbody td { padding: 7px 10px; font-size: 11px; color: #333; border-bottom: 1px solid #eaeef3; }
+.doc-table tbody td:nth-child(2), .doc-table tbody td:nth-child(3) { text-align: center; }
+.doc-table tbody td:last-child { text-align: right; font-weight: 600; color: var(--navy); }
+
+.doc-totals { display: flex; justify-content: flex-end; margin-bottom: 14px; }
+.doc-totals-box { min-width: 220px; border: 1px solid #eaeef3; border-radius: 8px; overflow: hidden; }
+.doc-total-row { display: flex; justify-content: space-between; padding: 5px 12px; font-size: 10px; color: #555; border-bottom: 1px solid #eaeef3; }
+.doc-total-row:last-child { border-bottom: none; }
+.doc-total-row.grand { background: var(--navy); color: #fff; font-size: 12px; font-weight: 800; padding: 8px 12px; }
+.doc-total-row.grand span:last-child { color: var(--accent); font-size: 13px; }
+
+.doc-payment-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+.doc-payment-box { background: #f9fafb; border: 1px solid #eaeef3; border-radius: 6px; padding: 10px 12px; }
+.doc-payment-box h4 { font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; color: #888; font-weight: 700; margin-bottom: 4px; }
+.doc-payment-box p { font-size: 10px; color: #444; line-height: 1.6; }
+
+.paid-stamp { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%) rotate(-15deg); border: 5px solid rgba(39,174,96,0.4); border-radius: 8px; padding: 4px 14px; color: rgba(39,174,96,0.4); font-family: 'DM Serif Display', serif; font-size: 40px; font-weight: 700; letter-spacing: 4px; pointer-events: none; white-space: nowrap; z-index: 5; }
+
+.doc-footer { background: #f9fafb; border-top: 1px solid #eaeef3; padding: 14px 28px; display: flex; justify-content: space-between; align-items: flex-end; }
+.doc-footer-left { font-size: 10px; color: #666; line-height: 1.7; }
+.doc-footer-right { text-align: center; }
+.signature-line { width: 100px; height: 1px; background: #999; margin: 0 auto 5px; }
+.doc-footer-right p { font-size: 10px; color: #555; }
+
+/* ── MODAL ── */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 500; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity .2s; }
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal { background: var(--surface); border-radius: 16px; padding: 24px; width: 500px; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-lg); transform: translateY(20px); transition: transform .25s; }
+.modal-overlay.open .modal { transform: translateY(0); }
+.modal-wide { width: 680px; }
+.modal-xl { width: 860px; }
+.modal h2 { font-size: 17px; font-weight: 800; color: var(--navy); margin-bottom: 16px; }
+.modal-actions { display: flex; gap: 8px; margin-top: 18px; justify-content: flex-end; }
+.btn-secondary { padding: 9px 16px; border: 1.5px solid var(--border); border-radius: 8px; background: transparent; font-family: inherit; font-size: 12px; font-weight: 600; color: var(--text-muted); cursor: pointer; transition: all .2s; }
+.btn-secondary:hover { border-color: var(--navy); color: var(--navy); }
+.btn-primary { padding: 9px 18px; border: none; border-radius: 8px; background: var(--navy); color: #fff; font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; transition: all .2s; }
+.btn-primary:hover { background: var(--navy-mid); }
+.btn-danger { padding: 9px 16px; border: none; border-radius: 8px; background: var(--danger); color: #fff; font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; transition: all .2s; }
+.btn-success { padding: 9px 16px; border: none; border-radius: 8px; background: var(--success); color: #fff; font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+
+/* ── HISTORY / FULL PAGE ── */
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.stat-card { background: var(--surface); border-radius: 12px; padding: 18px 20px; border: 1px solid var(--border); box-shadow: var(--shadow); }
+.stat-card .stat-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted); margin-bottom: 6px; }
+.stat-card .stat-value { font-size: 24px; font-weight: 800; color: var(--navy); font-family: 'DM Serif Display', serif; line-height: 1.1; }
+.stat-card .stat-sub { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+.stat-card.accent { border-color: var(--accent); }
+.stat-card.accent .stat-value { color: var(--accent-dark); }
+.stat-card.success { border-color: var(--success); }
+.stat-card.success .stat-value { color: var(--success); }
+.stat-card.danger { border-color: var(--danger); }
+.stat-card.danger .stat-value { color: var(--danger); }
+
+.history-section { background: var(--surface); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; box-shadow: var(--shadow); }
+.history-section-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: var(--surface-2); flex-wrap: wrap; gap: 10px; }
+.history-section-header h3 { font-size: 14px; font-weight: 800; color: var(--navy); }
+.history-filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.history-filters input, .history-filters select { padding: 6px 10px; border: 1.5px solid var(--border); border-radius: 7px; font-family: inherit; font-size: 11px; background: var(--surface); outline: none; color: var(--text); }
+
+/* Accordion */
+.accordion-list { display: flex; flex-direction: column; gap: 0; }
+.acc-card { border-bottom: 1px solid var(--border); }
+.acc-card:last-child { border-bottom: none; }
+.acc-header { display: flex; align-items: center; gap: 10px; padding: 12px 16px; cursor: pointer; transition: background .15s; }
+.acc-header:hover { background: var(--surface-2); }
+.acc-toggle { font-size: 10px; color: var(--text-muted); transition: transform .2s; flex-shrink: 0; }
+.acc-card.open .acc-toggle { transform: rotate(90deg); }
+.acc-header-info { flex: 1; display: grid; grid-template-columns: 100px 1fr 1fr 100px 80px 90px; gap: 8px; align-items: center; font-size: 12px; }
+.acc-nodoc { font-weight: 700; color: var(--navy); font-family: monospace; font-size: 11px; }
+.acc-client { font-weight: 600; color: var(--text); }
+.acc-date { color: var(--text-muted); font-size: 11px; }
+.acc-total { font-weight: 800; color: var(--navy); }
+.acc-actions { display: flex; gap: 4px; }
+.acc-body { display: none; padding: 14px 16px 14px 40px; background: var(--surface-2); border-top: 1px solid var(--border); }
+.acc-card.open .acc-body { display: block; }
+.acc-body-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.acc-detail-box { background: var(--surface); border-radius: 8px; padding: 10px 12px; border: 1px solid var(--border); }
+.acc-detail-box h5 { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 6px; }
+.acc-detail-box p { font-size: 11px; color: var(--text); line-height: 1.6; }
+.acc-items-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 8px; }
+.acc-items-table th { background: var(--navy); color: #fff; padding: 5px 8px; text-align: left; font-size: 10px; }
+.acc-items-table td { padding: 5px 8px; border-bottom: 1px solid var(--border); }
+.acc-items-table tr:last-child td { border-bottom: none; }
+
+.badge { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+.badge-unpaid { background: #fde8e8; color: #c0392b; }
+.badge-paid { background: #e6f4ea; color: #137333; }
+.badge-invoice { background: #e8f0fe; color: #1967d2; }
+.badge-receipt { background: #fff3cd; color: #c8892a; }
+
+.btn-sm { padding: 4px 9px; border-radius: 6px; border: none; font-family: inherit; font-size: 10px; font-weight: 700; cursor: pointer; transition: all .15s; }
+.btn-sm-danger { background: #fde8e8; color: var(--danger); }
+.btn-sm-danger:hover { background: var(--danger); color: #fff; }
+.btn-sm-info { background: #e8f0fe; color: var(--info); }
+.btn-sm-info:hover { background: var(--info); color: #fff; }
+.btn-sm-warning { background: #fef3cd; color: var(--warning); }
+.btn-sm-warning:hover { background: var(--warning); color: #fff; }
+
+.loading-spinner { text-align: center; padding: 36px; color: var(--text-muted); font-size: 12px; }
+.spinner { width: 24px; height: 24px; border: 3px solid var(--border); border-top-color: var(--navy); border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto 10px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.history-empty { text-align: center; padding: 50px 20px; color: var(--text-muted); }
+.history-empty .empty-icon { font-size: 40px; margin-bottom: 10px; }
+.history-empty h4 { font-size: 15px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+.history-empty p { font-size: 12px; line-height: 1.6; }
+
+/* History tabs */
+.history-tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); }
+.history-tab-btn { padding: 10px 18px; border: none; background: transparent; font-family: inherit; font-size: 12px; font-weight: 600; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .2s; }
+.history-tab-btn.active { color: var(--navy); border-bottom-color: var(--navy); }
+
+/* ── CUSTOMERS / ITEMS PAGE ── */
+.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.page-header h2 { font-size: 20px; font-weight: 800; color: var(--navy); }
+.data-table-wrap { background: var(--surface); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; box-shadow: var(--shadow); }
+.data-table-header { padding: 14px 16px; background: var(--surface-2); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.data-table thead th { padding: 9px 14px; background: var(--navy); color: rgba(255,255,255,0.85); font-size: 10px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; text-align: left; white-space: nowrap; }
+.data-table tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; }
+.data-table tbody tr:hover { background: var(--surface-2); }
+.data-table tbody tr:last-child { border-bottom: none; }
+.data-table tbody td { padding: 10px 14px; vertical-align: middle; }
+.td-actions { display: flex; gap: 4px; }
+
+.laba-positive { color: var(--success); font-weight: 700; }
+.laba-negative { color: var(--danger); font-weight: 700; }
+
+/* ── TOAST ── */
+.toast { position: fixed; bottom: 20px; right: 20px; background: var(--navy); color: #fff; padding: 12px 18px; border-radius: 10px; font-size: 12px; font-weight: 600; box-shadow: var(--shadow-lg); z-index: 999; display: flex; align-items: center; gap: 8px; transform: translateY(80px); opacity: 0; transition: all .3s cubic-bezier(.34,1.56,.64,1); max-width: 340px; }
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.success { background: var(--success); }
+.toast.error { background: var(--danger); }
+.toast.warning { background: var(--warning); color: var(--navy); }
+
+/* ── SETTINGS ── */
+.logo-upload-wrap { display: flex; align-items: center; gap: 10px; }
+.logo-preview-box { width: 56px; height: 40px; border-radius: 6px; background: var(--surface-2); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 22px; overflow: hidden; flex-shrink: 0; }
+.logo-preview-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.logo-upload-btn { flex: 1; padding: 7px 12px; border: 1.5px dashed var(--border); border-radius: 8px; background: transparent; font-family: inherit; font-size: 12px; color: var(--steel); cursor: pointer; text-align: center; transition: all .2s; }
+.logo-upload-btn:hover { border-color: var(--steel); }
+
+/* DB Banner */
+.db-setup-banner { background: linear-gradient(135deg, #fff9ec, #fff3d5); border: 1.5px solid var(--accent); border-radius: 12px; padding: 16px 20px; display: flex; align-items: flex-start; gap: 14px; }
+.db-setup-banner .banner-icon { font-size: 28px; flex-shrink: 0; }
+.db-setup-banner h3 { font-size: 14px; font-weight: 800; color: var(--navy); margin-bottom: 4px; }
+.db-setup-banner p { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+.db-setup-banner .btn-setup { margin-top: 10px; padding: 7px 16px; background: var(--accent); color: var(--navy); border: none; border-radius: 7px; font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+
+/* nota picker row */
+.inv-picker-row { display: flex; gap: 8px; align-items: flex-end; }
+.inv-picker-row .field { flex: 1; }
+
+/* item catalog */
+.item-name-wrap { position: relative; }
+.item-catalog-btn { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); padding: 2px 6px; border: none; background: var(--accent); color: var(--navy); border-radius: 4px; font-size: 9px; font-weight: 700; cursor: pointer; }
+
+/* Payment DB list in modal */
+.pm-db-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; }
+.pm-db-item .pm-name { font-weight: 700; font-size: 12px; color: var(--navy); }
+.pm-db-item .pm-detail { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+.pm-db-list { display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow-y: auto; }
+
+/* ── PRINT ── */
+@media print {
+  @page { size: 108mm 83mm; margin: 4mm; }
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  body { background: white !important; }
+  .topbar, .form-panel, .preview-panel > *:not(#invoice-doc), .full-page,
+  .print-bar, .toast { display: none !important; }
+  .app-container { display: block !important; height: auto !important; }
+  .preview-panel { background: white !important; padding: 0 !important; display: block !important; }
+  #invoice-doc {
+    width: 100mm !important; min-height: auto !important;
+    box-shadow: none !important; border-radius: 0 !important;
+    font-size: 7.5pt !important;
+  }
+  .doc-header { padding: 6px 10px !important; }
+  .doc-logo { width: 28px !important; height: 22px !important; }
+  .doc-company-name { font-size: 9pt !important; }
+  .doc-type-title { font-size: 14pt !important; }
+  .doc-inv-number { font-size: 7pt !important; }
+  .doc-meta { padding: 5px 10px !important; }
+  .doc-client-name { font-size: 10pt !important; }
+  .doc-client-info, .doc-date-row { font-size: 7pt !important; }
+  .doc-body { padding: 5px 10px !important; }
+  .doc-table thead th, .doc-table tbody td { padding: 3px 6px !important; font-size: 7pt !important; }
+  .doc-total-row { padding: 3px 8px !important; font-size: 7pt !important; }
+  .doc-total-row.grand { padding: 5px 8px !important; font-size: 8pt !important; }
+  .doc-payment-row { gap: 6px !important; margin-bottom: 6px !important; }
+  .doc-payment-box { padding: 5px 7px !important; }
+  .doc-payment-box h4, .doc-payment-box p { font-size: 7pt !important; }
+  .doc-footer { padding: 5px 10px !important; }
+  .doc-footer-left, .doc-footer-right p { font-size: 7pt !important; }
+  .receipt-paid-section { padding: 5px 8px !important; margin-bottom: 6px !important; }
+  .receipt-paid-text h3 { font-size: 8pt !important; }
+  .receipt-paid-text p { font-size: 7pt !important; }
+  .doc-totals { margin-bottom: 6px !important; }
+  .doc-totals-box { min-width: 120px !important; }
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+  .app-container { grid-template-columns: 1fr; grid-template-rows: auto; height: auto; }
+  .form-panel { height: auto; max-height: none; }
+  .preview-panel { padding: 12px; }
+  #invoice-doc { width: 100%; }
+  .doc-header, .doc-meta, .doc-body, .doc-footer { padding-left: 14px; padding-right: 14px; }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .tab-btn { padding: 5px 8px; font-size: 11px; }
+  .acc-header-info { grid-template-columns: 90px 1fr 80px 70px; }
+  .full-page { padding: 14px; }
+}
+@media (max-width: 600px) {
+  .topbar { padding: 0 12px; gap: 8px; }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .acc-body-grid { grid-template-columns: 1fr; }
+  .modal { width: 95vw; }
+  .modal-wide { width: 95vw; }
+  .modal-xl { width: 95vw; }
+}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+
+<!-- TOP NAV -->
+<div class="topbar">
+  <div class="topbar-brand">
+    <div class="topbar-logo" id="topbar-logo-el">✦</div>
+    <div class="topbar-title">Invoice<span>Ku</span></div>
+  </div>
+  <div class="tab-group">
+    <button class="tab-btn active" id="tab-invoice" onclick="switchMode('invoice')">📄 Invoice</button>
+    <button class="tab-btn" id="tab-receipt" onclick="switchMode('receipt')">✅ Nota Pelunasan</button>
+    <button class="tab-btn" id="tab-history" onclick="showPage('history')">📊 Riwayat</button>
+    <button class="tab-btn" id="tab-customers" onclick="showPage('customers')">👥 Customer</button>
+    <button class="tab-btn" id="tab-items" onclick="showPage('items')">📦 Item &amp; Layanan</button>
+  </div>
+  <div class="topbar-actions">
+    <button class="btn-icon" title="Pengaturan" onclick="openSettings()">⚙️</button>
+  </div>
+</div>
+
+<!-- APP LAYOUT -->
+<div class="app-container" id="main-app">
+  <div class="form-panel" id="form-panel">
+
+    <!-- Info Dokumen -->
+    <div class="form-section">
+      <div class="section-header">📋 Info Dokumen</div>
+      <div class="section-body no-scroll">
+        <div class="field-row">
+          <div class="field">
+            <label>Nomor Dokumen</label>
+            <input type="text" id="inv-number" placeholder="INV-001" oninput="updatePreview()">
+          </div>
+          <div class="field">
+            <label>Tanggal Terbit</label>
+            <input type="date" id="inv-date" oninput="updatePreview()">
+          </div>
+        </div>
+        <div id="due-date-row" class="field">
+          <label>Jatuh Tempo</label>
+          <input type="date" id="due-date" oninput="updatePreview()">
+        </div>
+        <div id="paid-date-wrap" class="field" style="display:none">
+          <label>Tanggal Bayar</label>
+          <input type="date" id="paid-date" oninput="updatePreview()">
+        </div>
+        <!-- Status hanya untuk Nota Pelunasan -->
+        <div id="pay-status-wrap" class="field" style="display:none">
+          <label>Status Pelunasan</label>
+          <select id="pay-status" onchange="updatePreview()">
+            <option value="Lunas">🟢 Lunas</option>
+            <option value="Belum Bayar">🔴 Belum Lunas</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ambil data Invoice (hanya nota) -->
+    <div class="form-section" id="inv-ref-wrap" style="display:none">
+      <div class="section-header" style="justify-content:space-between">
+        <span>🔗 Ambil Data dari Invoice</span>
+        <label class="toggle-wrap" style="margin:0">
+          <div class="toggle-switch">
+            <input type="checkbox" id="use-inv-ref-toggle" onchange="toggleInvRef(this.checked)">
+            <div class="toggle-track"></div>
+          </div>
+          <span class="toggle-label" style="color:rgba(255,255,255,0.8);font-size:10px">Aktifkan</span>
+        </label>
+      </div>
+      <div class="section-body no-scroll" id="inv-ref-body" style="display:none">
+        <div class="inv-picker-row">
+          <div class="field autocomplete-wrap" style="flex:1;position:relative">
+            <label>Cari No. Invoice / Nama</label>
+            <input type="text" id="inv-ref-search" placeholder="Ketik no. invoice atau nama..." oninput="searchInvoiceRef()">
+            <div class="autocomplete-dropdown" id="inv-ref-dropdown" style="display:none"></div>
+          </div>
+          <button onclick="clearInvRef()" style="padding:8px 10px;background:var(--danger);color:#fff;border:none;border-radius:8px;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0;align-self:flex-end">✕ Kosongkan</button>
+        </div>
+        <div id="inv-ref-info" style="display:none;padding:8px 10px;background:#e8f5e9;border-radius:6px;font-size:11px;color:var(--success);border:1px solid #a5d6a7">
+          ✅ Data customer & item diambil dari invoice yang dipilih
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Pelanggan -->
+    <div class="form-section">
+      <div class="section-header">👤 Data Pelanggan</div>
+      <div class="section-body">
+        <div class="field autocomplete-wrap">
+          <label>Nama Pelanggan / Perusahaan</label>
+          <input type="text" id="client-name" placeholder="Ketik nama atau pilih..." oninput="onClientNameInput()" autocomplete="off">
+          <div class="autocomplete-dropdown" id="client-dropdown" style="display:none"></div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>No. HP / WA</label>
+            <input type="text" id="client-phone" placeholder="+62 8xx xxxx xxxx" oninput="updatePreview()">
+          </div>
+          <div class="field">
+            <label>Email</label>
+            <input type="email" id="client-email" placeholder="email@contoh.com" oninput="updatePreview()">
+          </div>
+        </div>
+        <div class="field">
+          <label>Alamat</label>
+          <textarea id="client-address" placeholder="Jalan, Kota" oninput="updatePreview()"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Item / Layanan -->
+    <div class="form-section">
+      <div class="section-header">📦 Item / Layanan</div>
+      <div class="section-body">
+        <div class="items-header">
+          <span>Nama Layanan</span>
+          <span style="text-align:center">Qty</span>
+          <span style="text-align:center">Harga</span>
+          <span style="text-align:right">Total</span>
+          <span></span>
+        </div>
+        <div id="items-list"></div>
+        <button class="btn-add-item" onclick="addItem()">＋ Tambah Item</button>
+        <div class="subtotals-box">
+          <div class="subtotal-row"><span>Subtotal</span><span id="subtotal-display">Rp 0</span></div>
+          <div class="subtotal-row">
+            <span>Diskon (Rp)</span>
+            <input type="number" id="discount" min="0" value="0" oninput="updatePreview()" placeholder="0">
+          </div>
+          <div class="subtotal-row">
+            <span>PPN / Pajak (%)</span>
+            <input type="number" id="tax" min="0" max="100" value="0" oninput="updatePreview()">
+          </div>
+          <div class="subtotal-row total"><span>TOTAL</span><span id="total-display">Rp 0</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pembayaran -->
+    <div class="form-section">
+      <div class="section-header" style="justify-content:space-between">
+        <span>🏦 Metode Pembayaran</span>
+        <button onclick="openPaymentDBModal()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:10px;font-weight:600;padding:3px 8px;border-radius:5px;cursor:pointer">⚙️ Kelola</button>
+      </div>
+      <div class="section-body">
+        <div id="payment-chips-area">
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">Pilih dari database (klik untuk tambah/hapus):</div>
+          <div class="payment-chip-list" id="payment-chips"></div>
+        </div>
+        <button class="btn-add-item" onclick="addManualPayRow()" style="margin-top:4px">＋ Tambah Manual</button>
+        <div id="payment-rows-list" style="display:flex;flex-direction:column;gap:6px;margin-top:4px"></div>
+      </div>
+    </div>
+
+    <!-- Catatan -->
+    <div class="form-section">
+      <div class="section-header">📝 Catatan</div>
+      <div class="section-body no-scroll">
+        <div class="field">
+          <textarea id="notes" rows="2" placeholder="Catatan tambahan..." oninput="updatePreview()"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div style="height:80px"></div>
+    <div class="print-bar">
+      <button class="btn-reset" onclick="confirmReset()" title="Reset Form">🗑</button>
+      <button class="btn-save-db" id="btn-save-db" onclick="saveToDatabase()">💾 Simpan</button>
+      <button class="btn-print" id="btn-print-only" onclick="printAndSave()">🖨️ Cetak &amp; Simpan</button>
+    </div>
+  </div><!-- /form-panel -->
+
+  <!-- PREVIEW PANEL -->
+  <div class="preview-panel">
+    <div id="invoice-doc">
+      <div class="doc-header">
+        <div class="doc-logo-area">
+          <div class="doc-logo" id="doc-logo">🎨</div>
+          <div>
+            <div class="doc-company-name" id="doc-company-name">Nama Perusahaan</div>
+            <div class="doc-company-tagline" id="doc-company-tagline">Bidang Usaha</div>
+          </div>
+        </div>
+        <div class="doc-title-area">
+          <div class="doc-type-title" id="doc-type-title">TAGIHAN</div>
+          <div class="doc-inv-number">No: <strong id="doc-inv-number">—</strong></div>
+        </div>
+      </div>
+      <div class="doc-meta">
+        <div class="doc-client-area">
+          <div class="doc-to-label">Ditagihkan kepada</div>
+          <div class="doc-client-name" id="doc-client-name">—</div>
+          <div class="doc-client-info" id="doc-client-info">—</div>
+        </div>
+        <div class="doc-date-area">
+          <div class="doc-date-row" id="doc-date-row"><strong>Tgl Terbit:</strong> —</div>
+          <div class="doc-date-row" id="doc-due-row"><strong>Jatuh Tempo:</strong> —</div>
+          <div class="doc-date-row" id="doc-paid-row" style="display:none"><strong>Tgl Bayar:</strong> —</div>
+        </div>
+      </div>
+      <div class="doc-body" style="position:relative">
+        <div class="receipt-paid-section" id="receipt-paid-section">
+          <div class="receipt-paid-icon">✅</div>
+          <div class="receipt-paid-text">
+            <h3>PEMBAYARAN DITERIMA</h3>
+            <p id="receipt-paid-msg">Bukti pelunasan atas tagihan yang telah dibayarkan.</p>
+          </div>
+        </div>
+        <div class="doc-watermark" id="doc-watermark">✦</div>
+        <table class="doc-table">
+          <thead><tr><th>Nama Layanan / Barang</th><th>Qty</th><th>Harga Satuan</th><th>Total</th></tr></thead>
+          <tbody id="doc-items-body"><tr><td colspan="4" style="text-align:center;color:#aaa;padding:16px">Tambahkan item di panel kiri</td></tr></tbody>
+        </table>
+        <div class="doc-totals">
+          <div class="doc-totals-box">
+            <div class="doc-total-row"><span>Subtotal</span><span id="doc-subtotal">Rp 0</span></div>
+            <div class="doc-total-row" id="doc-discount-row" style="display:none"><span>Diskon</span><span id="doc-discount-val">–</span></div>
+            <div class="doc-total-row" id="doc-tax-row" style="display:none"><span id="doc-tax-label">PPN</span><span id="doc-tax-val">–</span></div>
+            <div class="doc-total-row grand"><span>TOTAL</span><span id="doc-grand-total">Rp 0</span></div>
+          </div>
+        </div>
+        <div class="doc-payment-row">
+          <div class="doc-payment-box"><h4>Metode Pembayaran</h4><p id="doc-payment-method">—</p></div>
+          <div class="doc-payment-box"><h4>Catatan</h4><p id="doc-notes-preview">—</p></div>
+        </div>
+      </div>
+      <div class="doc-footer">
+        <div class="doc-footer-left" id="doc-footer-company"><strong>Perusahaan</strong></div>
+        <div class="doc-footer-right" id="doc-footer-right">
+          <div class="signature-line"></div>
+          <p id="doc-signer-name">Nama Pimpinan</p>
+          <p><strong id="doc-signer-role">Manajer</strong></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div><!-- /app-container -->
+
+<!-- ══ HISTORY PAGE ══ -->
+<div class="full-page" id="page-history">
+  <div id="db-setup-banner" class="db-setup-banner" style="display:none">
+    <div class="banner-icon">🔗</div>
+    <div>
+      <h3>Hubungkan ke Google Sheets</h3>
+      <p>Atur Google Apps Script URL di ⚙️ Pengaturan untuk menyimpan & melihat data.</p>
+      <button class="btn-setup" onclick="openSettings()">⚙️ Buka Pengaturan</button>
+    </div>
+  </div>
+  <div class="stats-grid" id="stats-grid">
+    <div class="stat-card"><div class="stat-label">Total Invoice</div><div class="stat-value" id="stat-invoices">—</div><div class="stat-sub">dokumen tagihan</div></div>
+    <div class="stat-card accent"><div class="stat-label">Pendapatan Masuk</div><div class="stat-value" id="stat-revenue">—</div><div class="stat-sub">dari nota lunas</div></div>
+    <div class="stat-card success"><div class="stat-label">Nota Lunas</div><div class="stat-value" id="stat-paid">—</div><div class="stat-sub">pembayaran diterima</div></div>
+    <div class="stat-card danger"><div class="stat-label">Piutang</div><div class="stat-value" id="stat-piutang">—</div><div class="stat-sub">belum terbayar</div></div>
+  </div>
+  <div class="history-section">
+    <div class="history-section-header">
+      <div class="history-tabs">
+        <button class="history-tab-btn active" onclick="switchHistoryTab('invoice',this)">📄 Invoice</button>
+        <button class="history-tab-btn" onclick="switchHistoryTab('receipt',this)">✅ Nota Pelunasan</button>
+      </div>
+      <div class="history-filters">
+        <input type="text" id="search-filter" placeholder="🔍 Cari..." oninput="filterHistory()">
+        <!-- Status filter hanya muncul di tab nota -->
+        <select id="status-filter" onchange="filterHistory()" style="display:none">
+          <option value="">Semua Status</option>
+          <option value="Lunas">Lunas</option>
+          <option value="Belum Bayar">Belum Lunas</option>
+        </select>
+        <button class="btn-primary" onclick="loadHistory()" style="padding:6px 12px;font-size:11px;">🔄</button>
+      </div>
+    </div>
+    <div id="history-loading" class="loading-spinner" style="display:none"><div class="spinner"></div>Memuat data…</div>
+    <div id="history-empty" class="history-empty" style="display:none"><div class="empty-icon">📂</div><h4>Belum ada data</h4><p>Buat invoice dan simpan ke database terlebih dahulu.</p></div>
+    <div class="accordion-list" id="accordion-list"></div>
+  </div>
+</div>
+
+<!-- ══ CUSTOMERS PAGE ══ -->
+<div class="full-page" id="page-customers">
+  <div class="page-header">
+    <h2>👥 Data Customer</h2>
+    <button class="btn-primary" onclick="openCustomerForm()">＋ Tambah Customer</button>
+  </div>
+  <div class="data-table-wrap">
+    <div class="data-table-header">
+      <span style="font-size:13px;font-weight:700;color:var(--navy)">Daftar Customer</span>
+      <input type="text" id="customer-search" placeholder="🔍 Cari nama..." oninput="renderCustomers()" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:inherit;font-size:11px;outline:none">
+    </div>
+    <div style="overflow-x:auto">
+      <table class="data-table">
+        <thead><tr><th>#</th><th>Nama</th><th>No. HP</th><th>Email</th><th>Alamat</th><th>Aksi</th></tr></thead>
+        <tbody id="customers-tbody"></tbody>
+      </table>
+    </div>
+    <div id="customers-empty" class="history-empty" style="display:none;padding:30px 20px"><div class="empty-icon">👤</div><h4>Belum ada customer</h4></div>
+  </div>
+</div>
+
+<!-- ══ ITEMS PAGE ══ -->
+<div class="full-page" id="page-items">
+  <div class="page-header">
+    <h2>📦 Item &amp; Layanan</h2>
+    <button class="btn-primary" onclick="openItemForm()">＋ Tambah Item</button>
+  </div>
+  <div class="data-table-wrap">
+    <div class="data-table-header">
+      <span style="font-size:13px;font-weight:700;color:var(--navy)">Katalog Item &amp; Layanan</span>
+      <input type="text" id="item-search" placeholder="🔍 Cari item..." oninput="renderItems()" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:7px;font-family:inherit;font-size:11px;outline:none">
+    </div>
+    <div style="overflow-x:auto">
+      <table class="data-table">
+        <thead><tr><th>#</th><th>Nama Item / Layanan</th><th>Satuan</th><th>Harga Beli</th><th>Harga Jual</th><th>Laba</th><th>Aksi</th></tr></thead>
+        <tbody id="items-tbody"></tbody>
+      </table>
+    </div>
+    <div id="items-page-empty" class="history-empty" style="display:none;padding:30px 20px"><div class="empty-icon">📦</div><h4>Belum ada item</h4></div>
+  </div>
+</div>
+
+<!-- ══ SETTINGS MODAL ══ -->
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal modal-wide">
+    <h2>⚙️ Pengaturan Perusahaan</h2>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="field"><label>Nama Perusahaan</label><input type="text" id="s-company" placeholder="CV Kreatif Studio"></div>
+      <div class="field"><label>Tagline / Bidang Usaha</label><input type="text" id="s-tagline" placeholder="Desain Grafis & Percetakan"></div>
+      <div class="field-row">
+        <div class="field"><label>No. HP / WA</label><input type="text" id="s-phone" placeholder="+62 8xx"></div>
+        <div class="field"><label>Email</label><input type="text" id="s-email" placeholder="email@usaha.com"></div>
+      </div>
+      <div class="field"><label>Alamat Perusahaan</label><textarea id="s-address" placeholder="Jl. Contoh No.1, Kota"></textarea></div>
+      <div class="field-row">
+        <div class="field"><label>Nama Penanda Tangan</label><input type="text" id="s-signer" placeholder="Nama Pimpinan"></div>
+        <div class="field"><label>Jabatan</label><input type="text" id="s-role" placeholder="Direktur / Manajer"></div>
+      </div>
+      <!-- Toggle tampilkan pimpinan -->
+      <label class="toggle-wrap" style="cursor:pointer">
+        <div class="toggle-switch">
+          <input type="checkbox" id="s-show-signer" checked>
+          <div class="toggle-track"></div>
+        </div>
+        <span class="toggle-label">Tampilkan Nama Pimpinan di Dokumen</span>
+      </label>
+      <div class="field">
+        <label>Logo Perusahaan</label>
+        <div class="logo-upload-wrap">
+          <div class="logo-preview-box" id="logo-preview-box">🎨</div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+            <label class="logo-upload-btn" for="logo-file-input">📁 Upload Logo (PNG/JPG/SVG) — Tidak dipotong lingkaran</label>
+            <input type="file" id="logo-file-input" accept="image/*" style="display:none" onchange="handleLogoUpload(event)">
+            <div style="display:flex;gap:6px;align-items:center">
+              <input type="text" id="s-logo-emoji" placeholder="Atau emoji: 🎨" maxlength="4" style="padding:6px 8px;border:1.5px solid var(--border);border-radius:7px;font-size:16px;text-align:center;outline:none;width:80px">
+              <button class="btn-secondary" onclick="clearLogo()" style="font-size:11px;padding:6px 10px">Hapus Logo</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Diskon Default (Rp)</label><input type="number" id="s-default-discount" min="0" value="0" placeholder="0"></div>
+        <div class="field"><label>PPN Default (%)</label><input type="number" id="s-default-tax" min="0" max="100" value="0" placeholder="0"></div>
+      </div>
+      <hr style="border:none;border-top:1px solid var(--border);margin:4px 0">
+      <div class="field">
+        <label>🔗 URL Google Apps Script</label>
+        <input type="url" id="s-script-url" placeholder="https://script.google.com/macros/s/xxxx/exec">
+        <span style="font-size:11px;color:var(--text-muted);margin-top:2px;display:block">Salin URL dari deployment Apps Script kamu.</span>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeSettings()">Batal</button>
+      <button class="btn-primary" onclick="saveSettings()">💾 Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- PAYMENT DB MODAL -->
+<div class="modal-overlay" id="payment-modal">
+  <div class="modal modal-wide">
+    <h2>🏦 Database Metode Pembayaran</h2>
+    <div style="display:flex;flex-direction:column;gap:10px" id="pm-form">
+      <div class="field-row">
+        <div class="field"><label>Nama / Label *</label><input type="text" id="pm-name" placeholder="BRI Transfer, QRIS Toko..."></div>
+        <div class="field"><label>Jenis Pembayaran</label>
+          <select id="pm-type">
+            <option>Transfer Bank</option><option>QRIS</option><option>Tunai</option>
+            <option>OVO</option><option>GoPay</option><option>Dana</option><option>ShopeePay</option><option>Lainnya</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Nama Bank / e-Wallet</label><input type="text" id="pm-bank" placeholder="BRI / BCA / GoPay"></div>
+        <div class="field"><label>No. Rekening / ID</label><input type="text" id="pm-account" placeholder="xxxx xxxx xxxx"></div>
+      </div>
+      <div class="field"><label>Atas Nama</label><input type="text" id="pm-holder" placeholder="Nama pemilik rekening"></div>
+      <input type="hidden" id="pm-edit-id">
+      <div style="display:flex;gap:8px">
+        <button class="btn-primary" onclick="savePM()" style="flex:1">➕ Tambah / Update</button>
+        <button class="btn-secondary" onclick="clearPMForm()">Reset</button>
+      </div>
+    </div>
+    <hr style="border:none;border-top:1px solid var(--border);margin:12px 0">
+    <div class="pm-db-list" id="pm-db-list"></div>
+    <div class="modal-actions"><button class="btn-secondary" onclick="closePaymentDBModal()">Tutup</button></div>
+  </div>
+</div>
+
+<!-- CUSTOMER FORM MODAL -->
+<div class="modal-overlay" id="customer-modal">
+  <div class="modal">
+    <h2 id="customer-modal-title">➕ Tambah Customer</h2>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <input type="hidden" id="cm-id">
+      <div class="field"><label>Nama *</label><input type="text" id="cm-name" placeholder="Nama pelanggan / perusahaan"></div>
+      <div class="field-row">
+        <div class="field"><label>No. HP / WA</label><input type="text" id="cm-phone" placeholder="+62 8xx"></div>
+        <div class="field"><label>Email</label><input type="email" id="cm-email" placeholder="email@..."></div>
+      </div>
+      <div class="field"><label>Alamat</label><textarea id="cm-address" placeholder="Jalan, Kota" rows="2"></textarea></div>
+      <div class="field"><label>Catatan</label><input type="text" id="cm-note" placeholder="Opsional"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeCustomerForm()">Batal</button>
+      <button class="btn-primary" onclick="saveCustomer()">💾 Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ITEM FORM MODAL -->
+<div class="modal-overlay" id="item-modal">
+  <div class="modal">
+    <h2 id="item-modal-title">➕ Tambah Item / Layanan</h2>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <input type="hidden" id="im-id">
+      <div class="field"><label>Nama Item / Layanan *</label><input type="text" id="im-name" placeholder="Desain Logo, Print A3, dll"></div>
+      <div class="field"><label>Satuan</label><input type="text" id="im-unit" placeholder="pcs, lembar, jam, paket..."></div>
+      <div class="field-row">
+        <div class="field"><label>Harga Beli (Modal)</label><input type="number" id="im-buy-price" min="0" placeholder="0"></div>
+        <div class="field"><label>Harga Jual</label><input type="number" id="im-sell-price" min="0" placeholder="0"></div>
+      </div>
+      <div class="field"><label>Keterangan</label><input type="text" id="im-desc" placeholder="Deskripsi singkat (opsional)"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeItemForm()">Batal</button>
+      <button class="btn-primary" onclick="saveItem()">💾 Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MODAL (dinamis per jenis) -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal modal-xl">
+    <h2 id="edit-modal-title">✏️ Edit Dokumen</h2>
+    <input type="hidden" id="edit-nodoc">
+    <input type="hidden" id="edit-jenis">
+    <div id="edit-modal-body" style="display:flex;flex-direction:column;gap:10px">
+      <div class="field-row">
+        <div class="field"><label>No. Dokumen</label><input type="text" id="edit-nodoc-display" readonly style="background:#f4f6f9;color:#888"></div>
+        <div class="field"><label>Tgl Terbit</label><input type="date" id="edit-tgl-terbit"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label id="edit-date2-label">Jatuh Tempo</label><input type="date" id="edit-tgl-jatuh"></div>
+        <div class="field"><label>Nama Pelanggan</label><input type="text" id="edit-client"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>No. HP</label><input type="text" id="edit-phone"></div>
+        <div class="field"><label>Email</label><input type="email" id="edit-email"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Diskon (Rp)</label><input type="number" id="edit-discount" min="0"></div>
+        <div class="field"><label>PPN (%)</label><input type="number" id="edit-tax" min="0" max="100"></div>
+      </div>
+      <!-- Status hanya untuk nota -->
+      <div class="field" id="edit-status-row" style="display:none">
+        <label>Status Pelunasan</label>
+        <select id="edit-status"><option value="Lunas">🟢 Lunas</option><option value="Belum Bayar">🔴 Belum Lunas</option></select>
+      </div>
+      <div class="field"><label>Catatan</label><textarea id="edit-notes" rows="2"></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeEditModal()">Batal</button>
+      <button class="btn-primary" onclick="saveEdit()">💾 Simpan Perubahan</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM DELETE MODAL -->
+<div class="modal-overlay" id="delete-modal">
+  <div class="modal" style="max-width:400px">
+    <h2>🗑️ Hapus Dokumen?</h2>
+    <p style="font-size:13px;color:var(--text-muted);line-height:1.6;margin-bottom:4px">Dokumen <strong id="delete-nodoc-label"></strong> akan dihapus. Dokumen lain yang terkait <strong>tidak</strong> ikut terhapus.</p>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeDeleteModal()">Batal</button>
+      <button class="btn-danger" onclick="confirmDelete()">🗑️ Hapus</button>
+    </div>
+  </div>
+</div>
+
+<!-- ITEM CATALOG PICKER MODAL -->
+<div class="modal-overlay" id="catalog-modal">
+  <div class="modal">
+    <h2>📦 Pilih Item dari Katalog</h2>
+    <input type="text" id="catalog-search" placeholder="🔍 Cari item..." oninput="renderCatalogList()" style="width:100%;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:12px;outline:none;margin-bottom:10px">
+    <div id="catalog-list" style="max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:4px"></div>
+    <div class="modal-actions"><button class="btn-secondary" onclick="closeCatalogModal()">Tutup</button></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+let mode = 'invoice';
+let items = [];
+let itemIdCounter = 0;
+let allHistoryData = [];
+let historyTab = 'invoice';
+let currentEditDoc = null;
+let pendingDeleteDoc = null;
+let catalogTargetItemId = null;
+let invoicePayments = []; // [{pmId:'manual'|id, type, bank, account, holder}]
+let manualPayCounter = 0;
+
+let customers    = JSON.parse(localStorage.getItem('invoiceku_customers') || '[]');
+let catalogItems = JSON.parse(localStorage.getItem('invoiceku_catalog')   || '[]');
+let settings     = JSON.parse(localStorage.getItem('invoiceku_settings')  || '{}');
+let paymentMethods = JSON.parse(localStorage.getItem('invoiceku_payments') || '[]');
+
+// ══════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════
+function formatRp(n) { return 'Rp ' + Math.round(n||0).toLocaleString('id-ID'); }
+
+// FIX: Indonesian format uses dot as thousands separator → strip all non-digits
+function parseRp(s) {
+  if (!s && s !== 0) return 0;
+  return parseInt(String(s).replace(/[^0-9]/g, ''), 10) || 0;
+}
+
+function formatDate(s) {
+  if (!s) return '—';
+  const d = new Date(s + 'T00:00:00');
+  return d.toLocaleDateString('id-ID', {day:'2-digit', month:'long', year:'numeric'});
+}
+function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escJs(s)   { return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+(function init() {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('inv-date').value = today;
+  const due = new Date(); due.setDate(due.getDate()+14);
+  document.getElementById('due-date').value = due.toISOString().split('T')[0];
+
+  // Simple invoice numbering
+  const lastNo = localStorage.getItem('invoiceku_lastno') || '0';
+  document.getElementById('inv-number').value = 'INV-' + String(parseInt(lastNo)+1).padStart(3,'0');
+
+  if (settings.defaultDiscount) document.getElementById('discount').value = settings.defaultDiscount;
+  if (settings.defaultTax) document.getElementById('tax').value = settings.defaultTax;
+
+  addItem(); addItem();
+  applySettings();
+  updateSaveButton();
+  updatePreview();
+  renderCustomers();
+  renderItems();
+  renderPaymentChips();
+
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.autocomplete-wrap') && !e.target.closest('#inv-ref-wrap')) {
+      document.querySelectorAll('.autocomplete-dropdown').forEach(d => d.style.display = 'none');
+    }
+  });
+})();
+
+// ══════════════════════════════════════════════
+// NAV
+// ══════════════════════════════════════════════
+function switchMode(m) {
+  mode = m;
+  document.getElementById('main-app').classList.remove('hidden');
+  document.querySelectorAll('.full-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+
+  if (m === 'invoice') {
+    document.getElementById('tab-invoice').classList.add('active');
+    document.getElementById('due-date-row').style.display = '';
+    document.getElementById('paid-date-wrap').style.display = 'none';
+    document.getElementById('pay-status-wrap').style.display = 'none';
+    document.getElementById('inv-ref-wrap').style.display = 'none';
+    // Reset toggle
+    document.getElementById('use-inv-ref-toggle').checked = false;
+    document.getElementById('inv-ref-body').style.display = 'none';
+    // New INV number
+    const lastNo = localStorage.getItem('invoiceku_lastno') || '0';
+    document.getElementById('inv-number').value = 'INV-' + String(parseInt(lastNo)+1).padStart(3,'0');
+  } else {
+    document.getElementById('tab-receipt').classList.add('active');
+    document.getElementById('due-date-row').style.display = 'none';
+    document.getElementById('paid-date-wrap').style.display = '';
+    document.getElementById('pay-status-wrap').style.display = '';
+    document.getElementById('inv-ref-wrap').style.display = '';
+    document.getElementById('paid-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('pay-status').value = 'Lunas';
+    // New NP number
+    const lastNota = localStorage.getItem('invoiceku_lastno_nota') || '0';
+    document.getElementById('inv-number').value = 'NP-' + String(parseInt(lastNota)+1).padStart(3,'0');
+    // Load local history for invoice ref search
+    loadHistoryLocal();
+  }
+  updatePreview();
+}
+
+function showPage(p) {
+  document.getElementById('main-app').classList.add('hidden');
+  document.querySelectorAll('.full-page').forEach(pg => pg.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + p).classList.add('active');
+  document.getElementById('tab-' + p).classList.add('active');
+  if (p === 'history') loadHistory();
+  if (p === 'customers') renderCustomers();
+  if (p === 'items') renderItems();
+}
+
+// ══════════════════════════════════════════════
+// INVOICE REF TOGGLE
+// ══════════════════════════════════════════════
+function toggleInvRef(checked) {
+  document.getElementById('inv-ref-body').style.display = checked ? '' : 'none';
+  if (!checked) {
+    document.getElementById('inv-ref-search').value = '';
+    document.getElementById('inv-ref-info').style.display = 'none';
+    document.getElementById('inv-ref-dropdown').style.display = 'none';
+  }
+}
+
+function searchInvoiceRef() {
+  const q = document.getElementById('inv-ref-search').value.toLowerCase();
+  const dd = document.getElementById('inv-ref-dropdown');
+  if (!q) { dd.style.display = 'none'; return; }
+  const invoices = allHistoryData.filter(r => r['Jenis'] === 'invoice' &&
+    ((r['No. Dokumen']||'').toLowerCase().includes(q) || (r['Nama Pelanggan']||'').toLowerCase().includes(q)));
+  if (invoices.length === 0) { dd.style.display = 'none'; return; }
+  dd.innerHTML = invoices.slice(0,8).map(r => `
+    <div class="autocomplete-item" onclick="selectInvoiceRef('${escJs(r['No. Dokumen'])}')">
+      <div class="ac-name">${escHtml(r['No. Dokumen']||'')} — ${escHtml(r['Nama Pelanggan']||'')}</div>
+      <div class="ac-sub">${formatRp(parseFloat(r['Total'])||0)} · ${r['Tgl Terbit']||''}</div>
+    </div>
+  `).join('');
+  dd.style.display = 'block';
+}
+
+function selectInvoiceRef(noDoc) {
+  const inv = allHistoryData.find(r => r['No. Dokumen'] === noDoc && r['Jenis'] === 'invoice');
+  if (!inv) { showToast('Invoice tidak ditemukan', 'error'); return; }
+  document.getElementById('inv-ref-search').value = noDoc;
+  document.getElementById('inv-ref-dropdown').style.display = 'none';
+  document.getElementById('inv-ref-info').style.display = 'block';
+
+  document.getElementById('client-name').value  = inv['Nama Pelanggan'] || '';
+  document.getElementById('client-phone').value = inv['No. HP'] || '';
+  document.getElementById('client-email').value = inv['Email'] || '';
+  document.getElementById('client-address').value = inv['Alamat'] || '';
+
+  // Restore items - FIX: use parseRp properly
+  items = []; itemIdCounter = 0;
+  const detailStr = inv['Detail Item'] || '';
+  if (detailStr) {
+    detailStr.split(';').forEach(seg => {
+      seg = seg.trim();
+      if (!seg) return;
+      const m = seg.match(/^(.+)\s+\((\d+)x(.+)\)$/);
+      if (m) {
+        addItem(m[1].trim(), parseInt(m[2]), parseRp(m[3]));
+      } else {
+        addItem(seg, 1, 0);
+      }
+    });
+  }
+
+  // Discount sebagai nominal
+  const discVal = parseFloat(inv['Diskon(Rp)'] || inv['Diskon(%)'] || '0');
+  // If old data was %, convert approximately (not ideal but best effort)
+  document.getElementById('discount').value = discVal > 100 ? discVal : 0;
+  document.getElementById('tax').value = inv['PPN(%)'] || '0';
+  document.getElementById('notes').value = 'Pelunasan Invoice ' + noDoc;
+  updatePreview();
+}
+
+function clearInvRef() {
+  document.getElementById('inv-ref-search').value = '';
+  document.getElementById('inv-ref-info').style.display = 'none';
+}
+
+// ══════════════════════════════════════════════
+// ITEMS FORM
+// ══════════════════════════════════════════════
+function addItem(name='', qty=1, price=0) {
+  const id = ++itemIdCounter;
+  items.push({ id, name, qty: parseInt(qty)||1, price: parseFloat(price)||0 });
+  renderItemsList();
+  updatePreview();
+}
+
+function removeItem(id) {
+  items = items.filter(i => i.id !== id);
+  renderItemsList();
+  updatePreview();
+}
+
+function updateItem(id, field, val) {
+  const it = items.find(i => i.id === id);
+  if (!it) return;
+  if (field === 'name') {
+    it.name = val;
+    const cat = catalogItems.find(c => c.name === val);
+    if (cat && cat.sellPrice) { it.price = parseFloat(cat.sellPrice); renderItemsList(); }
+  } else if (field === 'qty') it.qty = parseInt(val)||1;
+  else if (field === 'price') it.price = parseFloat(val)||0;
+  updatePreview();
+}
+
+function renderItemsList() {
+  const list = document.getElementById('items-list');
+  list.innerHTML = '';
+  items.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'item-row';
+    div.innerHTML = `
+      <div class="item-name-wrap">
+        <input type="text" value="${escHtml(item.name)}" onchange="updateItem(${item.id},'name',this.value)" placeholder="Nama item..." list="catalog-datalist">
+        <button class="item-catalog-btn" onclick="openCatalogModal(${item.id})" title="Pilih dari katalog">📦</button>
+      </div>
+      <input type="number" min="1" value="${item.qty}" onchange="updateItem(${item.id},'qty',this.value)" style="text-align:center">
+      <input type="number" min="0" value="${item.price}" onchange="updateItem(${item.id},'price',this.value)" placeholder="0">
+      <div class="item-total">${formatRp(item.qty*item.price)}</div>
+      <button class="btn-remove-item" onclick="removeItem(${item.id})">✕</button>
+    `;
+    list.appendChild(div);
+  });
+  let dl = document.getElementById('catalog-datalist');
+  if (!dl) { dl = document.createElement('datalist'); dl.id = 'catalog-datalist'; document.body.appendChild(dl); }
+  dl.innerHTML = catalogItems.map(c => `<option value="${escHtml(c.name)}">`).join('');
+}
+
+// ══════════════════════════════════════════════
+// CATALOG MODAL
+// ══════════════════════════════════════════════
+function openCatalogModal(itemId) { catalogTargetItemId = itemId; document.getElementById('catalog-search').value = ''; renderCatalogList(); document.getElementById('catalog-modal').classList.add('open'); }
+function closeCatalogModal() { document.getElementById('catalog-modal').classList.remove('open'); }
+function renderCatalogList() {
+  const q = document.getElementById('catalog-search').value.toLowerCase();
+  const list = document.getElementById('catalog-list');
+  const filtered = catalogItems.filter(c => c.name.toLowerCase().includes(q));
+  if (filtered.length === 0) { list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted)">Tidak ada item</div>'; return; }
+  list.innerHTML = filtered.map(c => `
+    <div onclick="selectCatalogItem('${escJs(c.name)}',${c.sellPrice||0})" style="padding:10px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background=''">
+      <div style="font-weight:700;font-size:12px;color:var(--navy)">${escHtml(c.name)}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${c.unit?c.unit+' · ':''}Jual: ${formatRp(c.sellPrice||0)}</div>
+    </div>`).join('');
+}
+function selectCatalogItem(name, price) {
+  const it = items.find(i => i.id === catalogTargetItemId);
+  if (it) { it.name = name; it.price = price; }
+  renderItemsList(); updatePreview(); closeCatalogModal();
+}
+
+// ══════════════════════════════════════════════
+// CUSTOMER AUTOCOMPLETE
+// ══════════════════════════════════════════════
+function onClientNameInput() {
+  updatePreview();
+  const q = document.getElementById('client-name').value.toLowerCase();
+  const dd = document.getElementById('client-dropdown');
+  if (!q) { dd.style.display = 'none'; return; }
+  const matches = customers.filter(c => c.name.toLowerCase().includes(q));
+  if (matches.length === 0) { dd.style.display = 'none'; return; }
+  dd.innerHTML = matches.map(c => `
+    <div class="autocomplete-item" onclick="selectCustomer(${customers.indexOf(c)})">
+      <div class="ac-name">${escHtml(c.name)}</div>
+      <div class="ac-sub">${c.phone||''} ${c.email?'· '+c.email:''}</div>
+    </div>`).join('');
+  dd.style.display = 'block';
+}
+function selectCustomer(idx) {
+  const c = customers[idx];
+  document.getElementById('client-name').value = c.name;
+  document.getElementById('client-phone').value = c.phone||'';
+  document.getElementById('client-email').value = c.email||'';
+  document.getElementById('client-address').value = c.address||'';
+  document.getElementById('client-dropdown').style.display = 'none';
+  updatePreview();
+}
+
+// ══════════════════════════════════════════════
+// PAYMENT METHODS
+// ══════════════════════════════════════════════
+function renderPaymentChips() {
+  const area = document.getElementById('payment-chips');
+  if (paymentMethods.length === 0) {
+    area.innerHTML = '<span style="font-size:11px;color:var(--text-muted);font-style:italic">Belum ada metode di database. Klik ⚙️ Kelola untuk menambah.</span>';
+    return;
+  }
+  area.innerHTML = paymentMethods.map(pm => {
+    const sel = invoicePayments.some(p => p.pmId === pm.id);
+    return `<span class="payment-chip ${sel?'selected':''}" onclick="togglePaymentChip('${pm.id}')">${escHtml(pm.name)}</span>`;
+  }).join('');
+}
+
+function togglePaymentChip(pmId) {
+  const pm = paymentMethods.find(p => p.id === pmId);
+  if (!pm) return;
+  const idx = invoicePayments.findIndex(p => p.pmId === pmId);
+  if (idx >= 0) {
+    invoicePayments.splice(idx, 1);
+  } else {
+    invoicePayments.push({ pmId, type: pm.type, bank: pm.bank, account: pm.account, holder: pm.holder, name: pm.name });
+  }
+  renderPaymentChips();
+  renderPaymentRows();
+  updatePreview();
+}
+
+function addManualPayRow() {
+  const id = 'manual_' + (++manualPayCounter);
+  invoicePayments.push({ pmId: id, type: 'Transfer Bank', bank: '', account: '', holder: '', name: 'Manual', isManual: true });
+  renderPaymentRows();
+  updatePreview();
+}
+
+function removePaymentRow(pmId) {
+  invoicePayments = invoicePayments.filter(p => p.pmId !== pmId);
+  renderPaymentChips();
+  renderPaymentRows();
+  updatePreview();
+}
+
+function updatePaymentRow(pmId, field, val) {
+  const p = invoicePayments.find(p => p.pmId === pmId);
+  if (p) { p[field] = val; updatePreview(); }
+}
+
+function renderPaymentRows() {
+  const list = document.getElementById('payment-rows-list');
+  // Show manual rows + DB selected rows as editable
+  const rows = invoicePayments;
+  if (rows.length === 0) { list.innerHTML = ''; return; }
+  list.innerHTML = rows.map(p => {
+    if (p.isManual) {
+      return `<div class="manual-pay-row">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:11px;font-weight:700;color:var(--navy)">✏️ Input Manual</span>
+          <button onclick="removePaymentRow('${p.pmId}')" style="border:none;background:#fde8e8;color:var(--danger);border-radius:4px;padding:2px 7px;cursor:pointer;font-size:11px">✕</button>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Jenis</label>
+            <select onchange="updatePaymentRow('${p.pmId}','type',this.value)">
+              ${['Transfer Bank','QRIS','Tunai','OVO','GoPay','Dana','ShopeePay','Lainnya'].map(t=>`<option ${p.type===t?'selected':''}>${t}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field"><label>Bank / e-Wallet</label><input type="text" value="${escHtml(p.bank)}" placeholder="BRI / BCA" oninput="updatePaymentRow('${p.pmId}','bank',this.value)"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>No. Rekening / ID</label><input type="text" value="${escHtml(p.account)}" placeholder="xxxx" oninput="updatePaymentRow('${p.pmId}','account',this.value)"></div>
+          <div class="field"><label>Atas Nama</label><input type="text" value="${escHtml(p.holder)}" placeholder="Nama" oninput="updatePaymentRow('${p.pmId}','holder',this.value)"></div>
+        </div>
+      </div>`;
+    } else {
+      return `<div class="payment-db-row">
+        <div class="pm-info">
+          <strong>${escHtml(p.name)} <span style="font-weight:400;font-size:10px;color:var(--text-muted)">(${escHtml(p.type)})</span></strong>
+          <span>${p.bank ? escHtml(p.bank) : ''} ${p.account ? '· '+escHtml(p.account) : ''} ${p.holder ? '· a.n. '+escHtml(p.holder) : ''}</span>
+        </div>
+        <button onclick="removePaymentRow('${p.pmId}')" style="border:none;background:#fde8e8;color:var(--danger);border-radius:4px;padding:3px 8px;cursor:pointer;font-size:11px">✕</button>
+      </div>`;
+    }
+  }).join('');
+}
+
+function getPaymentString() {
+  if (invoicePayments.length === 0) return '—';
+  return invoicePayments.map(p => {
+    let s = p.type || p.name;
+    if (p.bank) s += ' – ' + p.bank;
+    if (p.account) s += ' (' + p.account + ')';
+    if (p.holder) s += ' a.n. ' + p.holder;
+    return s;
+  }).join('\n');
+}
+
+function getPaymentHTML() {
+  if (invoicePayments.length === 0) return '—';
+  return invoicePayments.map(p => {
+    let s = `<strong>${escHtml(p.type||p.name)}</strong>`;
+    if (p.bank) s += `<br>${escHtml(p.bank)}`;
+    if (p.account) s += `<br>No: ${escHtml(p.account)}`;
+    if (p.holder) s += `<br>a.n. ${escHtml(p.holder)}`;
+    return s;
+  }).join('<br>—<br>');
+}
+
+function parsePaymentFromStr(str) {
+  // Try JSON first
+  try {
+    const arr = JSON.parse(str);
+    if (Array.isArray(arr)) return arr.map((p,i) => ({...p, pmId: 'loaded_'+i}));
+  } catch(e) {}
+  // Fallback: old plain string
+  if (!str || str === '—') return [];
+  return [{ pmId: 'loaded_0', type: str, bank: '', account: '', holder: '', name: str }];
+}
+
+// ══════════════════════════════════════════════
+// PAYMENT DB MODAL
+// ══════════════════════════════════════════════
+function openPaymentDBModal() {
+  renderPMDBList();
+  clearPMForm();
+  document.getElementById('payment-modal').classList.add('open');
+}
+function closePaymentDBModal() { document.getElementById('payment-modal').classList.remove('open'); }
+
+function renderPMDBList() {
+  const list = document.getElementById('pm-db-list');
+  if (paymentMethods.length === 0) { list.innerHTML = '<p style="text-align:center;color:var(--text-muted);font-size:12px;padding:20px">Belum ada metode pembayaran. Tambahkan di atas.</p>'; return; }
+  list.innerHTML = paymentMethods.map(pm => `
+    <div class="pm-db-item">
+      <div>
+        <div class="pm-name">${escHtml(pm.name)} <span style="font-weight:400;font-size:10px;color:var(--text-muted)">(${escHtml(pm.type)})</span></div>
+        <div class="pm-detail">${pm.bank?escHtml(pm.bank):''}${pm.account?' · '+escHtml(pm.account):''}${pm.holder?' · a.n. '+escHtml(pm.holder):''}</div>
+      </div>
+      <div style="display:flex;gap:4px">
+        <button class="btn-sm btn-sm-info" onclick="editPM('${pm.id}')">✏️</button>
+        <button class="btn-sm btn-sm-danger" onclick="deletePM('${pm.id}')">🗑️</button>
+      </div>
+    </div>`).join('');
+}
+
+function savePM() {
+  const name = document.getElementById('pm-name').value.trim();
+  if (!name) { showToast('Nama wajib diisi!', 'warning'); return; }
+  const editId = document.getElementById('pm-edit-id').value;
+  const pm = {
+    id: editId || ('pm_' + Date.now()),
+    name,
+    type: document.getElementById('pm-type').value,
+    bank: document.getElementById('pm-bank').value.trim(),
+    account: document.getElementById('pm-account').value.trim(),
+    holder: document.getElementById('pm-holder').value.trim()
+  };
+  const idx = paymentMethods.findIndex(p => p.id === pm.id);
+  if (idx >= 0) paymentMethods[idx] = pm; else paymentMethods.push(pm);
+  localStorage.setItem('invoiceku_payments', JSON.stringify(paymentMethods));
+  renderPMDBList();
+  renderPaymentChips();
+  clearPMForm();
+  showToast('Metode disimpan!', 'success');
+}
+
+function editPM(id) {
+  const pm = paymentMethods.find(p => p.id === id);
+  if (!pm) return;
+  document.getElementById('pm-name').value = pm.name;
+  document.getElementById('pm-type').value = pm.type;
+  document.getElementById('pm-bank').value = pm.bank||'';
+  document.getElementById('pm-account').value = pm.account||'';
+  document.getElementById('pm-holder').value = pm.holder||'';
+  document.getElementById('pm-edit-id').value = pm.id;
+}
+
+function deletePM(id) {
+  if (!confirm('Hapus metode pembayaran ini?')) return;
+  paymentMethods = paymentMethods.filter(p => p.id !== id);
+  invoicePayments = invoicePayments.filter(p => p.pmId !== id);
+  localStorage.setItem('invoiceku_payments', JSON.stringify(paymentMethods));
+  renderPMDBList();
+  renderPaymentChips();
+  renderPaymentRows();
+  showToast('Metode dihapus', 'warning');
+}
+
+function clearPMForm() {
+  ['pm-name','pm-bank','pm-account','pm-holder','pm-edit-id'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('pm-type').value = 'Transfer Bank';
+}
+
+// ══════════════════════════════════════════════
+// CALCULATIONS
+// ══════════════════════════════════════════════
+function calcSubtotal() { return items.reduce((s,i) => s + i.qty*i.price, 0); }
+function calcTotal() {
+  const sub = calcSubtotal();
+  const discAmt = parseFloat(document.getElementById('discount').value)||0; // nominal Rp
+  const tax = parseFloat(document.getElementById('tax').value)||0;
+  const afterDisc = Math.max(0, sub - discAmt);
+  return afterDisc * (1 + tax/100);
+}
+
+// ══════════════════════════════════════════════
+// PREVIEW UPDATE
+// ══════════════════════════════════════════════
+function updatePreview() {
+  const sub = calcSubtotal();
+  document.getElementById('subtotal-display').textContent = formatRp(sub);
+  document.getElementById('total-display').textContent = formatRp(calcTotal());
+
+  const title = document.getElementById('doc-type-title');
+  const isReceipt = mode === 'receipt';
+  if (isReceipt) {
+    title.textContent = 'PELUNASAN'; title.className = 'doc-type-title receipt-title';
+    document.getElementById('receipt-paid-section').style.display = 'flex';
+    const payStatus = document.getElementById('pay-status').value;
+    if (payStatus === 'Lunas') {
+      document.getElementById('doc-watermark').textContent = 'LUNAS';
+      document.getElementById('doc-watermark').style.color = 'rgba(39,174,96,0.06)';
+    } else {
+      document.getElementById('doc-watermark').textContent = '✦';
+      document.getElementById('doc-watermark').style.color = 'rgba(30,45,66,0.03)';
+    }
+  } else {
+    title.textContent = 'TAGIHAN'; title.className = 'doc-type-title';
+    document.getElementById('receipt-paid-section').style.display = 'none';
+    document.getElementById('doc-watermark').textContent = '✦';
+    document.getElementById('doc-watermark').style.color = 'rgba(30,45,66,0.03)';
+  }
+
+  document.getElementById('doc-inv-number').textContent = document.getElementById('inv-number').value || '—';
+  const cn = document.getElementById('client-name').value || '—';
+  document.getElementById('doc-client-name').textContent = cn;
+  let info = [document.getElementById('client-phone').value, document.getElementById('client-email').value, document.getElementById('client-address').value].filter(Boolean).join('\n');
+  document.getElementById('doc-client-info').innerHTML = info ? info.replace(/\n/g,'<br>') : '—';
+
+  const invDate  = document.getElementById('inv-date').value;
+  const dueDate  = document.getElementById('due-date').value;
+  const paidDate = isReceipt ? document.getElementById('paid-date').value : '';
+  document.getElementById('doc-date-row').innerHTML = `<strong>Tgl Terbit:</strong> ${formatDate(invDate)}`;
+  document.getElementById('doc-due-row').innerHTML  = `<strong>Jatuh Tempo:</strong> ${formatDate(dueDate)}`;
+  document.getElementById('doc-paid-row').innerHTML = `<strong>Tgl Bayar:</strong> ${formatDate(paidDate)}`;
+  document.getElementById('doc-due-row').style.display  = isReceipt ? 'none' : '';
+  document.getElementById('doc-paid-row').style.display = isReceipt ? '' : 'none';
+  document.getElementById('receipt-paid-msg').textContent = `Pelunasan diterima pada ${formatDate(paidDate)} atas nama ${cn}`;
+
+  // Items table
+  const tbody = document.getElementById('doc-items-body');
+  const validItems = items.filter(i => i.name);
+  if (validItems.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#aaa;padding:12px;font-style:italic">Belum ada item</td></tr>`;
+  } else {
+    tbody.innerHTML = validItems.map(i => `<tr><td>${escHtml(i.name)}</td><td>${i.qty}</td><td>${formatRp(i.price)}</td><td>${formatRp(i.qty*i.price)}</td></tr>`).join('');
+  }
+
+  // Totals (nominal discount)
+  const discAmt = parseFloat(document.getElementById('discount').value)||0;
+  const tax = parseFloat(document.getElementById('tax').value)||0;
+  document.getElementById('doc-subtotal').textContent = formatRp(sub);
+  document.getElementById('doc-discount-row').style.display = discAmt > 0 ? '' : 'none';
+  document.getElementById('doc-discount-val').textContent = '− ' + formatRp(discAmt);
+  document.getElementById('doc-tax-row').style.display = tax > 0 ? '' : 'none';
+  document.getElementById('doc-tax-label').textContent = `PPN (${tax}%)`;
+  const afterDisc = Math.max(0, sub - discAmt);
+  document.getElementById('doc-tax-val').textContent = '+ ' + formatRp(afterDisc * tax/100);
+  document.getElementById('doc-grand-total').textContent = formatRp(calcTotal());
+
+  // Payment
+  document.getElementById('doc-payment-method').innerHTML = getPaymentHTML();
+  document.getElementById('doc-notes-preview').textContent = document.getElementById('notes').value || '—';
+}
+
+// ══════════════════════════════════════════════
+// SETTINGS
+// ══════════════════════════════════════════════
+function openSettings() {
+  document.getElementById('s-company').value  = settings.company || '';
+  document.getElementById('s-tagline').value  = settings.tagline || '';
+  document.getElementById('s-phone').value    = settings.phone || '';
+  document.getElementById('s-email').value    = settings.email || '';
+  document.getElementById('s-address').value  = settings.address || '';
+  document.getElementById('s-signer').value   = settings.signer || '';
+  document.getElementById('s-role').value     = settings.role || '';
+  document.getElementById('s-logo-emoji').value = settings.logoEmoji || '';
+  document.getElementById('s-script-url').value = settings.scriptUrl || '';
+  document.getElementById('s-default-discount').value = settings.defaultDiscount || '0';
+  document.getElementById('s-default-tax').value = settings.defaultTax || '0';
+  document.getElementById('s-show-signer').checked = settings.showSigner !== false;
+
+  const prev = document.getElementById('logo-preview-box');
+  if (settings.logoDataUrl) prev.innerHTML = `<img src="${settings.logoDataUrl}" alt="logo">`;
+  else prev.innerHTML = settings.logoEmoji || '🎨';
+  document.getElementById('settings-modal').classList.add('open');
+}
+function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
+
+function saveSettings() {
+  settings = {
+    company: document.getElementById('s-company').value,
+    tagline: document.getElementById('s-tagline').value,
+    phone: document.getElementById('s-phone').value,
+    email: document.getElementById('s-email').value,
+    address: document.getElementById('s-address').value,
+    signer: document.getElementById('s-signer').value,
+    role: document.getElementById('s-role').value,
+    logoEmoji: document.getElementById('s-logo-emoji').value,
+    logoDataUrl: settings.logoDataUrl || '',
+    scriptUrl: document.getElementById('s-script-url').value.trim(),
+    defaultDiscount: document.getElementById('s-default-discount').value,
+    defaultTax: document.getElementById('s-default-tax').value,
+    showSigner: document.getElementById('s-show-signer').checked,
+  };
+  localStorage.setItem('invoiceku_settings', JSON.stringify(settings));
+  applySettings();
+  updateSaveButton();
+  closeSettings();
+  showToast('Pengaturan disimpan!', 'success');
+}
+
+function handleLogoUpload(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    settings.logoDataUrl = ev.target.result;
+    document.getElementById('logo-preview-box').innerHTML = `<img src="${ev.target.result}" alt="logo">`;
+    applySettings();
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearLogo() {
+  settings.logoDataUrl = '';
+  document.getElementById('logo-preview-box').innerHTML = document.getElementById('s-logo-emoji').value || '🎨';
+  applySettings();
+}
+
+function applySettings() {
+  const s = settings;
+  if (s.company) document.getElementById('doc-company-name').textContent = s.company;
+  if (s.tagline) document.getElementById('doc-company-tagline').textContent = s.tagline;
+  if (s.signer) document.getElementById('doc-signer-name').textContent = s.signer;
+  if (s.role) document.getElementById('doc-signer-role').textContent = s.role;
+
+  // Logo (no circle – natural shape)
+  const docLogoEl = document.getElementById('doc-logo');
+  const topLogoEl = document.getElementById('topbar-logo-el');
+  if (s.logoDataUrl) {
+    docLogoEl.innerHTML = `<img src="${s.logoDataUrl}" alt="logo">`;
+    topLogoEl.innerHTML = `<img src="${s.logoDataUrl}" alt="logo" style="width:100%;height:100%;object-fit:contain;">`;
+  } else {
+    const em = s.logoEmoji || '✦';
+    docLogoEl.textContent = em; topLogoEl.textContent = em;
+  }
+
+  // Signer visibility
+  const footerRight = document.getElementById('doc-footer-right');
+  if (footerRight) footerRight.style.display = s.showSigner !== false ? '' : 'none';
+
+  let footerText = `<strong>${s.company||'Perusahaan'}</strong><br>`;
+  if (s.address) footerText += s.address + '<br>';
+  if (s.phone) footerText += s.phone;
+  if (s.email) footerText += (s.phone?' · ':'') + s.email;
+  document.getElementById('doc-footer-company').innerHTML = footerText;
+}
+
+function updateSaveButton() {
+  const btn = document.getElementById('btn-save-db');
+  const hasUrl = settings.scriptUrl && settings.scriptUrl.length > 0;
+  btn.disabled = !hasUrl;
+}
+
+// ══════════════════════════════════════════════
+// SAVE TO DATABASE
+// ══════════════════════════════════════════════
+async function saveToDatabase(silent = false) {
+  if (!settings.scriptUrl) { if(!silent) showToast('URL Apps Script belum diatur. Buka ⚙️ Pengaturan.', 'warning'); return false; }
+  const clientName = document.getElementById('client-name').value;
+  if (!clientName) { if(!silent) showToast('Nama pelanggan wajib diisi!', 'warning'); return false; }
+  const invNo = document.getElementById('inv-number').value;
+  if (!invNo) { if(!silent) showToast('Nomor dokumen wajib diisi!', 'warning'); return false; }
+  const validItems = items.filter(i => i.name);
+  if (validItems.length === 0) { if(!silent) showToast('Tambahkan minimal 1 item!', 'warning'); return false; }
+
+  const btn = document.getElementById('btn-save-db');
+  btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
+
+  const detailItem = validItems.map(i => `${i.name} (${i.qty}x${formatRp(i.price)})`).join('; ');
+  const discAmt = parseFloat(document.getElementById('discount').value)||0;
+  const tax = parseFloat(document.getElementById('tax').value)||0;
+  const dateVal = mode === 'receipt' ? document.getElementById('paid-date').value : document.getElementById('due-date').value;
+  const statusVal = mode === 'receipt' ? document.getElementById('pay-status').value : 'Belum Bayar';
+  const payStr = JSON.stringify(invoicePayments.map(p => ({type:p.type,bank:p.bank||'',account:p.account||'',holder:p.holder||'',name:p.name||p.type})));
+  const invRef = mode === 'receipt' ? document.getElementById('inv-ref-search').value : '';
+
+  const payload = {
+    action: 'save',
+    noDoc: invNo, jenis: mode,
+    tglTerbit: document.getElementById('inv-date').value,
+    tglJatuhTempo: dateVal,
+    namaPelanggan: clientName,
+    noHp: document.getElementById('client-phone').value,
+    email: document.getElementById('client-email').value,
+    alamat: document.getElementById('client-address').value,
+    detailItem, subtotal: calcSubtotal(),
+    diskon: discAmt, ppn: tax, total: calcTotal(),
+    metodeBayar: payStr,
+    catatan: document.getElementById('notes').value,
+    status: statusVal,
+    invRef,
+  };
+
+  try {
+    let savedOk = false;
+    try {
+      const res  = await fetch(settings.scriptUrl, { method: 'POST', body: JSON.stringify(payload) });
+      const data = await res.json();
+      if (data.success) savedOk = true;
+      else showToast('Gagal: ' + (data.message||'Error'), 'error');
+    } catch(e) {
+      showToast('Koneksi gagal – data disimpan lokal saja.', 'warning');
+    }
+
+    // Always save locally
+    const existing = JSON.parse(localStorage.getItem('invoiceku_local_history') || '[]');
+    const idx = existing.findIndex(r => r['No. Dokumen'] === invNo);
+    const row = {
+      'No. Dokumen': invNo, 'Jenis': mode, 'Tgl Terbit': payload.tglTerbit,
+      'Tgl Jatuh Tempo/Bayar': dateVal, 'Nama Pelanggan': clientName,
+      'No. HP': payload.noHp, 'Email': payload.email, 'Alamat': payload.alamat,
+      'Detail Item': detailItem, 'Subtotal': payload.subtotal,
+      'Diskon(Rp)': discAmt, 'PPN(%)': tax, 'Total': payload.total,
+      'Metode Bayar': payStr,
+      'Catatan': payload.catatan, 'Status': statusVal,
+      'InvRef': invRef,
+      'Timestamp': new Date().toISOString()
+    };
+    if (idx >= 0) existing[idx] = row; else existing.push(row);
+    localStorage.setItem('invoiceku_local_history', JSON.stringify(existing));
+    allHistoryData = existing;
+
+    // If nota pelunasan with invRef → mark invoice as Lunas
+    if (mode === 'receipt' && invRef && statusVal === 'Lunas') {
+      markInvoiceLunas(invRef);
+    }
+
+    autoSaveCustomer(clientName, payload.noHp, payload.email, payload.alamat);
+
+    // Increment doc number
+    const cur = document.getElementById('inv-number').value;
+    const match = cur.match(/(\d+)$/);
+    if (match) {
+      const nextN = parseInt(match[1])+1;
+      if (mode === 'invoice') localStorage.setItem('invoiceku_lastno', String(nextN));
+      else localStorage.setItem('invoiceku_lastno_nota', String(nextN));
+    }
+
+    if (!silent) showToast(`✅ Tersimpan! (${invNo})`, 'success');
+    resetForm();
+    return true;
+  } catch(err) {
+    if (!silent) showToast('Error saat menyimpan.', 'error');
+    return false;
+  } finally {
+    btn.disabled = !settings.scriptUrl; btn.innerHTML = '💾 Simpan';
+  }
+}
+
+function markInvoiceLunas(invNo) {
+  const invIdx = allHistoryData.findIndex(r => r['No. Dokumen'] === invNo && r['Jenis'] === 'invoice');
+  if (invIdx < 0) return;
+  allHistoryData[invIdx]['Status'] = 'Lunas';
+  localStorage.setItem('invoiceku_local_history', JSON.stringify(allHistoryData));
+  // Try to update GAS too
+  if (settings.scriptUrl) {
+    fetch(settings.scriptUrl, { method:'POST', body: JSON.stringify({ action:'update', noDoc: invNo, status:'Lunas' }) }).catch(()=>{});
+  }
+}
+
+async function printAndSave() {
+  // Save first, then print
+  if (settings.scriptUrl) {
+    const ok = await saveToDatabase(false);
+    if (!ok) return; // Don't print if save fails due to validation
+  }
+  window.print();
+}
+
+function autoSaveCustomer(name, phone, email, address) {
+  if (!name) return;
+  const exists = customers.find(c => c.name.toLowerCase() === name.toLowerCase());
+  if (!exists) {
+    customers.push({ id: Date.now(), name, phone:phone||'', email:email||'', address:address||'', note:'' });
+    localStorage.setItem('invoiceku_customers', JSON.stringify(customers));
+    renderCustomers();
+  }
+}
+
+// ══════════════════════════════════════════════
+// HISTORY
+// ══════════════════════════════════════════════
+function loadHistoryLocal() {
+  const local = JSON.parse(localStorage.getItem('invoiceku_local_history') || '[]');
+  if (allHistoryData.length === 0) allHistoryData = local;
+}
+
+async function loadHistory() {
+  const banner = document.getElementById('db-setup-banner');
+  const loading = document.getElementById('history-loading');
+  const hasUrl = settings.scriptUrl && settings.scriptUrl.length > 0;
+  banner.style.display = hasUrl ? 'none' : 'flex';
+
+  if (hasUrl) {
+    loading.style.display = 'block';
+    try {
+      const res = await fetch(settings.scriptUrl);
+      const data = await res.json();
+      if (data.success) {
+        allHistoryData = data.data || [];
+        localStorage.setItem('invoiceku_local_history', JSON.stringify(allHistoryData));
+      }
+    } catch(e) {}
+    loading.style.display = 'none';
+  }
+
+  const local = JSON.parse(localStorage.getItem('invoiceku_local_history') || '[]');
+  if (allHistoryData.length === 0) allHistoryData = local;
+  renderHistoryAccordion(allHistoryData);
+  updateStats(allHistoryData);
+}
+
+function switchHistoryTab(tab, btn) {
+  historyTab = tab;
+  document.querySelectorAll('.history-tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  // Status filter: only for receipt tab
+  document.getElementById('status-filter').style.display = tab === 'receipt' ? '' : 'none';
+  filterHistory();
+}
+
+function filterHistory() {
+  const q = document.getElementById('search-filter').value.toLowerCase();
+  const statusF = historyTab === 'receipt' ? document.getElementById('status-filter').value : '';
+  const filtered = allHistoryData.filter(r => {
+    if (r['Jenis'] !== historyTab) return false;
+    const client = (r['Nama Pelanggan']||'').toLowerCase();
+    const noDoc  = (r['No. Dokumen']||'').toLowerCase();
+    if (q && !client.includes(q) && !noDoc.includes(q)) return false;
+    if (statusF && r['Status'] !== statusF) return false;
+    return true;
+  });
+  renderHistoryAccordion(filtered);
+}
+
+function renderHistoryAccordion(data) {
+  const list  = document.getElementById('accordion-list');
+  const empty = document.getElementById('history-empty');
+  const currentData = data.filter(r => r['Jenis'] === historyTab);
+
+  if (currentData.length === 0) { list.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  const sorted = currentData.slice().reverse();
+  const isInvoiceTab = historyTab === 'invoice';
+
+  list.innerHTML = sorted.map(row => {
+    const noDoc  = row['No. Dokumen'] || '—';
+    const tgl    = row['Tgl Terbit'] || '';
+    const client = row['Nama Pelanggan'] || '—';
+    const total  = parseFloat(row['Total'])||0;
+    const status = row['Status'] || '';
+    const tglF   = tgl ? new Date(tgl+'T00:00:00').toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+    const items2 = (row['Detail Item']||'').split(';').filter(Boolean);
+
+    // Badge only for receipt tab
+    let badgeHtml = '';
+    if (!isInvoiceTab && status) {
+      const badgeCls = status === 'Lunas' ? 'badge-paid' : 'badge-unpaid';
+      badgeHtml = `<span class="badge ${badgeCls}">${status}</span>`;
+    }
+
+    // Edit button: no metode bayar for invoice tab
+    const editBtn = `<button class="btn-sm btn-sm-info" onclick="openEdit('${escJs(noDoc)}')" title="Edit">✏️</button>`;
+    const reprintBtn = `<button class="btn-sm btn-sm-warning" onclick="reprintDoc('${escJs(noDoc)}')" title="Cetak Ulang">🖨️</button>`;
+    const delBtn = `<button class="btn-sm btn-sm-danger" onclick="openDelete('${escJs(noDoc)}')" title="Hapus">🗑️</button>`;
+
+    return `<div class="acc-card" id="acc-${noDoc.replace(/[^a-z0-9]/gi,'_')}">
+      <div class="acc-header" onclick="toggleAcc(this)">
+        <span class="acc-toggle">▶</span>
+        <div class="acc-header-info">
+          <span class="acc-nodoc">${escHtml(noDoc)}</span>
+          <span class="acc-client">${escHtml(client)}</span>
+          <span class="acc-date">${tglF}</span>
+          <span class="acc-total">${formatRp(total)}</span>
+          <span>${badgeHtml}</span>
+          <div class="acc-actions" onclick="event.stopPropagation()">
+            ${editBtn}${reprintBtn}${delBtn}
+          </div>
+        </div>
+      </div>
+      <div class="acc-body">
+        <div class="acc-body-grid">
+          <div class="acc-detail-box">
+            <h5>Data Customer</h5>
+            <p><strong>${escHtml(client)}</strong><br>${escHtml(row['No. HP']||'—')}<br>${escHtml(row['Email']||'')}<br>${escHtml(row['Alamat']||'')}</p>
+          </div>
+          <div class="acc-detail-box">
+            <h5>Ringkasan Keuangan</h5>
+            <p>Subtotal: ${formatRp(row['Subtotal']||0)}<br>Diskon: ${formatRp(row['Diskon(Rp)']||row['Diskon(%)']*1||0)}<br>PPN: ${row['PPN(%)']}%<br><strong>Total: ${formatRp(total)}</strong></p>
+          </div>
+          <div class="acc-detail-box">
+            <h5>Pembayaran</h5>
+            <p>${formatPaymentDisplay(row['Metode Bayar']||'—')}</p>
+          </div>
+        </div>
+        <div class="acc-detail-box" style="margin-top:10px">
+          <h5>Item / Layanan</h5>
+          <table class="acc-items-table">
+            <thead><tr><th>Item</th><th>Detail</th></tr></thead>
+            <tbody>${items2.map(it => `<tr><td colspan="2">${escHtml(it.trim())}</td></tr>`).join('')}</tbody>
+          </table>
+          ${row['Catatan'] ? `<p style="margin-top:6px;font-size:11px;color:var(--text-muted)">📝 ${escHtml(row['Catatan'])}</p>` : ''}
+          ${row['InvRef'] ? `<p style="margin-top:4px;font-size:11px;color:var(--info)">🔗 Ref Invoice: ${escHtml(row['InvRef'])}</p>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function formatPaymentDisplay(str) {
+  try {
+    const arr = JSON.parse(str);
+    if (Array.isArray(arr)) return arr.map(p => (p.name||p.type||'') + (p.bank?' – '+p.bank:'') + (p.account?' ('+p.account+')':'')).join('<br>');
+  } catch(e) {}
+  return escHtml(str||'—');
+}
+
+function toggleAcc(header) { header.parentElement.classList.toggle('open'); }
+
+function updateStats(data) {
+  const invoices = data.filter(r => r['Jenis'] === 'invoice');
+  const receipts = data.filter(r => r['Jenis'] === 'receipt');
+  const revenue  = receipts.filter(r => r['Status'] === 'Lunas').reduce((s,r) => s+(parseFloat(r['Total'])||0), 0);
+  // Piutang: invoices whose status is NOT Lunas
+  const piutang  = invoices.filter(r => r['Status'] !== 'Lunas').reduce((s,r) => s+(parseFloat(r['Total'])||0), 0);
+
+  document.getElementById('stat-invoices').textContent = invoices.length;
+  document.getElementById('stat-revenue').textContent  = formatRp(revenue);
+  document.getElementById('stat-paid').textContent     = receipts.filter(r => r['Status']==='Lunas').length;
+  document.getElementById('stat-piutang').textContent  = formatRp(piutang);
+}
+
+// ══════════════════════════════════════════════
+// EDIT / DELETE / REPRINT
+// ══════════════════════════════════════════════
+function openEdit(noDoc) {
+  const row = allHistoryData.find(r => r['No. Dokumen'] === noDoc);
+  if (!row) return;
+  currentEditDoc = noDoc;
+  const isReceipt = row['Jenis'] === 'receipt';
+
+  document.getElementById('edit-modal-title').textContent = isReceipt ? '✏️ Edit Nota Pelunasan' : '✏️ Edit Invoice';
+  document.getElementById('edit-nodoc').value = noDoc;
+  document.getElementById('edit-nodoc-display').value = noDoc;
+  document.getElementById('edit-jenis').value = row['Jenis'] || 'invoice';
+  document.getElementById('edit-tgl-terbit').value = row['Tgl Terbit'] || '';
+  document.getElementById('edit-tgl-jatuh').value  = row['Tgl Jatuh Tempo/Bayar'] || '';
+  document.getElementById('edit-date2-label').textContent = isReceipt ? 'Tgl Bayar' : 'Jatuh Tempo';
+  document.getElementById('edit-client').value   = row['Nama Pelanggan'] || '';
+  document.getElementById('edit-phone').value    = row['No. HP'] || '';
+  document.getElementById('edit-email').value    = row['Email'] || '';
+  document.getElementById('edit-discount').value = row['Diskon(Rp)'] || row['Diskon(%)'] || '0';
+  document.getElementById('edit-tax').value      = row['PPN(%)'] || '0';
+  document.getElementById('edit-notes').value    = row['Catatan'] || '';
+  // Status hanya untuk nota
+  document.getElementById('edit-status-row').style.display = isReceipt ? '' : 'none';
+  if (isReceipt) document.getElementById('edit-status').value = row['Status'] || 'Lunas';
+  document.getElementById('edit-modal').classList.add('open');
+}
+function closeEditModal() { document.getElementById('edit-modal').classList.remove('open'); }
+
+async function saveEdit() {
+  const noDoc = currentEditDoc;
+  const jenis = document.getElementById('edit-jenis').value;
+  const isReceipt = jenis === 'receipt';
+  const discAmt = parseFloat(document.getElementById('edit-discount').value)||0;
+  const tax     = parseFloat(document.getElementById('edit-tax').value)||0;
+  const statusVal = isReceipt ? document.getElementById('edit-status').value : (allHistoryData.find(r=>r['No. Dokumen']===noDoc)||{})['Status'];
+
+  const payload = {
+    action: 'update', noDoc,
+    tglTerbit: document.getElementById('edit-tgl-terbit').value,
+    tglJatuhTempo: document.getElementById('edit-tgl-jatuh').value,
+    namaPelanggan: document.getElementById('edit-client').value,
+    noHp: document.getElementById('edit-phone').value,
+    email: document.getElementById('edit-email').value,
+    diskon: discAmt, ppn: tax,
+    catatan: document.getElementById('edit-notes').value,
+    status: statusVal,
+  };
+
+  // Recalculate total using existing subtotal + new discount/ppn
+  const idx = allHistoryData.findIndex(r => r['No. Dokumen'] === noDoc);
+  if (idx >= 0) {
+    const sub = parseFloat(allHistoryData[idx]['Subtotal'])||0;
+    const afterDisc = Math.max(0, sub - discAmt);
+    const newTotal = afterDisc * (1 + tax/100);
+    payload.total = newTotal;
+
+    allHistoryData[idx] = { ...allHistoryData[idx],
+      'Tgl Terbit': payload.tglTerbit, 'Tgl Jatuh Tempo/Bayar': payload.tglJatuhTempo,
+      'Nama Pelanggan': payload.namaPelanggan, 'No. HP': payload.noHp,
+      'Email': payload.email, 'Diskon(Rp)': discAmt, 'PPN(%)': tax,
+      'Total': newTotal,
+      'Catatan': payload.catatan, 'Status': statusVal
+    };
+    localStorage.setItem('invoiceku_local_history', JSON.stringify(allHistoryData));
+
+    // If marking nota as lunas, also mark related invoice
+    if (isReceipt && statusVal === 'Lunas') {
+      const invRef = allHistoryData[idx]['InvRef'];
+      if (invRef) markInvoiceLunas(invRef);
+    }
+  }
+
+  if (settings.scriptUrl) {
+    try { await fetch(settings.scriptUrl, { method:'POST', body: JSON.stringify(payload) }); } catch(e) {}
+  }
+
+  renderHistoryAccordion(allHistoryData);
+  updateStats(allHistoryData);
+  closeEditModal();
+  showToast(`✅ ${noDoc} berhasil diperbarui`, 'success');
+}
+
+function openDelete(noDoc) {
+  pendingDeleteDoc = noDoc;
+  document.getElementById('delete-nodoc-label').textContent = noDoc;
+  document.getElementById('delete-modal').classList.add('open');
+}
+function closeDeleteModal() { document.getElementById('delete-modal').classList.remove('open'); }
+
+async function confirmDelete() {
+  const noDoc = pendingDeleteDoc;
+  // FIX: delete ONLY this specific doc by both noDoc AND the exact match (not related docs)
+  const rowToDelete = allHistoryData.find(r => r['No. Dokumen'] === noDoc);
+  if (!rowToDelete) { closeDeleteModal(); return; }
+  const jenis = rowToDelete['Jenis'];
+  // Remove only the exact matching doc (same noDoc AND same jenis)
+  allHistoryData = allHistoryData.filter(r => !(r['No. Dokumen'] === noDoc && r['Jenis'] === jenis));
+  localStorage.setItem('invoiceku_local_history', JSON.stringify(allHistoryData));
+
+  if (settings.scriptUrl) {
+    try { await fetch(settings.scriptUrl, { method:'POST', body: JSON.stringify({ action:'delete', noDoc, jenis }) }); } catch(e) {}
+  }
+
+  renderHistoryAccordion(allHistoryData);
+  updateStats(allHistoryData);
+  closeDeleteModal();
+  showToast(`🗑️ ${noDoc} telah dihapus`, 'warning');
+}
+
+function reprintDoc(noDoc) {
+  const row = allHistoryData.find(r => r['No. Dokumen'] === noDoc);
+  if (!row) return;
+  const m = row['Jenis'] === 'receipt' ? 'receipt' : 'invoice';
+  switchMode(m);
+
+  document.getElementById('inv-number').value = row['No. Dokumen'] || '';
+  document.getElementById('inv-date').value   = row['Tgl Terbit'] || '';
+
+  // FIX: set dates properly
+  const dateVal = row['Tgl Jatuh Tempo/Bayar'] || '';
+  if (m === 'invoice') document.getElementById('due-date').value  = dateVal;
+  else                  document.getElementById('paid-date').value = dateVal;
+
+  document.getElementById('client-name').value    = row['Nama Pelanggan'] || '';
+  document.getElementById('client-phone').value   = row['No. HP'] || '';
+  document.getElementById('client-email').value   = row['Email'] || '';
+  document.getElementById('client-address').value = row['Alamat'] || '';
+  // FIX: discount as nominal Rp
+  document.getElementById('discount').value = row['Diskon(Rp)'] || '0';
+  document.getElementById('tax').value      = row['PPN(%)'] || '0';
+  document.getElementById('notes').value    = row['Catatan'] || '';
+  if (m === 'receipt') document.getElementById('pay-status').value = row['Status'] || 'Lunas';
+
+  // Restore payment methods
+  invoicePayments = parsePaymentFromStr(row['Metode Bayar']||'');
+  renderPaymentChips();
+  renderPaymentRows();
+
+  // Restore items — FIX: parseRp strips ALL non-digits
+  items = []; itemIdCounter = 0;
+  const detailStr = row['Detail Item'] || '';
+  if (detailStr) {
+    detailStr.split(';').forEach(seg => {
+      seg = seg.trim();
+      if (!seg) return;
+      const m2 = seg.match(/^(.+)\s+\((\d+)x(.+)\)$/);
+      if (m2) addItem(m2[1].trim(), parseInt(m2[2]), parseRp(m2[3]));
+      else addItem(seg, 1, 0);
+    });
+  }
+  if (items.length === 0) { addItem(); addItem(); }
+
+  updatePreview();
+  showToast(`📋 Data ${noDoc} dimuat. Klik 🖨️ Cetak & Simpan.`, 'success');
+}
+
+// ══════════════════════════════════════════════
+// CUSTOMERS PAGE
+// ══════════════════════════════════════════════
+function renderCustomers() {
+  const q = (document.getElementById('customer-search')?.value || '').toLowerCase();
+  const tbody = document.getElementById('customers-tbody');
+  const empty = document.getElementById('customers-empty');
+  const filtered = customers.filter(c => !q || c.name.toLowerCase().includes(q));
+  if (filtered.length === 0) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  tbody.innerHTML = filtered.map((c,i) => `
+    <tr>
+      <td style="color:var(--text-muted);font-size:11px">${i+1}</td>
+      <td><strong>${escHtml(c.name)}</strong>${c.note?`<br><span style="font-size:11px;color:var(--text-muted)">${escHtml(c.note)}</span>`:''}</td>
+      <td>${escHtml(c.phone||'—')}</td>
+      <td>${escHtml(c.email||'—')}</td>
+      <td style="font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(c.address||'—')}</td>
+      <td class="td-actions">
+        <button class="btn-sm btn-sm-info" onclick="openCustomerForm(${customers.indexOf(c)})">✏️</button>
+        <button class="btn-sm btn-sm-danger" onclick="deleteCustomer(${customers.indexOf(c)})">🗑️</button>
+      </td>
+    </tr>`).join('');
+}
+function openCustomerForm(idx=-1) {
+  document.getElementById('cm-id').value = idx;
+  if (idx>=0 && idx<customers.length) {
+    const c = customers[idx];
+    document.getElementById('customer-modal-title').textContent = '✏️ Edit Customer';
+    document.getElementById('cm-name').value = c.name;
+    document.getElementById('cm-phone').value = c.phone||'';
+    document.getElementById('cm-email').value = c.email||'';
+    document.getElementById('cm-address').value = c.address||'';
+    document.getElementById('cm-note').value = c.note||'';
+  } else {
+    document.getElementById('customer-modal-title').textContent = '➕ Tambah Customer';
+    ['cm-name','cm-phone','cm-email','cm-address','cm-note'].forEach(id => document.getElementById(id).value = '');
+  }
+  document.getElementById('customer-modal').classList.add('open');
+}
+function closeCustomerForm() { document.getElementById('customer-modal').classList.remove('open'); }
+function saveCustomer() {
+  const name = document.getElementById('cm-name').value.trim();
+  if (!name) { showToast('Nama wajib diisi!', 'warning'); return; }
+  const idx = parseInt(document.getElementById('cm-id').value);
+  const c = { id: idx>=0?customers[idx].id:Date.now(), name, phone:document.getElementById('cm-phone').value, email:document.getElementById('cm-email').value, address:document.getElementById('cm-address').value, note:document.getElementById('cm-note').value };
+  if (idx>=0) customers[idx]=c; else customers.push(c);
+  localStorage.setItem('invoiceku_customers', JSON.stringify(customers));
+  renderCustomers(); closeCustomerForm(); showToast('Customer disimpan!', 'success');
+}
+function deleteCustomer(idx) {
+  if (!confirm(`Hapus customer "${customers[idx].name}"?`)) return;
+  customers.splice(idx,1);
+  localStorage.setItem('invoiceku_customers', JSON.stringify(customers));
+  renderCustomers(); showToast('Customer dihapus', 'warning');
+}
+
+// ══════════════════════════════════════════════
+// ITEMS CATALOG PAGE
+// ══════════════════════════════════════════════
+function renderItems() {
+  const q = (document.getElementById('item-search')?.value||'').toLowerCase();
+  const tbody = document.getElementById('items-tbody');
+  const empty = document.getElementById('items-page-empty');
+  const filtered = catalogItems.filter(c => !q || c.name.toLowerCase().includes(q));
+  if (filtered.length===0) { tbody.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  tbody.innerHTML = filtered.map((c,i) => {
+    const laba = (parseFloat(c.sellPrice)||0)-(parseFloat(c.buyPrice)||0);
+    return `<tr>
+      <td style="color:var(--text-muted);font-size:11px">${i+1}</td>
+      <td><strong>${escHtml(c.name)}</strong>${c.desc?`<br><span style="font-size:11px;color:var(--text-muted)">${escHtml(c.desc)}</span>`:''}</td>
+      <td>${escHtml(c.unit||'—')}</td>
+      <td>${formatRp(c.buyPrice||0)}</td>
+      <td><strong>${formatRp(c.sellPrice||0)}</strong></td>
+      <td class="${laba>=0?'laba-positive':'laba-negative'}">${formatRp(laba)}</td>
+      <td class="td-actions">
+        <button class="btn-sm btn-sm-info" onclick="openItemForm(${catalogItems.indexOf(c)})">✏️</button>
+        <button class="btn-sm btn-sm-danger" onclick="deleteItem(${catalogItems.indexOf(c)})">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+function openItemForm(idx=-1) {
+  document.getElementById('im-id').value = idx;
+  if (idx>=0 && idx<catalogItems.length) {
+    const c = catalogItems[idx];
+    document.getElementById('item-modal-title').textContent = '✏️ Edit Item';
+    document.getElementById('im-name').value = c.name;
+    document.getElementById('im-unit').value = c.unit||'';
+    document.getElementById('im-buy-price').value = c.buyPrice||'';
+    document.getElementById('im-sell-price').value = c.sellPrice||'';
+    document.getElementById('im-desc').value = c.desc||'';
+  } else {
+    document.getElementById('item-modal-title').textContent = '➕ Tambah Item';
+    ['im-name','im-unit','im-buy-price','im-sell-price','im-desc'].forEach(id => document.getElementById(id).value='');
+  }
+  document.getElementById('item-modal').classList.add('open');
+}
+function closeItemForm() { document.getElementById('item-modal').classList.remove('open'); }
+function saveItem() {
+  const name = document.getElementById('im-name').value.trim();
+  if (!name) { showToast('Nama item wajib diisi!', 'warning'); return; }
+  const idx = parseInt(document.getElementById('im-id').value);
+  const c = { id:idx>=0?catalogItems[idx].id:Date.now(), name, unit:document.getElementById('im-unit').value, buyPrice:parseFloat(document.getElementById('im-buy-price').value)||0, sellPrice:parseFloat(document.getElementById('im-sell-price').value)||0, desc:document.getElementById('im-desc').value };
+  if (idx>=0) catalogItems[idx]=c; else catalogItems.push(c);
+  localStorage.setItem('invoiceku_catalog', JSON.stringify(catalogItems));
+  renderItems(); closeItemForm(); showToast('Item disimpan!', 'success');
+}
+function deleteItem(idx) {
+  if (!confirm(`Hapus item "${catalogItems[idx].name}"?`)) return;
+  catalogItems.splice(idx,1);
+  localStorage.setItem('invoiceku_catalog', JSON.stringify(catalogItems));
+  renderItems(); showToast('Item dihapus', 'warning');
+}
+
+// ══════════════════════════════════════════════
+// RESET FORM
+// ══════════════════════════════════════════════
+function confirmReset() { if (confirm('Reset semua data formulir?')) resetForm(); }
+function resetForm() {
+  document.getElementById('client-name').value = '';
+  document.getElementById('client-phone').value = '';
+  document.getElementById('client-email').value = '';
+  document.getElementById('client-address').value = '';
+  document.getElementById('notes').value = '';
+  document.getElementById('discount').value = settings.defaultDiscount || '0';
+  document.getElementById('tax').value = settings.defaultTax || '0';
+  document.getElementById('inv-ref-search').value = '';
+  document.getElementById('inv-ref-info').style.display = 'none';
+  document.getElementById('use-inv-ref-toggle').checked = false;
+  document.getElementById('inv-ref-body').style.display = 'none';
+  items = []; itemIdCounter = 0;
+  invoicePayments = []; manualPayCounter = 0;
+  renderPaymentChips();
+  renderPaymentRows();
+  addItem(); addItem();
+
+  // Advance document number
+  if (mode === 'invoice') {
+    const lastNo = localStorage.getItem('invoiceku_lastno') || '0';
+    document.getElementById('inv-number').value = 'INV-' + String(parseInt(lastNo)+1).padStart(3,'0');
+  } else {
+    const lastNota = localStorage.getItem('invoiceku_lastno_nota') || '0';
+    document.getElementById('inv-number').value = 'NP-' + String(parseInt(lastNota)+1).padStart(3,'0');
+    document.getElementById('pay-status').value = 'Lunas';
+  }
+
+  // Reset today date
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('inv-date').value = today;
+  if (mode === 'invoice') {
+    const due = new Date(); due.setDate(due.getDate()+14);
+    document.getElementById('due-date').value = due.toISOString().split('T')[0];
+  } else {
+    document.getElementById('paid-date').value = today;
+  }
+
+  updatePreview();
+}
+
+// ══════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast' + (type?' '+type:'');
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ══════════════════════════════════════════════
+// CLOSE MODALS ON OVERLAY
+// ══════════════════════════════════════════════
+['settings-modal','customer-modal','item-modal','edit-modal','delete-modal','catalog-modal','payment-modal'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('click', function(e) { if (e.target===this) this.classList.remove('open'); });
+});
+</script>
+</body>
+</html>
