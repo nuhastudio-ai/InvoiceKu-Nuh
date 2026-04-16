@@ -54,17 +54,15 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 .full-page.active { display: flex; }
 
 /* ── FORM PANEL ── */
-.form-panel { background: var(--surface); overflow-y: auto; border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+.form-panel { background: var(--surface); height: calc(100vh - 56px); overflow-y: auto; -webkit-overflow-scrolling: touch; border-right: 1px solid var(--border); padding: 20px 20px 80px 20px; display: flex; flex-direction: column; gap: 16px; }
 .form-panel::-webkit-scrollbar { width: 5px; }
 .form-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
-.form-section { background: var(--surface-2); border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
-.section-header { padding: 10px 14px; background: var(--navy); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
-.section-body { padding: 14px; display: flex; flex-direction: column; gap: 10px; max-height: 420px; overflow-y: auto; }
-.section-body::-webkit-scrollbar { width: 3px; }
-.section-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-/* Info-doc and short sections don't need scroll limit */
-.section-body.no-scroll { max-height: none; overflow-y: visible; }
+.form-section { background: var(--surface-2); border-radius: var(--radius); overflow: visible; border: 1px solid var(--border); flex-shrink: 0; }
+.section-header { padding: 10px 14px; background: var(--navy); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; display: flex; align-items: center; gap: 8px; border-radius: calc(var(--radius) - 1px) calc(var(--radius) - 1px) 0 0; }
+.section-body { padding: 14px; display: flex; flex-direction: column; gap: 10px; border-radius: 0 0 calc(var(--radius) - 1px) calc(var(--radius) - 1px); }
+/* no-scroll kept for compatibility */
+.section-body.no-scroll { overflow: visible; }
 
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .field { display: flex; flex-direction: column; gap: 4px; }
@@ -85,7 +83,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 
 /* Customer autocomplete */
 .autocomplete-wrap { position: relative; }
-.autocomplete-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: var(--surface); border: 1.5px solid var(--border); border-radius: 8px; box-shadow: var(--shadow-lg); z-index: 300; max-height: 200px; overflow-y: auto; margin-top: 2px; }
+.autocomplete-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: var(--surface); border: 1.5px solid var(--border); border-radius: 8px; box-shadow: var(--shadow-lg); z-index: 400; max-height: 200px; overflow-y: auto; margin-top: 2px; }
 .autocomplete-item { padding: 9px 12px; cursor: pointer; font-size: 12px; border-bottom: 1px solid var(--border); transition: background .15s; }
 .autocomplete-item:last-child { border-bottom: none; }
 .autocomplete-item:hover { background: var(--surface-2); }
@@ -104,9 +102,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 .btn-add-item { display: flex; align-items: center; gap: 6px; padding: 7px 10px; border: 1.5px dashed var(--border); border-radius: 8px; background: transparent; color: var(--steel); font-family: inherit; font-size: 11px; font-weight: 600; cursor: pointer; width: 100%; justify-content: center; transition: all .2s; margin-top: 6px; }
 .btn-add-item:hover { border-color: var(--steel); background: var(--surface-2); }
 
-#items-list { max-height: 220px; overflow-y: auto; }
-#items-list::-webkit-scrollbar { width: 3px; }
-#items-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+#items-list { }
 
 .subtotals-box { display: flex; flex-direction: column; gap: 5px; padding: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
 .subtotal-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
@@ -128,7 +124,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 .manual-pay-row .field-row { grid-template-columns: 1fr 1fr; }
 
 /* ── PRINT BAR ── */
-.print-bar { position: sticky; bottom: 0; background: var(--surface); border-top: 1px solid var(--border); padding: 12px 20px; display: flex; gap: 8px; z-index: 10; margin: -20px -20px 0; }
+.print-bar { position: sticky; bottom: -5; background: var(--surface); border-top: 2px solid var(--border); padding: 12px 20px; display: flex; gap: 8px; z-index: 50; margin: 0 -20px -80px -20px; box-shadow: 0 -4px 16px rgba(30,45,66,0.10); flex-shrink: 0; }
 .btn-print { flex: 1; padding: 11px; background: var(--navy); color: #fff; border: none; border-radius: 9px; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all .2s; }
 .btn-print:hover { background: var(--navy-mid); }
 .btn-save-db { flex: 1; padding: 11px; background: var(--success); color: #fff; border: none; border-radius: 9px; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all .2s; }
@@ -382,8 +378,9 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 /* ── RESPONSIVE ── */
 @media (max-width: 900px) {
   .app-container { grid-template-columns: 1fr; grid-template-rows: auto; height: auto; }
-  .form-panel { height: auto; max-height: none; }
-  .preview-panel { padding: 12px; }
+  .form-panel { height: auto; max-height: none; overflow-y: visible; padding-bottom: 80px; }
+  .form-panel .print-bar { position: fixed; bottom: 0; left: 0; right: 0; margin: 0; border-radius: 0; z-index: 200; }
+  .preview-panel { padding: 12px; padding-bottom: 80px; }
   #invoice-doc { width: 100%; }
   .doc-header, .doc-meta, .doc-body, .doc-footer { padding-left: 14px; padding-right: 14px; }
   .stats-grid { grid-template-columns: 1fr 1fr; }
@@ -494,15 +491,16 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
           <label>Nama Pelanggan / Perusahaan</label>
           <input type="text" id="client-name" placeholder="Ketik nama atau pilih..." oninput="onClientNameInput()" autocomplete="off">
           <div class="autocomplete-dropdown" id="client-dropdown" style="display:none"></div>
+          <div id="new-customer-hint" style="display:none;font-size:10px;color:var(--steel);margin-top:3px;padding:3px 6px;background:var(--surface-2);border-radius:5px;border:1px dashed var(--border)">✨ Pelanggan baru – akan disimpan otomatis saat Simpan/Cetak</div>
         </div>
         <div class="field-row">
           <div class="field">
             <label>No. HP / WA</label>
-            <input type="text" id="client-phone" placeholder="+62 8xx xxxx xxxx" oninput="updatePreview()">
+            <input type="text" id="client-phone" placeholder="+62 8xx xxxx xxxx" oninput="updatePreview()" onblur="detectCustomerByPhone()">
           </div>
           <div class="field">
             <label>Email</label>
-            <input type="email" id="client-email" placeholder="email@contoh.com" oninput="updatePreview()">
+            <input type="email" id="client-email" placeholder="email@contoh.com" oninput="updatePreview()" onblur="detectCustomerByEmail()">
           </div>
         </div>
         <div class="field">
@@ -566,11 +564,10 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
       </div>
     </div>
 
-    <div style="height:80px"></div>
     <div class="print-bar">
       <button class="btn-reset" onclick="confirmReset()" title="Reset Form">🗑</button>
       <button class="btn-save-db" id="btn-save-db" onclick="saveToDatabase()">💾 Simpan</button>
-      <button class="btn-print" id="btn-print-only" onclick="printAndSave()">🖨️ Cetak &amp; Simpan</button>
+      <button class="btn-print" id="btn-print-only" onclick="printAndSave()">🖨️ Cetak</button>
     </div>
   </div><!-- /form-panel -->
 
@@ -1176,11 +1173,19 @@ function selectCatalogItem(name, price) {
 // ══════════════════════════════════════════════
 function onClientNameInput() {
   updatePreview();
-  const q = document.getElementById('client-name').value.toLowerCase();
+  const q = document.getElementById('client-name').value.trim();
   const dd = document.getElementById('client-dropdown');
-  if (!q) { dd.style.display = 'none'; return; }
-  const matches = customers.filter(c => c.name.toLowerCase().includes(q));
-  if (matches.length === 0) { dd.style.display = 'none'; return; }
+  const hint = document.getElementById('new-customer-hint');
+  if (!q) { dd.style.display = 'none'; hint.style.display = 'none'; return; }
+  const matches = customers.filter(c => c.name.toLowerCase().includes(q.toLowerCase()));
+  if (matches.length === 0) {
+    dd.style.display = 'none';
+    // Show hint only if exact name not found
+    const exact = customers.find(c => c.name.toLowerCase() === q.toLowerCase());
+    hint.style.display = exact ? 'none' : 'block';
+    return;
+  }
+  hint.style.display = 'none';
   dd.innerHTML = matches.map(c => `
     <div class="autocomplete-item" onclick="selectCustomer(${customers.indexOf(c)})">
       <div class="ac-name">${escHtml(c.name)}</div>
@@ -1189,13 +1194,8 @@ function onClientNameInput() {
   dd.style.display = 'block';
 }
 function selectCustomer(idx) {
-  const c = customers[idx];
-  document.getElementById('client-name').value = c.name;
-  document.getElementById('client-phone').value = c.phone||'';
-  document.getElementById('client-email').value = c.email||'';
-  document.getElementById('client-address').value = c.address||'';
+  fillCustomerFields(customers[idx]);
   document.getElementById('client-dropdown').style.display = 'none';
-  updatePreview();
 }
 
 // ══════════════════════════════════════════════
@@ -1574,35 +1574,33 @@ function updateSaveButton() {
 // ══════════════════════════════════════════════
 // SAVE TO DATABASE
 // ══════════════════════════════════════════════
-async function saveToDatabase(silent = false) {
-  if (!settings.scriptUrl) { if(!silent) showToast('URL Apps Script belum diatur. Buka ⚙️ Pengaturan.', 'warning'); return false; }
-  const clientName = document.getElementById('client-name').value;
-  if (!clientName) { if(!silent) showToast('Nama pelanggan wajib diisi!', 'warning'); return false; }
-  const invNo = document.getElementById('inv-number').value;
-  if (!invNo) { if(!silent) showToast('Nomor dokumen wajib diisi!', 'warning'); return false; }
-  const validItems = items.filter(i => i.name);
-  if (validItems.length === 0) { if(!silent) showToast('Tambahkan minimal 1 item!', 'warning'); return false; }
 
-  const btn = document.getElementById('btn-save-db');
-  btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
+/* Ambil semua data form ke satu objek payload */
+function buildPayload() {
+  const clientName = document.getElementById('client-name').value.trim();
+  const invNo      = document.getElementById('inv-number').value.trim();
+  const validItems = items.filter(i => i.name);
+  if (!clientName) { showToast('Nama pelanggan wajib diisi!', 'warning'); return null; }
+  if (!invNo)      { showToast('Nomor dokumen wajib diisi!', 'warning');  return null; }
+  if (validItems.length === 0) { showToast('Tambahkan minimal 1 item!', 'warning'); return null; }
 
   const detailItem = validItems.map(i => `${i.name} (${i.qty}x${formatRp(i.price)})`).join('; ');
-  const discAmt = parseFloat(document.getElementById('discount').value)||0;
-  const tax = parseFloat(document.getElementById('tax').value)||0;
-  const dateVal = mode === 'receipt' ? document.getElementById('paid-date').value : document.getElementById('due-date').value;
-  const statusVal = mode === 'receipt' ? document.getElementById('pay-status').value : 'Belum Bayar';
-  const payStr = JSON.stringify(invoicePayments.map(p => ({type:p.type,bank:p.bank||'',account:p.account||'',holder:p.holder||'',name:p.name||p.type})));
-  const invRef = mode === 'receipt' ? document.getElementById('inv-ref-search').value : '';
+  const discAmt    = parseFloat(document.getElementById('discount').value)||0;
+  const tax        = parseFloat(document.getElementById('tax').value)||0;
+  const dateVal    = mode === 'receipt' ? document.getElementById('paid-date').value : document.getElementById('due-date').value;
+  const statusVal  = mode === 'receipt' ? document.getElementById('pay-status').value : 'Belum Bayar';
+  const payStr     = JSON.stringify(invoicePayments.map(p => ({type:p.type,bank:p.bank||'',account:p.account||'',holder:p.holder||'',name:p.name||p.type})));
+  const invRef     = mode === 'receipt' ? document.getElementById('inv-ref-search').value : '';
 
-  const payload = {
+  return {
     action: 'save',
     noDoc: invNo, jenis: mode,
-    tglTerbit: document.getElementById('inv-date').value,
+    tglTerbit:    document.getElementById('inv-date').value,
     tglJatuhTempo: dateVal,
     namaPelanggan: clientName,
-    noHp: document.getElementById('client-phone').value,
-    email: document.getElementById('client-email').value,
-    alamat: document.getElementById('client-address').value,
+    noHp:    document.getElementById('client-phone').value,
+    email:   document.getElementById('client-email').value,
+    alamat:  document.getElementById('client-address').value,
     detailItem, subtotal: calcSubtotal(),
     diskon: discAmt, ppn: tax, total: calcTotal(),
     metodeBayar: payStr,
@@ -1610,6 +1608,56 @@ async function saveToDatabase(silent = false) {
     status: statusVal,
     invRef,
   };
+}
+
+/* Simpan ke localStorage + update riwayat + auto-save customer */
+function commitLocal(payload) {
+  const existing = JSON.parse(localStorage.getItem('invoiceku_local_history') || '[]');
+  const idx = existing.findIndex(r => r['No. Dokumen'] === payload.noDoc);
+  const row = {
+    'No. Dokumen': payload.noDoc, 'Jenis': payload.jenis,
+    'Tgl Terbit': payload.tglTerbit, 'Tgl Jatuh Tempo/Bayar': payload.tglJatuhTempo,
+    'Nama Pelanggan': payload.namaPelanggan,
+    'No. HP': payload.noHp, 'Email': payload.email, 'Alamat': payload.alamat,
+    'Detail Item': payload.detailItem, 'Subtotal': payload.subtotal,
+    'Diskon(Rp)': payload.diskon, 'PPN(%)': payload.ppn, 'Total': payload.total,
+    'Metode Bayar': payload.metodeBayar,
+    'Catatan': payload.catatan, 'Status': payload.status,
+    'InvRef': payload.invRef,
+    'Timestamp': new Date().toISOString()
+  };
+  if (idx >= 0) existing[idx] = row; else existing.push(row);
+  localStorage.setItem('invoiceku_local_history', JSON.stringify(existing));
+  allHistoryData = existing;
+
+  // Mark invoice lunas jika nota pelunasan
+  if (payload.jenis === 'receipt' && payload.invRef && payload.status === 'Lunas') {
+    markInvoiceLunas(payload.invRef);
+  }
+
+  // Auto-save customer (selalu, tanpa perlu scriptUrl)
+  autoSaveCustomer(payload.namaPelanggan, payload.noHp, payload.email, payload.alamat);
+
+  // Increment nomor dokumen
+  const cur   = payload.noDoc;
+  const match = cur.match(/(\d+)$/);
+  if (match) {
+    const nextN = parseInt(match[1]) + 1;
+    if (payload.jenis === 'invoice') localStorage.setItem('invoiceku_lastno', String(nextN));
+    else localStorage.setItem('invoiceku_lastno_nota', String(nextN));
+  }
+}
+
+async function saveToDatabase(silent = false) {
+  if (!settings.scriptUrl) {
+    if (!silent) showToast('URL Apps Script belum diatur. Buka ⚙️ Pengaturan.', 'warning');
+    return false;
+  }
+  const payload = buildPayload();
+  if (!payload) return false;
+
+  const btn = document.getElementById('btn-save-db');
+  btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
 
   try {
     let savedOk = false;
@@ -1622,49 +1670,42 @@ async function saveToDatabase(silent = false) {
       showToast('Koneksi gagal – data disimpan lokal saja.', 'warning');
     }
 
-    // Always save locally
-    const existing = JSON.parse(localStorage.getItem('invoiceku_local_history') || '[]');
-    const idx = existing.findIndex(r => r['No. Dokumen'] === invNo);
-    const row = {
-      'No. Dokumen': invNo, 'Jenis': mode, 'Tgl Terbit': payload.tglTerbit,
-      'Tgl Jatuh Tempo/Bayar': dateVal, 'Nama Pelanggan': clientName,
-      'No. HP': payload.noHp, 'Email': payload.email, 'Alamat': payload.alamat,
-      'Detail Item': detailItem, 'Subtotal': payload.subtotal,
-      'Diskon(Rp)': discAmt, 'PPN(%)': tax, 'Total': payload.total,
-      'Metode Bayar': payStr,
-      'Catatan': payload.catatan, 'Status': statusVal,
-      'InvRef': invRef,
-      'Timestamp': new Date().toISOString()
-    };
-    if (idx >= 0) existing[idx] = row; else existing.push(row);
-    localStorage.setItem('invoiceku_local_history', JSON.stringify(existing));
-    allHistoryData = existing;
-
-    // If nota pelunasan with invRef → mark invoice as Lunas
-    if (mode === 'receipt' && invRef && statusVal === 'Lunas') {
-      markInvoiceLunas(invRef);
-    }
-
-    autoSaveCustomer(clientName, payload.noHp, payload.email, payload.alamat);
-
-    // Increment doc number
-    const cur = document.getElementById('inv-number').value;
-    const match = cur.match(/(\d+)$/);
-    if (match) {
-      const nextN = parseInt(match[1])+1;
-      if (mode === 'invoice') localStorage.setItem('invoiceku_lastno', String(nextN));
-      else localStorage.setItem('invoiceku_lastno_nota', String(nextN));
-    }
-
-    if (!silent) showToast(`✅ Tersimpan! (${invNo})`, 'success');
+    commitLocal(payload);
+    if (!silent) showToast(`✅ Tersimpan! (${payload.noDoc})`, 'success');
     resetForm();
     return true;
   } catch(err) {
     if (!silent) showToast('Error saat menyimpan.', 'error');
     return false;
   } finally {
-    btn.disabled = !settings.scriptUrl; btn.innerHTML = '💾 Simpan';
+    btn.disabled = !settings.scriptUrl;
+    btn.innerHTML = '💾 Simpan';
   }
+}
+
+async function printAndSave() {
+  const payload = buildPayload();
+  if (!payload) return; // Validasi gagal
+
+  // Simpan lokal + auto-save customer selalu
+  commitLocal(payload);
+
+  // Kirim ke remote jika ada scriptUrl
+  if (settings.scriptUrl) {
+    try {
+      const res  = await fetch(settings.scriptUrl, { method: 'POST', body: JSON.stringify(payload) });
+      const data = await res.json();
+      if (!data.success) showToast('Remote gagal, tapi data sudah tersimpan lokal.', 'warning');
+    } catch(e) {
+      showToast('Koneksi gagal – disimpan lokal saja.', 'warning');
+    }
+  }
+
+  showToast(`✅ Tersimpan! (${payload.noDoc})`, 'success');
+  resetForm();
+
+  // Cetak setelah data tersimpan
+  setTimeout(() => window.print(), 300);
 }
 
 function markInvoiceLunas(invNo) {
@@ -1672,28 +1713,71 @@ function markInvoiceLunas(invNo) {
   if (invIdx < 0) return;
   allHistoryData[invIdx]['Status'] = 'Lunas';
   localStorage.setItem('invoiceku_local_history', JSON.stringify(allHistoryData));
-  // Try to update GAS too
   if (settings.scriptUrl) {
     fetch(settings.scriptUrl, { method:'POST', body: JSON.stringify({ action:'update', noDoc: invNo, status:'Lunas' }) }).catch(()=>{});
   }
 }
 
-async function printAndSave() {
-  // Save first, then print
-  if (settings.scriptUrl) {
-    const ok = await saveToDatabase(false);
-    if (!ok) return; // Don't print if save fails due to validation
-  }
-  window.print();
+function normalizePhone(p) { return (p||'').replace(/\D/g,''); }
+
+function findCustomerByPhoneOrEmail(phone, email) {
+  const ph = normalizePhone(phone);
+  return customers.find(c => {
+    if (ph && ph.length >= 8 && normalizePhone(c.phone) === ph) return true;
+    if (email && c.email && c.email.toLowerCase() === email.toLowerCase()) return true;
+    return false;
+  });
+}
+
+function detectCustomerByPhone() {
+  const phone = document.getElementById('client-phone').value.trim();
+  const name  = document.getElementById('client-name').value.trim();
+  if (!phone) return;
+  const match = findCustomerByPhoneOrEmail(phone, '');
+  if (match && !name) fillCustomerFields(match, true);
+}
+
+function detectCustomerByEmail() {
+  const email = document.getElementById('client-email').value.trim();
+  const name  = document.getElementById('client-name').value.trim();
+  if (!email) return;
+  const match = findCustomerByPhoneOrEmail('', email);
+  if (match && !name) fillCustomerFields(match, true);
+}
+
+function fillCustomerFields(c, showNotif=false) {
+  document.getElementById('client-name').value    = c.name;
+  document.getElementById('client-phone').value   = c.phone||'';
+  document.getElementById('client-email').value   = c.email||'';
+  document.getElementById('client-address').value = c.address||'';
+  if (showNotif) showToast(`👤 Pelanggan ditemukan: ${c.name}`, 'success');
+  updatePreview();
 }
 
 function autoSaveCustomer(name, phone, email, address) {
   if (!name) return;
-  const exists = customers.find(c => c.name.toLowerCase() === name.toLowerCase());
-  if (!exists) {
+  // Cek dulu berdasarkan HP atau email (lebih akurat)
+  const matchByContact = findCustomerByPhoneOrEmail(phone, email);
+  if (matchByContact) {
+    // Update data jika ada field yang kosong
+    let updated = false;
+    if (!matchByContact.phone && phone)   { matchByContact.phone   = phone;   updated = true; }
+    if (!matchByContact.email && email)   { matchByContact.email   = email;   updated = true; }
+    if (!matchByContact.address && address){ matchByContact.address = address; updated = true; }
+    if (!matchByContact.name && name)     { matchByContact.name    = name;    updated = true; }
+    if (updated) {
+      localStorage.setItem('invoiceku_customers', JSON.stringify(customers));
+      renderCustomers();
+    }
+    return; // Pelanggan sudah ada
+  }
+  // Cek berdasarkan nama
+  const matchByName = customers.find(c => c.name.toLowerCase() === name.toLowerCase());
+  if (!matchByName) {
     customers.push({ id: Date.now(), name, phone:phone||'', email:email||'', address:address||'', note:'' });
     localStorage.setItem('invoiceku_customers', JSON.stringify(customers));
     renderCustomers();
+    showToast(`👤 Customer baru "${name}" ditambahkan`, 'success');
   }
 }
 
