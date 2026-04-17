@@ -995,14 +995,13 @@ async function loadCloudData() {
       renderItems();
     }
 
-    // ── Settings: cloud menimpa lokal, kecuali logoDataUrl (base64 lokal saja) ──
+    // ── Settings: cloud menimpa lokal sepenuhnya (termasuk logoDataUrl/logoUrl) ──
     if (data.settings && typeof data.settings === 'object') {
       const cs = data.settings;
       settings = {
         ...cs,
-        scriptUrl:   SCRIPT_URL,              // selalu dari konstanta
-        logoDataUrl: settings.logoDataUrl || '', // base64 tetap lokal
-      };
+        scriptUrl: SCRIPT_URL, // selalu dari konstanta, tidak bisa ditimpa cloud
+      }; // logoDataUrl & logoUrl ikut dari cloud
       localStorage.setItem('invoiceku_settings', JSON.stringify(settings));
       applySettings();
       updateSaveButton();
@@ -1618,7 +1617,7 @@ function saveSettings() {
 
 /** Kirim settings ke Spreadsheet (sheet "Settings") */
 function syncCloudSettings(s) {
-  const payload = { action: 'saveSettings', ...s, logoDataUrl: '', scriptUrl: '' };
+  const payload = { action: 'saveSettings', ...s, scriptUrl: '' }; // logoDataUrl/logoUrl ikut tersimpan cloud
   fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) }).catch(() => {});
 }
 
