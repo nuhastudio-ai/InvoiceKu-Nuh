@@ -10,7 +10,12 @@
  */
 
 const SPREADSHEET_ID = '1OLU8tajTsQjTrcKDGrWgiPGwFN-bVMq3Y4pvi55V3zM';
-const SHEET_NAME     = 'InvoiceKu';
+
+// ── Nama Sheet ──
+const SHEET_NAME      = 'InvoiceKu';
+const CUSTOMER_SHEET  = 'Customers';
+const ITEMS_SHEET     = 'Items';
+const SETTINGS_SHEET  = 'Settings';
 
 // ── Header kolom (pastikan baris 1 spreadsheet sesuai ini) ──
 const HEADERS = [
@@ -19,6 +24,10 @@ const HEADERS = [
   'Subtotal', 'Diskon(%)', 'PPN(%)', 'Total', 'Metode Bayar',
   'Bank/eWallet', 'No. Rekening', 'Atas Nama', 'Catatan', 'Status', 'Timestamp'
 ];
+
+const CUSTOMER_HEADERS = ['id', 'name', 'phone', 'email', 'address', 'note'];
+const ITEMS_HEADERS    = ['id', 'name', 'unit', 'buyPrice', 'sellPrice', 'desc'];
+const SETTINGS_HEADERS = ['key', 'value'];
 
 // ────────────────────────────────────────────
 // CORS helper
@@ -30,49 +39,101 @@ function output(obj) {
 }
 
 // ────────────────────────────────────────────
-// GET – ambil semua data
+// UTIL – Ambil data dari satu sheet jadi array of object
+// ────────────────────────────────────────────
+function fetchSheetData(ss, sheetName) {
+  const sheet = ss.getSheetByName(sheetName);
+  if (!sheet) return [];
+  const values = sheet.getDataRange().getValues();
+  if (values.length <= 1) return [];
+  const headers = values[0];
+  return values.slice(1).map(row => {
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = row[i] !== undefined ? row[i] : ''; });
+    return obj;
+  });
+}
+
+// ────────────────────────────────────────────
+// UTIL – Pastikan sheet + header ada (auto-buat jika belum)
+// ────────────────────────────────────────────
+function ensureSheet(ss, name, headers) {
+  let sheet = ss.getSheetByName(name);
+  if (!sheet) {
+    sheet = ss.insertSheet(name);
+    sheet.appendRow(headers);
+    sheet.getRange(1, 1, 1, headers.length)
+      .setBackground('#1e2d42')
+      .setFontColor('#ffffff')
+      .setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+// ────────────────────────────────────────────
+// GET – ambil semua data (invoices + customers + items)
 // ────────────────────────────────────────────
 function doGet(e) {
   try {
     const ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SHEET_NAME);
 
-    if (!sheet) return output({ success: false, message: 'Sheet "' + SHEET_NAME + '" tidak ditemukan' });
+    // ── Invoice data ──
+    let invoiceRows = [];
+    if (sheet) {
+      const values = sheet.getDataRange().getValues();
+      if (values.length > 1) {
+        const headers = values[0];
+        invoiceRows = values.slice(1).map(row => {
+          const obj = {};
+          headers.forEach((h, i) => { obj[h] = row[i] !== undefined ? row[i] : ''; });
+          return obj;
+        });
+      }
+    }
 
-    const values  = sheet.getDataRange().getValues();
-    if (values.length <= 1) return output({ success: true, data: [] });
+    // ── Customers data ──
+    const customersData = fetchSheetData(ss, CUSTOMER_SHEET);
 
-    const headers = values[0];
-    const rows = values.slice(1).map(row => {
-      const obj = {};
-      headers.forEach((h, i) => { obj[h] = row[i] !== undefined ? row[i] : ''; });
-      return obj;
+    // ── Items / Katalog data ──
+    const itemsData = fetchSheetData(ss, ITEMS_SHEET);
+
+    // ── Settings dari cloud ──
+    const settingsRows = fetchSheetData(ss, SETTINGS_SHEET);
+    const settingsObj  = {};
+    settingsRows.forEach(r => { if (r.key) settingsObj[r.key] = r.value; });
+
+    return output({
+      success:   true,
+      data:      invoiceRows,    // backward-compatible: invoice rows
+      customers: customersData,  // customer list
+      items:     itemsData,      // item/catalog list
+      settings:  Object.keys(settingsObj).length > 0 ? settingsObj : null
     });
 
-    return output({ success: true, data: rows });
   } catch (err) {
     return output({ success: false, message: err.toString() });
   }
 }
 
 // ────────────────────────────────────────────
-// POST – simpan / update / hapus
+// POST – simpan / update / hapus (invoice, customer, item)
 // ────────────────────────────────────────────
 function doPost(e) {
   try {
-    const ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
-    let   sheet = ss.getSheetByName(SHEET_NAME);
-
-    // Auto-buat sheet + header jika belum ada
-    if (!sheet) {
-      sheet = ss.insertSheet(SHEET_NAME);
-      sheet.appendRow(HEADERS);
-    }
-
+    const ss   = SpreadsheetApp.openById(SPREADSHEET_ID);
     const data = JSON.parse(e.postData.contents);
 
-    // ── SAVE (tambah baru) ──
+    // ══════════════════════════════
+    // ── INVOICE: SAVE (tambah baru) ──
+    // ══════════════════════════════
     if (data.action === 'save') {
+      let sheet = ss.getSheetByName(SHEET_NAME);
+      if (!sheet) {
+        sheet = ss.insertSheet(SHEET_NAME);
+        sheet.appendRow(HEADERS);
+      }
       sheet.appendRow([
         data.noDoc        || '',
         data.jenis        || '',
@@ -98,12 +159,16 @@ function doPost(e) {
       return output({ success: true, message: 'Data disimpan: ' + data.noDoc });
     }
 
-    // ── UPDATE (edit data) ──
+    // ══════════════════════════════
+    // ── INVOICE: UPDATE ──
+    // ══════════════════════════════
     if (data.action === 'update') {
+      const sheet = ss.getSheetByName(SHEET_NAME);
+      if (!sheet) return output({ success: false, message: 'Sheet invoice tidak ditemukan' });
       const values = sheet.getDataRange().getValues();
       for (let i = 1; i < values.length; i++) {
         if (String(values[i][0]) === String(data.noDoc)) {
-          const row = i + 1; // 1-indexed
+          const row = i + 1;
           if (data.tglTerbit    !== undefined) sheet.getRange(row, 3).setValue(data.tglTerbit);
           if (data.tglJatuhTempo!== undefined) sheet.getRange(row, 4).setValue(data.tglJatuhTempo);
           if (data.namaPelanggan!== undefined) sheet.getRange(row, 5).setValue(data.namaPelanggan);
@@ -120,8 +185,12 @@ function doPost(e) {
       return output({ success: false, message: 'Data tidak ditemukan: ' + data.noDoc });
     }
 
-    // ── DELETE (hapus baris) ──
+    // ══════════════════════════════
+    // ── INVOICE: DELETE ──
+    // ══════════════════════════════
     if (data.action === 'delete') {
+      const sheet = ss.getSheetByName(SHEET_NAME);
+      if (!sheet) return output({ success: false, message: 'Sheet invoice tidak ditemukan' });
       const values = sheet.getDataRange().getValues();
       for (let i = 1; i < values.length; i++) {
         if (String(values[i][0]) === String(data.noDoc)) {
@@ -132,6 +201,131 @@ function doPost(e) {
       return output({ success: false, message: 'Tidak ditemukan: ' + data.noDoc });
     }
 
+    // ══════════════════════════════
+    // ── CUSTOMER: SAVE / UPDATE ──
+    // ══════════════════════════════
+    if (data.action === 'saveCustomer') {
+      const sheet  = ensureSheet(ss, CUSTOMER_SHEET, CUSTOMER_HEADERS);
+      const values = sheet.getDataRange().getValues();
+
+      // Cek apakah id sudah ada → update
+      for (let i = 1; i < values.length; i++) {
+        if (String(values[i][0]) === String(data.id)) {
+          sheet.getRange(i + 1, 1, 1, CUSTOMER_HEADERS.length).setValues([[
+            data.id,
+            data.name    || '',
+            data.phone   || '',
+            data.email   || '',
+            data.address || '',
+            data.note    || ''
+          ]]);
+          return output({ success: true, message: 'Customer diperbarui: ' + data.name });
+        }
+      }
+
+      // Belum ada → tambah baris baru
+      sheet.appendRow([
+        data.id,
+        data.name    || '',
+        data.phone   || '',
+        data.email   || '',
+        data.address || '',
+        data.note    || ''
+      ]);
+      return output({ success: true, message: 'Customer ditambahkan: ' + data.name });
+    }
+
+    // ══════════════════════════════
+    // ── CUSTOMER: DELETE ──
+    // ══════════════════════════════
+    if (data.action === 'deleteCustomer') {
+      const sheet = ss.getSheetByName(CUSTOMER_SHEET);
+      if (!sheet) return output({ success: false, message: 'Sheet Customers tidak ditemukan' });
+      const values = sheet.getDataRange().getValues();
+      for (let i = 1; i < values.length; i++) {
+        if (String(values[i][0]) === String(data.id)) {
+          sheet.deleteRow(i + 1);
+          return output({ success: true, message: 'Customer dihapus: ' + data.id });
+        }
+      }
+      return output({ success: false, message: 'Customer tidak ditemukan: ' + data.id });
+    }
+
+    // ══════════════════════════════
+    // ── ITEM: SAVE / UPDATE ──
+    // ══════════════════════════════
+    if (data.action === 'saveItem') {
+      const sheet  = ensureSheet(ss, ITEMS_SHEET, ITEMS_HEADERS);
+      const values = sheet.getDataRange().getValues();
+
+      // Cek apakah id sudah ada → update
+      for (let i = 1; i < values.length; i++) {
+        if (String(values[i][0]) === String(data.id)) {
+          sheet.getRange(i + 1, 1, 1, ITEMS_HEADERS.length).setValues([[
+            data.id,
+            data.name      || '',
+            data.unit      || '',
+            data.buyPrice  || 0,
+            data.sellPrice || 0,
+            data.desc      || ''
+          ]]);
+          return output({ success: true, message: 'Item diperbarui: ' + data.name });
+        }
+      }
+
+      // Belum ada → tambah baris baru
+      sheet.appendRow([
+        data.id,
+        data.name      || '',
+        data.unit      || '',
+        data.buyPrice  || 0,
+        data.sellPrice || 0,
+        data.desc      || ''
+      ]);
+      return output({ success: true, message: 'Item ditambahkan: ' + data.name });
+    }
+
+    // ══════════════════════════════
+    // ── ITEM: DELETE ──
+    // ══════════════════════════════
+    if (data.action === 'deleteItem') {
+      const sheet = ss.getSheetByName(ITEMS_SHEET);
+      if (!sheet) return output({ success: false, message: 'Sheet Items tidak ditemukan' });
+      const values = sheet.getDataRange().getValues();
+      for (let i = 1; i < values.length; i++) {
+        if (String(values[i][0]) === String(data.id)) {
+          sheet.deleteRow(i + 1);
+          return output({ success: true, message: 'Item dihapus: ' + data.id });
+        }
+      }
+      return output({ success: false, message: 'Item tidak ditemukan: ' + data.id });
+    }
+
+    // ══════════════════════════════
+    // ── SETTINGS: SAVE ──
+    // ══════════════════════════════
+    if (data.action === 'saveSettings') {
+      const sheet = ensureSheet(ss, SETTINGS_SHEET, SETTINGS_HEADERS);
+      const values = sheet.getDataRange().getValues();
+
+      // Field yang disimpan di cloud (kecualikan logoDataUrl karena base64 besar)
+      const skipKeys = ['action', 'logoDataUrl'];
+      const toSave   = Object.entries(data).filter(([k]) => !skipKeys.includes(k));
+
+      toSave.forEach(([key, val]) => {
+        let found = false;
+        for (let i = 1; i < values.length; i++) {
+          if (String(values[i][0]) === key) {
+            sheet.getRange(i + 1, 2).setValue(String(val));
+            found = true; break;
+          }
+        }
+        if (!found) sheet.appendRow([key, String(val)]);
+      });
+
+      return output({ success: true, message: 'Settings disimpan ke cloud.' });
+    }
+
     return output({ success: false, message: 'Aksi tidak dikenali: ' + data.action });
 
   } catch (err) {
@@ -140,25 +334,32 @@ function doPost(e) {
 }
 
 // ────────────────────────────────────────────
-// UTIL – inisialisasi header (jalankan manual 1x)
+// UTIL – inisialisasi semua header (jalankan manual 1x)
 // ────────────────────────────────────────────
 function initSheet() {
-  const ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
-  let   sheet = ss.getSheetByName(SHEET_NAME);
-  if (!sheet) sheet = ss.insertSheet(SHEET_NAME);
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
-  // Set header jika baris 1 kosong
+  // Sheet InvoiceKu
+  let sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) sheet = ss.insertSheet(SHEET_NAME);
   const firstRow = sheet.getRange(1, 1, 1, HEADERS.length).getValues()[0];
-  const isEmpty  = firstRow.every(v => v === '');
-  if (isEmpty) {
+  if (firstRow.every(v => v === '')) {
     sheet.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
     sheet.getRange(1, 1, 1, HEADERS.length)
-      .setBackground('#1e2d42')
-      .setFontColor('#ffffff')
-      .setFontWeight('bold');
+      .setBackground('#1e2d42').setFontColor('#ffffff').setFontWeight('bold');
     sheet.setFrozenRows(1);
-    Logger.log('Header berhasil dibuat!');
-  } else {
-    Logger.log('Header sudah ada, skip.');
-  }
+    Logger.log('Header InvoiceKu dibuat!');
+  } else { Logger.log('Header InvoiceKu sudah ada, skip.'); }
+
+  // Sheet Customers
+  ensureSheet(ss, CUSTOMER_SHEET, CUSTOMER_HEADERS);
+  Logger.log('Sheet Customers siap.');
+
+  // Sheet Items
+  ensureSheet(ss, ITEMS_SHEET, ITEMS_HEADERS);
+  Logger.log('Sheet Items siap.');
+
+  // Sheet Settings
+  ensureSheet(ss, SETTINGS_SHEET, SETTINGS_HEADERS);
+  Logger.log('Sheet Settings siap.');
 }

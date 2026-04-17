@@ -33,20 +33,8 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 /* ── TOP NAV ── */
 .topbar { background: var(--navy); padding: 0 20px; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 200; box-shadow: 0 2px 12px rgba(0,0,0,0.25); gap: 12px; }
 .topbar-brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-.topbar-logo {
-  /* Hapus background dan border-radius agar polosan */
-  height: 34px; 
-  display: flex; 
-  align-items: center; 
-  justify-content: center; 
-  font-size: 16px; 
-  flex-shrink: 0;
-}
-.topbar-logo img { 
-  max-width: 100%; 
-  max-height: 100%; 
-  object-fit: contain; /* Memastikan logo menyesuaikan ukuran tanpa terpotong */
-}
+.topbar-logo { width: 34px; height: 34px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; overflow: hidden; }
+.topbar-logo img { width: 100%; height: 100%; object-fit: contain; }
 .topbar-title { color: #fff; font-size: 16px; font-weight: 800; }
 .topbar-title span { color: var(--accent); }
 
@@ -60,13 +48,13 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 .btn-icon:hover { background: rgba(255,255,255,0.18); color: #fff; }
 
 /* ── LAYOUT ── */
-.app-container { display: grid; grid-template-columns: 420px 1fr; gap: 0; height: calc(100vh - 56px); overflow: hidden; }
+.app-container { display: grid; grid-template-columns: 420px 1fr; gap: 0; height: calc(100vh - 56px); }
 .app-container.hidden { display: none; }
 .full-page { display: none; height: calc(100vh - 56px); overflow-y: auto; background: var(--bg); padding: 24px 28px; flex-direction: column; gap: 20px; }
 .full-page.active { display: flex; }
 
 /* ── FORM PANEL ── */
-.form-panel { background: var(--surface); height: calc(100vh - 56px); overflow-y: auto; -webkit-overflow-scrolling: touch; border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+.form-panel { background: var(--surface); height: calc(100vh - 56px); overflow-y: auto; -webkit-overflow-scrolling: touch; border-right: 1px solid var(--border); padding: 20px 20px 20px 20px; display: flex; flex-direction: column; gap: 16px; }
 .form-panel::-webkit-scrollbar { width: 5px; }
 .form-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
@@ -135,25 +123,22 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 .manual-pay-row { display: flex; flex-direction: column; gap: 6px; padding: 10px; border: 1.5px dashed var(--border); border-radius: 8px; }
 .manual-pay-row .field-row { grid-template-columns: 1fr 1fr; }
 
-/* ── PREVIEW WRAPPER ── */
-.preview-panel-wrapper { display: flex; flex-direction: column; overflow: hidden; height: calc(100vh - 56px); }
-.preview-topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 8px 16px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; box-shadow: 0 2px 8px rgba(30,45,66,0.07); }
-.preview-topbar-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; }
-
 /* ── PRINT BAR ── */
-.print-bar { background: transparent; display: flex; gap: 8px; z-index: 50; flex-shrink: 0; }
-.btn-print { flex: 1; padding: 11px; background: var(--navy); color: #fff; border: none; border-radius: 9px; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all .2s; }
+/* ── PREVIEW ACTION BAR (di atas preview) ── */
+.preview-topbar { background: var(--surface); border-bottom: 2px solid var(--border); padding: 10px 16px; display: flex; justify-content: flex-end; align-items: center; gap: 8px; flex-shrink: 0; box-shadow: 0 2px 8px rgba(30,45,66,0.08); z-index: 50; }
+.btn-print { padding: 11px 18px; background: var(--navy); color: #fff; border: none; border-radius: 9px; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all .2s; }
 .btn-print:hover { background: var(--navy-mid); }
-.btn-save-db { flex: 1; padding: 11px; background: var(--success); color: #fff; border: none; border-radius: 9px; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all .2s; }
+.btn-save-db { padding: 11px 18px; background: var(--success); color: #fff; border: none; border-radius: 9px; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all .2s; }
 .btn-save-db:hover { background: #219a52; }
 .btn-save-db:disabled { background: #95a5a6; cursor: not-allowed; }
 .btn-reset { padding: 11px 14px; background: var(--surface-2); border: 1.5px solid var(--border); border-radius: 9px; font-family: inherit; font-size: 12px; font-weight: 600; color: var(--text-muted); cursor: pointer; transition: all .2s; }
 .btn-reset:hover { border-color: var(--danger); color: var(--danger); background: #fde8e8; }
 
 /* ── PREVIEW PANEL ── */
-.preview-panel { overflow-y: auto; background: #d8dde5; padding: 24px; display: flex; justify-content: center; align-items: flex-start; flex: 1; }
-.preview-panel::-webkit-scrollbar { width: 5px; }
-.preview-panel::-webkit-scrollbar-thumb { background: #b0bac5; border-radius: 3px; }
+.preview-panel { display: flex; flex-direction: column; overflow: hidden; background: #d8dde5; }
+.preview-scroll { overflow-y: auto; flex: 1; padding: 24px; display: flex; justify-content: center; align-items: flex-start; }
+.preview-scroll::-webkit-scrollbar { width: 5px; }
+.preview-scroll::-webkit-scrollbar-thumb { background: #b0bac5; border-radius: 3px; }
 
 /* ── INVOICE DOC ── */
 #invoice-doc { width: 680px; background: #fff; box-shadow: var(--shadow-lg); border-radius: 4px; overflow: hidden; position: relative; }
@@ -362,7 +347,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
   .topbar, .form-panel, .preview-panel > *:not(#invoice-doc), .full-page,
   .print-bar, .toast { display: none !important; }
   .app-container { display: block !important; height: auto !important; }
-  .preview-panel { background: white !important; padding: 0 !important; display: block !important; }
+  .preview-panel { background: white !important; display: block !important; } .preview-topbar { display: none !important; } .preview-scroll { padding: 0 !important; display: block !important; }
   #invoice-doc {
     width: 100mm !important; min-height: auto !important;
     box-shadow: none !important; border-radius: 0 !important;
@@ -395,10 +380,9 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 /* ── RESPONSIVE ── */
 @media (max-width: 900px) {
   .app-container { grid-template-columns: 1fr; grid-template-rows: auto; height: auto; }
-  .form-panel { height: auto; max-height: none; overflow-y: visible; padding-bottom: 20px; }
-  .form-panel .print-bar { position: static; margin: 0; border-radius: var(--radius); }
-  .preview-panel-wrapper { height: auto; }
-  .preview-panel { padding: 12px; padding-bottom: 20px; }
+  .form-panel { height: auto; max-height: none; overflow-y: visible; padding-bottom: 80px; }
+  .preview-topbar { flex-wrap: wrap; }
+  .preview-scroll { padding: 12px; }
   #invoice-doc { width: 100%; }
   .doc-header, .doc-meta, .doc-body, .doc-footer { padding-left: 14px; padding-right: 14px; }
   .stats-grid { grid-template-columns: 1fr 1fr; }
@@ -585,16 +569,15 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
   </div><!-- /form-panel -->
 
   <!-- PREVIEW PANEL -->
-  <div class="preview-panel-wrapper">
+  <div class="preview-panel">
+    <!-- Action bar di atas preview -->
     <div class="preview-topbar">
-      <span class="preview-topbar-label">👁️ Pratinjau Dokumen</span>
-      <div class="print-bar">
-        <button class="btn-reset" onclick="confirmReset()" title="Reset Form">🗑</button>
-        <button class="btn-save-db" id="btn-save-db" onclick="saveToDatabase()">💾 Simpan</button>
-        <button class="btn-print" id="btn-print-only" onclick="printAndSave()">🖨️ Cetak</button>
-      </div>
+      <button class="btn-reset" onclick="confirmReset()" title="Reset Form">🗑 Reset</button>
+      <button class="btn-save-db" id="btn-save-db" onclick="saveToDatabase()">💾 Simpan</button>
+      <button class="btn-print" id="btn-print-only" onclick="printAndSave()">🖨️ Cetak &amp; Simpan</button>
     </div>
-    <div class="preview-panel">
+    <!-- Scroll area untuk dokumen -->
+    <div class="preview-scroll">
     <div id="invoice-doc">
       <div class="doc-header">
         <div class="doc-logo-area">
@@ -656,8 +639,8 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
         </div>
       </div>
     </div><!-- /invoice-doc -->
-    </div><!-- /preview-panel -->
-  </div><!-- /preview-panel-wrapper -->
+    </div><!-- /preview-scroll -->
+  </div><!-- /preview-panel -->
 </div><!-- /app-container -->
 
 <!-- ══ HISTORY PAGE ══ -->
@@ -760,7 +743,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
       <!-- Toggle tampilkan pimpinan -->
       <label class="toggle-wrap" style="cursor:pointer">
         <div class="toggle-switch">
-          <input type="checkbox" id="s-show-signer" checked>
+          <input type="checkbox" id="s-show-signer">
           <div class="toggle-track"></div>
         </div>
         <span class="toggle-label">Tampilkan Nama Pimpinan di Dokumen</span>
@@ -772,14 +755,12 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
           <div style="flex:1;display:flex;flex-direction:column;gap:6px">
             <label class="logo-upload-btn" for="logo-file-input">📁 Upload Logo (PNG/JPG/SVG) — Tidak dipotong lingkaran</label>
             <input type="file" id="logo-file-input" accept="image/*" style="display:none" onchange="handleLogoUpload(event)">
-            <input type="text" id="s-logo-url" placeholder="Atau URL logo: https://... atau images/logo.png" style="padding:6px 8px;border:1.5px solid var(--border);border-radius:7px;font-size:11px;outline:none" oninput="previewLogoUrl()">
-           <div style="display:flex;gap:6px;align-items:center">
-               <input type="text" id="s-logo-emoji" placeholder="Atau emoji: 🎨" maxlength="4" style="padding:6px 8px;border:1.5px solid var(--border);border-radius:7px;font-size:16px;text-align:center;outline:none;width:80px">
-               <button class="btn-secondary" onclick="clearLogo()" style="font-size:11px;padding:6px 10px">Hapus Logo</button>
-                </div>
-                  <button class="btn-secondary" onclick="useLocalLogo()" style="font-size:11px;padding:6px 10px;margin-top:6px;width:100%;text-align:left;">
-                    📁 Gunakan file lokal (images/logo.png)
-                </button>
+            <div style="display:flex;gap:6px;align-items:center">
+              <input type="text" id="s-logo-emoji" placeholder="Atau emoji: 🎨" maxlength="4" style="padding:6px 8px;border:1.5px solid var(--border);border-radius:7px;font-size:16px;text-align:center;outline:none;width:80px">
+              <button class="btn-secondary" onclick="clearLogo()" style="font-size:11px;padding:6px 10px">Hapus Logo</button>
+            </div>
+            <input type="text" id="s-logo-url" placeholder="URL logo: https://... atau images/logo.png" style="padding:6px 8px;border:1.5px solid var(--border);border-radius:7px;font-size:11px;outline:none;width:100%">
+            <span style="font-size:10px;color:var(--text-muted)">Isi URL jika logo di-host online (prioritas di atas upload)</span>
           </div>
         </div>
       </div>
@@ -789,6 +770,9 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
       </div>
       <hr style="border:none;border-top:1px solid var(--border);margin:4px 0">
       <div class="field">
+        <label>🔗 URL Google Apps Script</label>
+        <input type="url" id="s-script-url" placeholder="https://script.google.com/macros/s/xxxx/exec">
+        <span style="font-size:11px;color:var(--text-muted);margin-top:2px;display:block">Salin URL dari deployment Apps Script kamu.</span>
       </div>
     </div>
     <div class="modal-actions">
@@ -950,7 +934,76 @@ let catalogItems = JSON.parse(localStorage.getItem('invoiceku_catalog')   || '[]
 let settings     = JSON.parse(localStorage.getItem('invoiceku_settings')  || '{}');
 let paymentMethods = JSON.parse(localStorage.getItem('invoiceku_payments') || '[]');
 
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx98hKdeh_ZtnSmlAz_pjJOIGHSJj1fwcCDUQtvnTKgBGZSnGQZubJZwwH7ENop7usx_w/exec';
+// ══════════════════════════════════════════════
+// CLOUD SYNC – customers & items ke Spreadsheet
+// ══════════════════════════════════════════════
+
+/** Kirim satu aksi ke GAS backend (fire-and-forget, tidak block UI) */
+function syncCloud(payload) {
+  if (!settings.scriptUrl) return;
+  fetch(settings.scriptUrl, { method: 'POST', body: JSON.stringify(payload) })
+    .catch(() => {}); // diam-diam jika offline
+}
+
+/**
+ * Saat pertama kali halaman dibuka (atau setelah settings disimpan),
+ * unduh data customers & items dari Spreadsheet dan timpa localStorage.
+ * Dipanggil dari init() dan saveSettings().
+ */
+async function loadCloudData() {
+  if (!settings.scriptUrl) return;
+  try {
+    const res  = await fetch(settings.scriptUrl);
+    const data = await res.json();
+    if (!data.success) return;
+
+    // ── Customers dari cloud ──
+    if (Array.isArray(data.customers) && data.customers.length > 0) {
+      customers = data.customers.map(c => ({
+        id:      c.id      || String(Date.now() + Math.random()),
+        name:    c.name    || '',
+        phone:   c.phone   || '',
+        email:   c.email   || '',
+        address: c.address || '',
+        note:    c.note    || ''
+      }));
+      localStorage.setItem('invoiceku_customers', JSON.stringify(customers));
+      renderCustomers();
+    }
+
+    // ── Items / Katalog dari cloud ──
+    if (Array.isArray(data.items) && data.items.length > 0) {
+      catalogItems = data.items.map(c => ({
+        id:        c.id        || String(Date.now() + Math.random()),
+        name:      c.name      || '',
+        unit:      c.unit      || '',
+        buyPrice:  parseFloat(c.buyPrice)  || 0,
+        sellPrice: parseFloat(c.sellPrice) || 0,
+        desc:      c.desc      || ''
+      }));
+      localStorage.setItem('invoiceku_catalog', JSON.stringify(catalogItems));
+      renderItems();
+    }
+
+    // ── Settings dari cloud (kecuali scriptUrl & logoDataUrl yg bersifat lokal) ──
+    if (data.settings && typeof data.settings === 'object') {
+      const cs = data.settings;
+      // Timpa semua field kecuali scriptUrl & logoDataUrl (tetap dari lokal)
+      const merged = {
+        ...cs,
+        scriptUrl:   settings.scriptUrl   || cs.scriptUrl   || '',
+        logoDataUrl: settings.logoDataUrl || '', // base64 tidak disimpan cloud
+      };
+      settings = merged;
+      localStorage.setItem('invoiceku_settings', JSON.stringify(settings));
+      applySettings();
+      updateSaveButton();
+    }
+  } catch(e) {
+    // Gagal fetch (offline) – tetap pakai data lokal, tidak apa-apa
+    console.warn('loadCloudData gagal, pakai data lokal:', e);
+  }
+}
 
 // ══════════════════════════════════════════════
 // HELPERS
@@ -994,6 +1047,7 @@ function escJs(s)   { return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\
   renderCustomers();
   renderItems();
   renderPaymentChips();
+  loadCloudData(); // ← Unduh customers & items dari Spreadsheet saat halaman dibuka
 
   document.addEventListener('click', function(e) {
     if (!e.target.closest('.autocomplete-wrap') && !e.target.closest('#inv-ref-wrap')) {
@@ -1510,19 +1564,21 @@ function openSettings() {
   document.getElementById('s-signer').value   = settings.signer || '';
   document.getElementById('s-role').value     = settings.role || '';
   document.getElementById('s-logo-emoji').value = settings.logoEmoji || '';
-  document.getElementById('s-logo-url').value = settings.logoUrl || '';
+  document.getElementById('s-script-url').value = settings.scriptUrl || '';
   document.getElementById('s-default-discount').value = settings.defaultDiscount || '0';
   document.getElementById('s-default-tax').value = settings.defaultTax || '0';
-  document.getElementById('s-show-signer').checked = settings.showSigner !== false;
+  document.getElementById('s-show-signer').checked = settings.showSigner === true;
 
   const prev = document.getElementById('logo-preview-box');
   if (settings.logoDataUrl) prev.innerHTML = `<img src="${settings.logoDataUrl}" alt="logo">`;
+  else if (settings.logoUrl) prev.innerHTML = `<img src="${settings.logoUrl}" alt="logo" style="max-width:100%;max-height:100%;object-fit:contain">`;
   else prev.innerHTML = settings.logoEmoji || '🎨';
+  document.getElementById('s-logo-url').value = settings.logoUrl || '';
   document.getElementById('settings-modal').classList.add('open');
 }
 function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
 
-async function saveSettings() {
+function saveSettings() {
   settings = {
     company: document.getElementById('s-company').value,
     tagline: document.getElementById('s-tagline').value,
@@ -1540,26 +1596,21 @@ async function saveSettings() {
     showSigner: document.getElementById('s-show-signer').checked,
   };
   localStorage.setItem('invoiceku_settings', JSON.stringify(settings));
-
-  // Simpan ke Google Sheets via GAS
-  try {
-    await fetch(SCRIPT_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action: 'saveSettings', data: settings })
-    });
-    showToast('Pengaturan perusahaan berhasil disimpan global!', 'success');
-  } catch (e) {
-    showToast('Gagal menyimpan ke server', 'error');
-  }
-  
   applySettings();
+  updateSaveButton();
+  // Simpan pengaturan ke cloud agar semua device pakai setting yang sama
+  syncCloudSettings(settings);
   closeSettings();
-
+  showToast('Pengaturan disimpan!', 'success');
+  loadCloudData(); // ← Langsung sync cloud setelah URL script diperbarui
 }
 
-window.onload = function() {
-  loadSettingsFromDB();
-  loadDataFromDB();
+/** Kirim settings ke Spreadsheet (sheet "Settings") */
+function syncCloudSettings(s) {
+  if (!s.scriptUrl) return;
+  // Kecualikan logoDataUrl (terlalu besar / base64) dari cloud sync
+  const payload = { action: 'saveSettings', ...s, logoDataUrl: '' };
+  fetch(s.scriptUrl, { method: 'POST', body: JSON.stringify(payload) }).catch(() => {});
 }
 
 function handleLogoUpload(e) {
@@ -1573,31 +1624,10 @@ function handleLogoUpload(e) {
   reader.readAsDataURL(file);
 }
 
-function previewLogoUrl() {
-  const url = document.getElementById('s-logo-url').value.trim();
-  const prev = document.getElementById('logo-preview-box');
-  if (url) {
-    prev.innerHTML = `<img src="${url}" alt="logo" onerror="this.parentElement.innerHTML='❌'">`;
-    settings.logoUrl = url;
-    settings.logoDataUrl = '';
-    applySettings();
-  }
-}
-
 function clearLogo() {
   settings.logoDataUrl = '';
-  settings.logoUrl = '';
-  document.getElementById('s-logo-url').value = '';
   document.getElementById('logo-preview-box').innerHTML = document.getElementById('s-logo-emoji').value || '🎨';
   applySettings();
-}
-
-function useLocalLogo() {
-  const localPath = 'images/logo.png';
-  document.getElementById('s-logo-url').value = localPath;
-  // Kosongkan data URL (base64) agar prioritas kembali ke URL
-  settings.logoDataUrl = ''; 
-  previewLogoUrl();
 }
 
 function applySettings() {
@@ -1610,10 +1640,14 @@ function applySettings() {
   // Logo (no circle – natural shape)
   const docLogoEl = document.getElementById('doc-logo');
   const topLogoEl = document.getElementById('topbar-logo-el');
-  const logoSrc = s.logoDataUrl || s.logoUrl || '';
-  if (logoSrc) {
-    docLogoEl.innerHTML = `<img src="${logoSrc}" alt="logo">`;
-    topLogoEl.innerHTML = `<img src="${logoSrc}" alt="logo" style="width:100%;height:100%;object-fit:contain;">`;
+  if (s.logoDataUrl) {
+    docLogoEl.innerHTML = `<img src="${s.logoDataUrl}" alt="logo">`;
+    topLogoEl.innerHTML = `<img src="${s.logoDataUrl}" alt="logo" style="width:100%;height:100%;object-fit:contain;">`;
+  } else if (s.logoUrl) {
+    // URL eksternal atau path lokal (images/logo.png)
+    const src = s.logoUrl;
+    docLogoEl.innerHTML = `<img src="${src}" alt="logo" onerror="this.style.display='none'">`;
+    topLogoEl.innerHTML = `<img src="${src}" alt="logo" style="width:100%;height:100%;object-fit:contain;" onerror="this.style.display='none'">`;
   } else {
     const em = s.logoEmoji || '✦';
     docLogoEl.textContent = em; topLogoEl.textContent = em;
@@ -1621,7 +1655,7 @@ function applySettings() {
 
   // Signer visibility
   const footerRight = document.getElementById('doc-footer-right');
-  if (footerRight) footerRight.style.display = s.showSigner !== false ? '' : 'none';
+  if (footerRight) footerRight.style.display = s.showSigner === true ? '' : 'none';
 
   let footerText = `<strong>${s.company||'Perusahaan'}</strong><br>`;
   if (s.address) footerText += s.address + '<br>';
@@ -1632,7 +1666,7 @@ function applySettings() {
 
 function updateSaveButton() {
   const btn = document.getElementById('btn-save-db');
-  const hasUrl = SCRIPT_URL && SCRIPT_URL.length > 0;
+  const hasUrl = settings.scriptUrl && settings.scriptUrl.length > 0;
   btn.disabled = !hasUrl;
 }
 
@@ -1713,22 +1747,8 @@ function commitLocal(payload) {
   }
 }
 
-async function loadSettingsFromDB() {
-  try {
-    const res = await fetch(SCRIPT_URL + "?action=getSettings");
-    const json = await res.json();
-    if (json.success && json.data && Object.keys(json.data).length > 0) {
-      settings = json.data;
-      // Panggil fungsi untuk menerapkan pengaturan di layar (misal applySettings())
-      applySettings(); 
-    }
-  } catch (e) {
-    console.log("Gagal memuat pengaturan dari DB, menggunakan lokal.", e);
-  }
-}
-
 async function saveToDatabase(silent = false) {
-  if (!SCRIPT_URL) {
+  if (!settings.scriptUrl) {
     if (!silent) showToast('URL Apps Script belum diatur. Buka ⚙️ Pengaturan.', 'warning');
     return false;
   }
@@ -1741,7 +1761,7 @@ async function saveToDatabase(silent = false) {
   try {
     let savedOk = false;
     try {
-      const res  = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
+      const res  = await fetch(settings.scriptUrl, { method: 'POST', body: JSON.stringify(payload) });
       const data = await res.json();
       if (data.success) savedOk = true;
       else showToast('Gagal: ' + (data.message||'Error'), 'error');
@@ -1757,7 +1777,7 @@ async function saveToDatabase(silent = false) {
     if (!silent) showToast('Error saat menyimpan.', 'error');
     return false;
   } finally {
-    btn.disabled = !SCRIPT_URL;
+    btn.disabled = !settings.scriptUrl;
     btn.innerHTML = '💾 Simpan';
   }
 }
@@ -1770,9 +1790,9 @@ async function printAndSave() {
   commitLocal(payload);
 
   // Kirim ke remote jika ada scriptUrl
-  if (SCRIPT_URL) {
+  if (settings.scriptUrl) {
     try {
-      const res  = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
+      const res  = await fetch(settings.scriptUrl, { method: 'POST', body: JSON.stringify(payload) });
       const data = await res.json();
       if (!data.success) showToast('Remote gagal, tapi data sudah tersimpan lokal.', 'warning');
     } catch(e) {
@@ -1787,15 +1807,13 @@ async function printAndSave() {
   setTimeout(() => window.print(), 300);
 }
 
-
-
 function markInvoiceLunas(invNo) {
   const invIdx = allHistoryData.findIndex(r => r['No. Dokumen'] === invNo && r['Jenis'] === 'invoice');
   if (invIdx < 0) return;
   allHistoryData[invIdx]['Status'] = 'Lunas';
   localStorage.setItem('invoiceku_local_history', JSON.stringify(allHistoryData));
-  if (SCRIPT_URL) {
-    fetch(SCRIPT_URL, { method:'POST', body: JSON.stringify({ action:'update', noDoc: invNo, status:'Lunas' }) }).catch(()=>{});
+  if (settings.scriptUrl) {
+    fetch(settings.scriptUrl, { method:'POST', body: JSON.stringify({ action:'update', noDoc: invNo, status:'Lunas' }) }).catch(()=>{});
   }
 }
 
@@ -1848,6 +1866,7 @@ function autoSaveCustomer(name, phone, email, address) {
     if (!matchByContact.name && name)     { matchByContact.name    = name;    updated = true; }
     if (updated) {
       localStorage.setItem('invoiceku_customers', JSON.stringify(customers));
+      syncCloud({ action: 'saveCustomer', ...matchByContact }); // ← sync update
       renderCustomers();
     }
     return; // Pelanggan sudah ada
@@ -1855,26 +1874,13 @@ function autoSaveCustomer(name, phone, email, address) {
   // Cek berdasarkan nama
   const matchByName = customers.find(c => c.name.toLowerCase() === name.toLowerCase());
   if (!matchByName) {
-    customers.push({ id: Date.now(), name, phone:phone||'', email:email||'', address:address||'', note:'' });
+    const newCustomer = { id: Date.now(), name, phone:phone||'', email:email||'', address:address||'', note:'' };
+    customers.push(newCustomer);
     localStorage.setItem('invoiceku_customers', JSON.stringify(customers));
+    syncCloud({ action: 'saveCustomer', ...newCustomer }); // ← sync customer baru
     renderCustomers();
     showToast(`👤 Customer baru "${name}" ditambahkan`, 'success');
   }
-    // Temukan bagian ini di index.html Anda
-if (updated || !matchByName) {
-   // ... kode lokal aslinya ... 
-
-   // [+] TAMBAHKAN KODE INI UNTUK MENYIMPAN KE SPREADSHEET
-   if (SCRIPT_URL) {
-      fetch(SCRIPT_URL, {
-         method: 'POST',
-         body: JSON.stringify({
-           action: 'addCustomer',
-           data: { nama: name, nohp: phone, email: email, alamat: address }
-         })
-      }).catch(e => console.log("Gagal simpan customer ke DB", e));
-   }
-}
 }
 
 // ══════════════════════════════════════════════
@@ -1888,13 +1894,13 @@ function loadHistoryLocal() {
 async function loadHistory() {
   const banner = document.getElementById('db-setup-banner');
   const loading = document.getElementById('history-loading');
-  const hasUrl = SCRIPT_URL && SCRIPT_URL.length > 0;
+  const hasUrl = settings.scriptUrl && settings.scriptUrl.length > 0;
   banner.style.display = hasUrl ? 'none' : 'flex';
 
   if (hasUrl) {
     loading.style.display = 'block';
     try {
-      const res = await fetch(SCRIPT_URL);
+      const res = await fetch(settings.scriptUrl);
       const data = await res.json();
       if (data.success) {
         allHistoryData = data.data || [];
@@ -2103,8 +2109,8 @@ async function saveEdit() {
     }
   }
 
-  if (SCRIPT_URL) {
-    try { await fetch(SCRIPT_URL, { method:'POST', body: JSON.stringify(payload) }); } catch(e) {}
+  if (settings.scriptUrl) {
+    try { await fetch(settings.scriptUrl, { method:'POST', body: JSON.stringify(payload) }); } catch(e) {}
   }
 
   renderHistoryAccordion(allHistoryData);
@@ -2130,8 +2136,8 @@ async function confirmDelete() {
   allHistoryData = allHistoryData.filter(r => !(r['No. Dokumen'] === noDoc && r['Jenis'] === jenis));
   localStorage.setItem('invoiceku_local_history', JSON.stringify(allHistoryData));
 
-  if (SCRIPT_URL) {
-    try { await fetch(SCRIPT_URL, { method:'POST', body: JSON.stringify({ action:'delete', noDoc, jenis }) }); } catch(e) {}
+  if (settings.scriptUrl) {
+    try { await fetch(settings.scriptUrl, { method:'POST', body: JSON.stringify({ action:'delete', noDoc, jenis }) }); } catch(e) {}
   }
 
   renderHistoryAccordion(allHistoryData);
@@ -2234,12 +2240,15 @@ function saveCustomer() {
   const c = { id: idx>=0?customers[idx].id:Date.now(), name, phone:document.getElementById('cm-phone').value, email:document.getElementById('cm-email').value, address:document.getElementById('cm-address').value, note:document.getElementById('cm-note').value };
   if (idx>=0) customers[idx]=c; else customers.push(c);
   localStorage.setItem('invoiceku_customers', JSON.stringify(customers));
+  syncCloud({ action: 'saveCustomer', ...c }); // ← sinkronisasi ke Spreadsheet
   renderCustomers(); closeCustomerForm(); showToast('Customer disimpan!', 'success');
 }
 function deleteCustomer(idx) {
   if (!confirm(`Hapus customer "${customers[idx].name}"?`)) return;
+  const c = customers[idx]; // simpan referensi sebelum dihapus
   customers.splice(idx,1);
   localStorage.setItem('invoiceku_customers', JSON.stringify(customers));
+  syncCloud({ action: 'deleteCustomer', id: c.id }); // ← sinkronisasi ke Spreadsheet
   renderCustomers(); showToast('Customer dihapus', 'warning');
 }
 
@@ -2287,70 +2296,21 @@ function openItemForm(idx=-1) {
 }
 function closeItemForm() { document.getElementById('item-modal').classList.remove('open'); }
 function saveItem() {
-  if (!SCRIPT_URL) {
-    alert("URL Script Google belum diisi di Pengaturan!");
-    return;
-  }
-
-  // 1. Ambil data sesuai dengan ID yang ada di HTML Anda
-  const idItem = document.getElementById('im-id').value; // Untuk deteksi ini edit atau tambah baru
-  const namaItem = document.getElementById('im-name').value;
-  const satuan = document.getElementById('im-unit').value || '-';
-  const hargaBeli = parseFloat(document.getElementById('im-buy-price').value) || 0;
-  const hargaJual = parseFloat(document.getElementById('im-sell-price').value) || 0;
-  
-  // 2. Hitung laba otomatis
-  const laba = hargaJual - hargaBeli;
-
-  // 3. Validasi: Jangan biarkan kosong
-  if (!namaItem || !hargaJual) {
-    alert("Nama Item dan Harga Jual wajib diisi!");
-    return;
-  }
-
-  // 4. Ubah tombol sementara agar tidak diklik dua kali
-  const btnSave = document.querySelector('#item-modal .btn-primary');
-  const textAwal = btnSave.innerHTML;
-  btnSave.innerHTML = "⏳ Menyimpan...";
-  btnSave.disabled = true;
-
-  // 5. Kirim data ke Google Spreadsheet
-  fetch(SCRIPT_URL, {
-    method: 'POST',
-    body: JSON.stringify({
-      action: 'addItem', // Sesuai dengan yang ada di gas-backend.js
-      data: {
-        namaItem: namaItem,
-        satuan: satuan,
-        hargaBeli: hargaBeli,
-        hargaJual: hargaJual,
-        laba: laba
-      }
-    })
-  })
-  .then(response => response.json())
-  .then(hasil => {
-    // 6. Jika berhasil
-    showToast("Item berhasil disimpan!", "success");
-    closeItemForm(); // Panggil fungsi bawaan Anda untuk menutup modal
-    
-    // Muat ulang data dari database agar tabel langsung terupdate
-    loadDataFromDB(); 
-  })
-  .catch(error => {
-    console.error("Gagal simpan item:", error);
-    alert("Gagal terhubung ke database!");
-  })
-  .finally(() => {
-    // Kembalikan tombol seperti semula
-    btnSave.innerHTML = textAwal;
-    btnSave.disabled = false;
-  });
+  const name = document.getElementById('im-name').value.trim();
+  if (!name) { showToast('Nama item wajib diisi!', 'warning'); return; }
+  const idx = parseInt(document.getElementById('im-id').value);
+  const c = { id:idx>=0?catalogItems[idx].id:Date.now(), name, unit:document.getElementById('im-unit').value, buyPrice:parseFloat(document.getElementById('im-buy-price').value)||0, sellPrice:parseFloat(document.getElementById('im-sell-price').value)||0, desc:document.getElementById('im-desc').value };
+  if (idx>=0) catalogItems[idx]=c; else catalogItems.push(c);
+  localStorage.setItem('invoiceku_catalog', JSON.stringify(catalogItems));
+  syncCloud({ action: 'saveItem', ...c }); // ← sinkronisasi ke Spreadsheet
+  renderItems(); closeItemForm(); showToast('Item disimpan!', 'success');
 }
 function deleteItem(idx) {
   if (!confirm(`Hapus item "${catalogItems[idx].name}"?`)) return;
+  const c = catalogItems[idx]; // simpan referensi sebelum dihapus
   catalogItems.splice(idx,1);
   localStorage.setItem('invoiceku_catalog', JSON.stringify(catalogItems));
+  syncCloud({ action: 'deleteItem', id: c.id }); // ← sinkronisasi ke Spreadsheet
   renderItems(); showToast('Item dihapus', 'warning');
 }
 
