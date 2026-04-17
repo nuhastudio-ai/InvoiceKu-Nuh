@@ -770,9 +770,11 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
       </div>
       <hr style="border:none;border-top:1px solid var(--border);margin:4px 0">
       <div class="field">
-        <label>🔗 URL Google Apps Script</label>
-        <input type="url" id="s-script-url" placeholder="https://script.google.com/macros/s/xxxx/exec">
-        <span style="font-size:11px;color:var(--text-muted);margin-top:2px;display:block">Salin URL dari deployment Apps Script kamu.</span>
+        <label>🔗 Database Google Sheets</label>
+        <div style="padding:8px 10px;background:var(--surface-2);border:1.5px solid var(--border);border-radius:8px;font-size:11px;color:var(--success);display:flex;align-items:center;gap:6px">
+          ✅ <strong>Terhubung otomatis</strong> — semua pengguna langsung akses database yang sama
+        </div>
+        <input type="hidden" id="s-script-url" value="">
       </div>
     </div>
     <div class="modal-actions">
@@ -929,10 +931,17 @@ let catalogTargetItemId = null;
 let invoicePayments = []; // [{pmId:'manual'|id, type, bank, account, holder}]
 let manualPayCounter = 0;
 
+// ── URL Apps Script sudah tertanam — semua user langsung terhubung ke database ──
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzzXXxLsFvwFbgR6BO6QYBiXZ87oPfRMBviS5A-AXOQiYDsEkyOZf4dhXJpY2O9Yk3paA/exec';
+
 let customers    = JSON.parse(localStorage.getItem('invoiceku_customers') || '[]');
 let catalogItems = JSON.parse(localStorage.getItem('invoiceku_catalog')   || '[]');
 let settings     = JSON.parse(localStorage.getItem('invoiceku_settings')  || '{}');
 let paymentMethods = JSON.parse(localStorage.getItem('invoiceku_payments') || '[]');
+
+// Selalu pastikan scriptUrl terisi dari konstanta (tidak bisa dikosongkan user)
+// Selalu enforce SCRIPT_URL
+settings.scriptUrl = SCRIPT_URL;
 
 // ══════════════════════════════════════════════
 // CLOUD SYNC – customers & items ke Spreadsheet
@@ -940,8 +949,8 @@ let paymentMethods = JSON.parse(localStorage.getItem('invoiceku_payments') || '[
 
 /** Kirim satu aksi ke GAS backend (fire-and-forget, tidak block UI) */
 function syncCloud(payload) {
-  if (!settings.scriptUrl) return;
-  fetch(settings.scriptUrl, { method: 'POST', body: JSON.stringify(payload) })
+  const url = SCRIPT_URL; // selalu pakai URL bawaan
+  fetch(url, { method: 'POST', body: JSON.stringify(payload) })
     .catch(() => {}); // diam-diam jika offline
 }
 
@@ -951,14 +960,15 @@ function syncCloud(payload) {
  * Dipanggil dari init() dan saveSettings().
  */
 async function loadCloudData() {
-  if (!settings.scriptUrl) return;
+  // CLOUD = MASTER: data dari Spreadsheet selalu menimpa data lokal
   try {
-    const res  = await fetch(settings.scriptUrl);
+    showToast('⏳ Memuat data dari cloud...', '');
+    const res  = await fetch(SCRIPT_URL);
     const data = await res.json();
-    if (!data.success) return;
+    if (!data.success) { showToast('⚠️ Gagal memuat cloud, pakai data lokal.', 'warning'); return; }
 
-    // ── Customers dari cloud ──
-    if (Array.isArray(data.customers) && data.customers.length > 0) {
+    // ── Customers: cloud menimpa lokal sepenuhnya ──
+    if (Array.isArray(data.customers)) {
       customers = data.customers.map(c => ({
         id:      c.id      || String(Date.now() + Math.random()),
         name:    c.name    || '',
@@ -971,8 +981,8 @@ async function loadCloudData() {
       renderCustomers();
     }
 
-    // ── Items / Katalog dari cloud ──
-    if (Array.isArray(data.items) && data.items.length > 0) {
+    // ── Items / Katalog: cloud menimpa lokal sepenuhnya ──
+    if (Array.isArray(data.items)) {
       catalogItems = data.items.map(c => ({
         id:        c.id        || String(Date.now() + Math.random()),
         name:      c.name      || '',
@@ -985,23 +995,24 @@ async function loadCloudData() {
       renderItems();
     }
 
-    // ── Settings dari cloud (kecuali scriptUrl & logoDataUrl yg bersifat lokal) ──
+    // ── Settings: cloud menimpa lokal, kecuali logoDataUrl (base64 lokal saja) ──
     if (data.settings && typeof data.settings === 'object') {
       const cs = data.settings;
-      // Timpa semua field kecuali scriptUrl & logoDataUrl (tetap dari lokal)
-      const merged = {
+      settings = {
         ...cs,
-        scriptUrl:   settings.scriptUrl   || cs.scriptUrl   || '',
-        logoDataUrl: settings.logoDataUrl || '', // base64 tidak disimpan cloud
+        scriptUrl:   SCRIPT_URL,              // selalu dari konstanta
+        logoDataUrl: settings.logoDataUrl || '', // base64 tetap lokal
       };
-      settings = merged;
       localStorage.setItem('invoiceku_settings', JSON.stringify(settings));
       applySettings();
       updateSaveButton();
     }
+
+    showToast('✅ Data cloud berhasil dimuat', 'success');
   } catch(e) {
-    // Gagal fetch (offline) – tetap pakai data lokal, tidak apa-apa
+    // Offline / error — tetap pakai cache lokal
     console.warn('loadCloudData gagal, pakai data lokal:', e);
+    showToast('📴 Offline — menampilkan data lokal', 'warning');
   }
 }
 
@@ -1564,7 +1575,7 @@ function openSettings() {
   document.getElementById('s-signer').value   = settings.signer || '';
   document.getElementById('s-role').value     = settings.role || '';
   document.getElementById('s-logo-emoji').value = settings.logoEmoji || '';
-  document.getElementById('s-script-url').value = settings.scriptUrl || '';
+  // scriptUrl di-handle oleh konstanta SCRIPT_URL, tidak perlu diisi user
   document.getElementById('s-default-discount').value = settings.defaultDiscount || '0';
   document.getElementById('s-default-tax').value = settings.defaultTax || '0';
   document.getElementById('s-show-signer').checked = settings.showSigner === true;
@@ -1590,7 +1601,7 @@ function saveSettings() {
     logoEmoji: document.getElementById('s-logo-emoji').value,
     logoUrl: document.getElementById('s-logo-url').value.trim(),
     logoDataUrl: settings.logoDataUrl || '',
-    scriptUrl: document.getElementById('s-script-url').value.trim(),
+    scriptUrl: SCRIPT_URL, // selalu gunakan URL bawaan
     defaultDiscount: document.getElementById('s-default-discount').value,
     defaultTax: document.getElementById('s-default-tax').value,
     showSigner: document.getElementById('s-show-signer').checked,
@@ -1607,10 +1618,8 @@ function saveSettings() {
 
 /** Kirim settings ke Spreadsheet (sheet "Settings") */
 function syncCloudSettings(s) {
-  if (!s.scriptUrl) return;
-  // Kecualikan logoDataUrl (terlalu besar / base64) dari cloud sync
-  const payload = { action: 'saveSettings', ...s, logoDataUrl: '' };
-  fetch(s.scriptUrl, { method: 'POST', body: JSON.stringify(payload) }).catch(() => {});
+  const payload = { action: 'saveSettings', ...s, logoDataUrl: '', scriptUrl: '' };
+  fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) }).catch(() => {});
 }
 
 function handleLogoUpload(e) {
@@ -1665,9 +1674,9 @@ function applySettings() {
 }
 
 function updateSaveButton() {
+  // URL sudah tertanam, tombol simpan selalu aktif
   const btn = document.getElementById('btn-save-db');
-  const hasUrl = settings.scriptUrl && settings.scriptUrl.length > 0;
-  btn.disabled = !hasUrl;
+  btn.disabled = false;
 }
 
 // ══════════════════════════════════════════════
@@ -1748,10 +1757,7 @@ function commitLocal(payload) {
 }
 
 async function saveToDatabase(silent = false) {
-  if (!settings.scriptUrl) {
-    if (!silent) showToast('URL Apps Script belum diatur. Buka ⚙️ Pengaturan.', 'warning');
-    return false;
-  }
+  // scriptUrl sudah tertanam, selalu tersedia
   const payload = buildPayload();
   if (!payload) return false;
 
@@ -1761,7 +1767,7 @@ async function saveToDatabase(silent = false) {
   try {
     let savedOk = false;
     try {
-      const res  = await fetch(settings.scriptUrl, { method: 'POST', body: JSON.stringify(payload) });
+      const res  = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
       const data = await res.json();
       if (data.success) savedOk = true;
       else showToast('Gagal: ' + (data.message||'Error'), 'error');
@@ -1777,7 +1783,7 @@ async function saveToDatabase(silent = false) {
     if (!silent) showToast('Error saat menyimpan.', 'error');
     return false;
   } finally {
-    btn.disabled = !settings.scriptUrl;
+    btn.disabled = false;
     btn.innerHTML = '💾 Simpan';
   }
 }
@@ -1789,15 +1795,13 @@ async function printAndSave() {
   // Simpan lokal + auto-save customer selalu
   commitLocal(payload);
 
-  // Kirim ke remote jika ada scriptUrl
-  if (settings.scriptUrl) {
-    try {
-      const res  = await fetch(settings.scriptUrl, { method: 'POST', body: JSON.stringify(payload) });
-      const data = await res.json();
-      if (!data.success) showToast('Remote gagal, tapi data sudah tersimpan lokal.', 'warning');
-    } catch(e) {
-      showToast('Koneksi gagal – disimpan lokal saja.', 'warning');
-    }
+  // Kirim ke cloud (URL sudah tertanam)
+  try {
+    const res  = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
+    const data = await res.json();
+    if (!data.success) showToast('Remote gagal, tapi data sudah tersimpan lokal.', 'warning');
+  } catch(e) {
+    showToast('Koneksi gagal – disimpan lokal saja.', 'warning');
   }
 
   showToast(`✅ Tersimpan! (${payload.noDoc})`, 'success');
@@ -1812,9 +1816,7 @@ function markInvoiceLunas(invNo) {
   if (invIdx < 0) return;
   allHistoryData[invIdx]['Status'] = 'Lunas';
   localStorage.setItem('invoiceku_local_history', JSON.stringify(allHistoryData));
-  if (settings.scriptUrl) {
-    fetch(settings.scriptUrl, { method:'POST', body: JSON.stringify({ action:'update', noDoc: invNo, status:'Lunas' }) }).catch(()=>{});
-  }
+  fetch(SCRIPT_URL, { method:'POST', body: JSON.stringify({ action:'update', noDoc: invNo, status:'Lunas' }) }).catch(()=>{});
 }
 
 function normalizePhone(p) { return (p||'').replace(/\D/g,''); }
@@ -1894,13 +1896,13 @@ function loadHistoryLocal() {
 async function loadHistory() {
   const banner = document.getElementById('db-setup-banner');
   const loading = document.getElementById('history-loading');
-  const hasUrl = settings.scriptUrl && settings.scriptUrl.length > 0;
-  banner.style.display = hasUrl ? 'none' : 'flex';
+  const hasUrl = true; // URL sudah tertanam
+  banner.style.display = 'none';
 
   if (hasUrl) {
     loading.style.display = 'block';
     try {
-      const res = await fetch(settings.scriptUrl);
+      const res = await fetch(SCRIPT_URL);
       const data = await res.json();
       if (data.success) {
         allHistoryData = data.data || [];
@@ -2109,9 +2111,7 @@ async function saveEdit() {
     }
   }
 
-  if (settings.scriptUrl) {
-    try { await fetch(settings.scriptUrl, { method:'POST', body: JSON.stringify(payload) }); } catch(e) {}
-  }
+  try { await fetch(SCRIPT_URL, { method:'POST', body: JSON.stringify(payload) }); } catch(e) {}
 
   renderHistoryAccordion(allHistoryData);
   updateStats(allHistoryData);
@@ -2136,9 +2136,7 @@ async function confirmDelete() {
   allHistoryData = allHistoryData.filter(r => !(r['No. Dokumen'] === noDoc && r['Jenis'] === jenis));
   localStorage.setItem('invoiceku_local_history', JSON.stringify(allHistoryData));
 
-  if (settings.scriptUrl) {
-    try { await fetch(settings.scriptUrl, { method:'POST', body: JSON.stringify({ action:'delete', noDoc, jenis }) }); } catch(e) {}
-  }
+  try { await fetch(SCRIPT_URL, { method:'POST', body: JSON.stringify({ action:'delete', noDoc, jenis }) }); } catch(e) {}
 
   renderHistoryAccordion(allHistoryData);
   updateStats(allHistoryData);
