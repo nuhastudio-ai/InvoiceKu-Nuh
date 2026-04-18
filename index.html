@@ -169,7 +169,9 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 .receipt-paid-icon { font-size: 22px; }
 .receipt-paid-text h3 { font-size: 12px; font-weight: 800; color: var(--success); }
 .receipt-paid-text p { font-size: 10px; color: #555; margin-top: 1px; }
-.doc-watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 80px; color: rgba(30,45,66,0.03); font-family: 'DM Serif Display', serif; pointer-events: none; white-space: nowrap; z-index: 0; }
+.doc-watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); pointer-events: none; z-index: 0; display: flex; align-items: center; justify-content: center; width: 70%; max-width: 340px; }
+.doc-watermark img { width: 100%; height: auto; object-fit: contain; opacity: 0.07; filter: brightness(0); /* ubah warna apapun jadi hitam gelap */ }
+.doc-watermark .wm-emoji { font-size: 120px; opacity: 0.05; filter: grayscale(1) brightness(0.2); line-height: 1; }
 .doc-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; position: relative; z-index: 1; }
 .doc-table thead tr { background: var(--navy); color: #fff; }
 .doc-table thead th { padding: 7px 10px; text-align: left; font-size: 9px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; }
@@ -638,7 +640,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
             <p id="receipt-paid-msg">Bukti pelunasan atas tagihan yang telah dibayarkan.</p>
           </div>
         </div>
-        <div class="doc-watermark" id="doc-watermark">✦</div>
+        <div class="doc-watermark" id="doc-watermark"><span class="wm-emoji">✦</span></div>
         <table class="doc-table">
           <thead><tr><th>Nama Layanan / Barang</th><th>Qty</th><th>Harga Satuan</th><th>Total</th></tr></thead>
           <tbody id="doc-items-body"><tr><td colspan="4" style="text-align:center;color:#aaa;padding:16px">Tambahkan item di panel kiri</td></tr></tbody>
@@ -820,7 +822,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
         <div class="field"><label>Jenis Pembayaran</label>
           <select id="pm-type">
             <option>Transfer Bank</option><option>QRIS</option><option>Tunai</option>
-            <option>OVO</option><option>GoPay</option><option>Dana</option><option>ShopeePay</option><option>Lainnya</option>
+            <option>E-Wallet</option><option>Lainnya</option>
           </select>
         </div>
       </div>
@@ -1084,6 +1086,21 @@ async function loadCloudData() {
 // ══════════════════════════════════════════════
 // HELPERS
 // ══════════════════════════════════════════════
+/** Render logo perusahaan sebagai watermark di dokumen */
+function setWatermarkLogo() {
+  const wm = document.getElementById('doc-watermark');
+  if (!wm) return;
+  const s = settings;
+  if (s.logoDataUrl) {
+    wm.innerHTML = `<img src="${s.logoDataUrl}" alt="logo">`;
+  } else if (s.logoUrl) {
+    wm.innerHTML = `<img src="${s.logoUrl}" alt="logo" onerror="this.parentElement.innerHTML='<span class=wm-emoji>✦</span>'">`;
+  } else {
+    const em = s.logoEmoji || '✦';
+    wm.innerHTML = `<span class="wm-emoji">${em}</span>`;
+  }
+}
+
 function formatRp(n) { return 'Rp ' + Math.round(n||0).toLocaleString('id-ID'); }
 
 // FIX: Indonesian format uses dot as thousands separator → strip all non-digits
@@ -1453,7 +1470,7 @@ function renderPaymentRows() {
         <div class="field-row">
           <div class="field"><label>Jenis</label>
             <select onchange="updatePaymentRow('${p.pmId}','type',this.value)">
-              ${['Transfer Bank','QRIS','Tunai','OVO','GoPay','Dana','ShopeePay','Lainnya'].map(t=>`<option ${p.type===t?'selected':''}>${t}</option>`).join('')}
+              ${['Transfer Bank','QRIS','Tunai','E-Wallet','Lainnya'].map(t=>`<option ${p.type===t?'selected':''}>${t}</option>`).join('')}
             </select>
           </div>
           <div class="field"><label>Bank / e-Wallet</label><input type="text" value="${escHtml(p.bank)}" placeholder="BRI / BCA" oninput="updatePaymentRow('${p.pmId}','bank',this.value)"></div>
@@ -1611,17 +1628,14 @@ function updatePreview() {
     document.getElementById('receipt-paid-section').style.display = 'flex';
     const payStatus = document.getElementById('pay-status').value;
     if (payStatus === 'Lunas') {
-      document.getElementById('doc-watermark').textContent = 'LUNAS';
-      document.getElementById('doc-watermark').style.color = 'rgba(39,174,96,0.06)';
+      setWatermarkLogo();
     } else {
-      document.getElementById('doc-watermark').textContent = '✦';
-      document.getElementById('doc-watermark').style.color = 'rgba(30,45,66,0.03)';
+      setWatermarkLogo();
     }
   } else {
     title.textContent = 'TAGIHAN'; title.className = 'doc-type-title';
     document.getElementById('receipt-paid-section').style.display = 'none';
-    document.getElementById('doc-watermark').textContent = '✦';
-    document.getElementById('doc-watermark').style.color = 'rgba(30,45,66,0.03)';
+    setWatermarkLogo();
   }
 
   document.getElementById('doc-inv-number').textContent = document.getElementById('inv-number').value || '—';
@@ -1769,6 +1783,7 @@ function applySettings() {
   const footerRight = document.getElementById('doc-footer-right');
   if (footerRight) footerRight.style.display = s.showSigner === true ? '' : 'none';
 
+  setWatermarkLogo(); // perbarui watermark jika logo/settings berubah
   let footerText = `<strong>${s.company||'Perusahaan'}</strong><br>`;
   if (s.address) footerText += s.address + '<br>';
   if (s.phone) footerText += s.phone;
