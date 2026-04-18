@@ -344,10 +344,11 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
   @page { size: 108mm 83mm; margin: 4mm; }
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
   body { background: white !important; }
-  .topbar, .form-panel, .preview-panel > *:not(#invoice-doc), .full-page,
+  .topbar, .form-panel, .preview-topbar, .full-page,
   .print-bar, .toast { display: none !important; }
   .app-container { display: block !important; height: auto !important; }
-  .preview-panel { background: white !important; display: block !important; } .preview-topbar { display: none !important; } .preview-scroll { padding: 0 !important; display: block !important; }
+  .preview-panel { background: white !important; display: block !important; overflow: visible !important; }
+  .preview-scroll { display: block !important; padding: 0 !important; overflow: visible !important; }
   #invoice-doc {
     width: 100mm !important; min-height: auto !important;
     box-shadow: none !important; border-radius: 0 !important;
@@ -1042,8 +1043,22 @@ function parseRp(s) {
 }
 
 function formatDate(s) {
-  if (!s) return '—';
-  const d = new Date(s + 'T00:00:00');
+  if (!s || s === '—') return '—';
+  let d;
+  // Format DD/MM/YYYY (dari Spreadsheet yang sudah diformat)
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(String(s))) {
+    const [day, mon, yr] = String(s).split('/');
+    d = new Date(+yr, +mon - 1, +day);
+  }
+  // Format YYYY-MM-DD (dari input[type=date])
+  else if (/^\d{4}-\d{2}-\d{2}$/.test(String(s))) {
+    d = new Date(String(s) + 'T00:00:00');
+  }
+  // ISO datetime string atau format lain (kembalian GAS Date object)
+  else {
+    d = new Date(s);
+  }
+  if (isNaN(d.getTime())) return String(s); // fallback: tampilkan apa adanya
   return d.toLocaleDateString('id-ID', {day:'2-digit', month:'long', year:'numeric'});
 }
 function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -1973,7 +1988,7 @@ function renderHistoryAccordion(data) {
     const client = row['Nama Pelanggan'] || '—';
     const total  = parseFloat(row['Total'])||0;
     const status = row['Status'] || '';
-    const tglF   = tgl ? new Date(tgl+'T00:00:00').toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+    const tglF   = tgl ? formatDate(tgl) : '—';
     const items2 = (row['Detail Item']||'').split(';').filter(Boolean);
 
     // Badge only for receipt tab
