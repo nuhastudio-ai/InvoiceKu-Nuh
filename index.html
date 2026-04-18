@@ -995,6 +995,21 @@ async function loadCloudData() {
       renderItems();
     }
 
+    // ── Metode Pembayaran: cloud menimpa lokal sepenuhnya ──
+    if (Array.isArray(data.paymentMethods)) {
+      paymentMethods = data.paymentMethods.map(p => ({
+        id:      p.id      || String(Date.now() + Math.random()),
+        name:    p.name    || '',
+        type:    p.type    || 'Transfer Bank',
+        bank:    p.bank    || '',
+        account: p.account || '',
+        holder:  p.holder  || ''
+      }));
+      localStorage.setItem('invoiceku_payments', JSON.stringify(paymentMethods));
+      renderPaymentChips();
+      renderPMDBList();
+    }
+
     // ── Settings: cloud menimpa lokal sepenuhnya (termasuk logoDataUrl/logoUrl) ──
     if (data.settings && typeof data.settings === 'object') {
       const cs = data.settings;
@@ -1447,6 +1462,7 @@ function savePM() {
   const idx = paymentMethods.findIndex(p => p.id === pm.id);
   if (idx >= 0) paymentMethods[idx] = pm; else paymentMethods.push(pm);
   localStorage.setItem('invoiceku_payments', JSON.stringify(paymentMethods));
+  syncCloud({ action: 'savePaymentMethod', ...pm }); // ← sync ke Spreadsheet
   renderPMDBList();
   renderPaymentChips();
   clearPMForm();
@@ -1469,6 +1485,7 @@ function deletePM(id) {
   paymentMethods = paymentMethods.filter(p => p.id !== id);
   invoicePayments = invoicePayments.filter(p => p.pmId !== id);
   localStorage.setItem('invoiceku_payments', JSON.stringify(paymentMethods));
+  syncCloud({ action: 'deletePaymentMethod', id }); // ← sync ke Spreadsheet
   renderPMDBList();
   renderPaymentChips();
   renderPaymentRows();
