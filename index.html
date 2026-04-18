@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" id="dynamic-favicon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'><text y='32' font-size='32'>✦</text></svg>">
 <title>InvoiceKu – Manajemen Invoice & Pelunasan</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
 <style>
@@ -1173,6 +1174,64 @@ function setWatermarkLogo() {
   }
 }
 
+/**
+ * Set favicon dinamis sesuai logo perusahaan.
+ * - logoDataUrl (base64) → langsung pakai sebagai href
+ * - logoUrl (URL/path)   → gambar dimuat ke canvas, dikonversi ke dataURL
+ * - logoEmoji            → render emoji ke canvas 64×64
+ */
+function setFavicon() {
+  const s   = settings;
+  const link = document.getElementById('dynamic-favicon');
+  if (!link) return;
+
+  if (s.logoDataUrl) {
+    // base64 upload — langsung pakai warna asli
+    link.href = s.logoDataUrl;
+    return;
+  }
+
+  if (s.logoUrl) {
+    // URL eksternal/lokal — muat ke canvas lalu konversi
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = function() {
+      const cv = document.createElement('canvas');
+      cv.width = cv.height = 64;
+      const ctx = cv.getContext('2d');
+      // Latar bening agar warna logo asli terlihat
+      ctx.clearRect(0, 0, 64, 64);
+      // Fit proporsional di tengah
+      const scale = Math.min(64 / img.width, 64 / img.height);
+      const ox = (64 - img.width  * scale) / 2;
+      const oy = (64 - img.height * scale) / 2;
+      ctx.drawImage(img, ox, oy, img.width * scale, img.height * scale);
+      link.href = cv.toDataURL('image/png');
+    };
+    img.onerror = function() {
+      // Fallback emoji jika gambar gagal dimuat
+      _faviconFromEmoji(link, s.logoEmoji || '✦');
+    };
+    img.src = s.logoUrl;
+    return;
+  }
+
+  // Emoji atau default
+  _faviconFromEmoji(link, s.logoEmoji || '✦');
+}
+
+function _faviconFromEmoji(link, emoji) {
+  const cv  = document.createElement('canvas');
+  cv.width  = cv.height = 64;
+  const ctx = cv.getContext('2d');
+  ctx.clearRect(0, 0, 64, 64);
+  ctx.font         = '52px serif';
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(emoji, 32, 34);
+  link.href = cv.toDataURL('image/png');
+}
+
 function formatRp(n) { return 'Rp ' + Math.round(n||0).toLocaleString('id-ID'); }
 
 // FIX: Indonesian format uses dot as thousands separator → strip all non-digits
@@ -1243,6 +1302,7 @@ function escJs(s)   { return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\
 
   addItem(); addItem();
   applySettings();
+  setFavicon();
   updateSaveButton();
   updatePreview();
   renderCustomers();
@@ -1866,6 +1926,7 @@ function applySettings() {
   if (footerRight) footerRight.style.display = s.showSigner === true ? '' : 'none';
 
   setWatermarkLogo(); // perbarui watermark jika logo/settings berubah
+  setFavicon();        // perbarui favicon
   let footerText = `<strong>${s.company||'Perusahaan'}</strong><br>`;
   if (s.address) footerText += s.address + '<br>';
   if (s.phone) footerText += s.phone;
