@@ -341,41 +341,66 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 
 /* ── PRINT ── */
 @media print {
-  @page { size: 108mm 83mm; margin: 4mm; }
+  /* Folio F4: 21.6cm x 33cm, margin cukup lega */
+  @page { size: 216mm 330mm; margin: 14mm 12mm; }
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-  body { background: white !important; }
+  body { background: white !important; margin: 0 !important; padding: 0 !important; }
+
+  /* Sembunyikan semua UI kecuali dokumen invoice */
   .topbar, .form-panel, .preview-topbar, .full-page,
-  .print-bar, .toast { display: none !important; }
+  .print-bar, .toast, .modal-overlay { display: none !important; }
+
+  /* Layout: tampilkan hanya area preview */
   .app-container { display: block !important; height: auto !important; }
-  .preview-panel { background: white !important; display: block !important; overflow: visible !important; }
-  .preview-scroll { display: block !important; padding: 0 !important; overflow: visible !important; }
+  .preview-panel  { background: white !important; display: block !important; overflow: visible !important; }
+  .preview-scroll { display: block !important; padding: 0 !important; overflow: visible !important; background: white !important; }
+
+  /* Dokumen invoice: penuh lebar halaman, tidak terpotong */
   #invoice-doc {
-    width: 100mm !important; min-height: auto !important;
-    box-shadow: none !important; border-radius: 0 !important;
-    font-size: 7.5pt !important;
+    width: 100% !important;
+    max-width: 192mm !important;   /* 216mm - 2×12mm margin */
+    min-height: auto !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    font-size: 10pt !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
-  .doc-header { padding: 6px 10px !important; }
-  .doc-logo { width: 28px !important; height: 22px !important; }
-  .doc-company-name { font-size: 9pt !important; }
-  .doc-type-title { font-size: 14pt !important; }
-  .doc-inv-number { font-size: 7pt !important; }
-  .doc-meta { padding: 5px 10px !important; }
-  .doc-client-name { font-size: 10pt !important; }
-  .doc-client-info, .doc-date-row { font-size: 7pt !important; }
-  .doc-body { padding: 5px 10px !important; }
-  .doc-table thead th, .doc-table tbody td { padding: 3px 6px !important; font-size: 7pt !important; }
-  .doc-total-row { padding: 3px 8px !important; font-size: 7pt !important; }
-  .doc-total-row.grand { padding: 5px 8px !important; font-size: 8pt !important; }
-  .doc-payment-row { gap: 6px !important; margin-bottom: 6px !important; }
-  .doc-payment-box { padding: 5px 7px !important; }
-  .doc-payment-box h4, .doc-payment-box p { font-size: 7pt !important; }
-  .doc-footer { padding: 5px 10px !important; }
-  .doc-footer-left, .doc-footer-right p { font-size: 7pt !important; }
-  .receipt-paid-section { padding: 5px 8px !important; margin-bottom: 6px !important; }
-  .receipt-paid-text h3 { font-size: 8pt !important; }
-  .receipt-paid-text p { font-size: 7pt !important; }
-  .doc-totals { margin-bottom: 6px !important; }
-  .doc-totals-box { min-width: 120px !important; }
+
+  /* Header */
+  .doc-header   { padding: 14px 20px !important; }
+  .doc-logo     { width: 48px !important; height: 38px !important; }
+  .doc-company-name  { font-size: 13pt !important; }
+  .doc-company-tagline { font-size: 8pt !important; }
+  .doc-type-title    { font-size: 22pt !important; }
+  .doc-inv-number    { font-size: 8pt !important; }
+
+  /* Meta & body */
+  .doc-meta       { padding: 10px 20px !important; }
+  .doc-client-name { font-size: 13pt !important; }
+  .doc-client-info, .doc-date-row { font-size: 9pt !important; }
+  .doc-body       { padding: 12px 20px !important; }
+
+  /* Tabel item */
+  .doc-table thead th, .doc-table tbody td { padding: 6px 10px !important; font-size: 9pt !important; }
+  .doc-totals     { margin-bottom: 10px !important; }
+  .doc-totals-box { min-width: 180px !important; }
+  .doc-total-row  { padding: 5px 12px !important; font-size: 9pt !important; }
+  .doc-total-row.grand { padding: 7px 12px !important; font-size: 11pt !important; }
+
+  /* Pembayaran & catatan */
+  .doc-payment-row { gap: 10px !important; margin-bottom: 10px !important; }
+  .doc-payment-box { padding: 8px 12px !important; }
+  .doc-payment-box h4, .doc-payment-box p { font-size: 9pt !important; }
+
+  /* Footer */
+  .doc-footer      { padding: 10px 20px !important; }
+  .doc-footer-left, .doc-footer-right p { font-size: 9pt !important; }
+
+  /* Nota pelunasan */
+  .receipt-paid-section { padding: 8px 12px !important; margin-bottom: 10px !important; }
+  .receipt-paid-text h3 { font-size: 10pt !important; }
+  .receipt-paid-text p  { font-size: 9pt !important; }
 }
 
 /* ── RESPONSIVE ── */
@@ -1040,6 +1065,28 @@ function formatRp(n) { return 'Rp ' + Math.round(n||0).toLocaleString('id-ID'); 
 function parseRp(s) {
   if (!s && s !== 0) return 0;
   return parseInt(String(s).replace(/[^0-9]/g, ''), 10) || 0;
+}
+
+/**
+ * Konversi tanggal (format apapun) ke YYYY-MM-DD untuk <input type="date">
+ * Mendukung: DD/MM/YYYY, YYYY-MM-DD, ISO string, Date object
+ */
+function dateToInput(s) {
+  if (!s || s === '—') return '';
+  let d;
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(String(s))) {
+    const [day, mon, yr] = String(s).split('/');
+    d = new Date(+yr, +mon - 1, +day);
+  } else if (/^\d{4}-\d{2}-\d{2}$/.test(String(s))) {
+    return String(s); // sudah benar
+  } else {
+    d = new Date(s);
+  }
+  if (!d || isNaN(d.getTime())) return '';
+  const yr  = d.getFullYear();
+  const mon = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return yr + '-' + mon + '-' + day;
 }
 
 function formatDate(s) {
@@ -2082,8 +2129,8 @@ function openEdit(noDoc) {
   document.getElementById('edit-nodoc').value = noDoc;
   document.getElementById('edit-nodoc-display').value = noDoc;
   document.getElementById('edit-jenis').value = row['Jenis'] || 'invoice';
-  document.getElementById('edit-tgl-terbit').value = row['Tgl Terbit'] || '';
-  document.getElementById('edit-tgl-jatuh').value  = row['Tgl Jatuh Tempo/Bayar'] || '';
+  document.getElementById('edit-tgl-terbit').value = dateToInput(row['Tgl Terbit']);
+  document.getElementById('edit-tgl-jatuh').value  = dateToInput(row['Tgl Jatuh Tempo/Bayar']);
   document.getElementById('edit-date2-label').textContent = isReceipt ? 'Tgl Bayar' : 'Jatuh Tempo';
   document.getElementById('edit-client').value   = row['Nama Pelanggan'] || '';
   document.getElementById('edit-phone').value    = row['No. HP'] || '';
@@ -2182,12 +2229,12 @@ function reprintDoc(noDoc) {
   switchMode(m);
 
   document.getElementById('inv-number').value = row['No. Dokumen'] || '';
-  document.getElementById('inv-date').value   = row['Tgl Terbit'] || '';
+  document.getElementById('inv-date').value   = dateToInput(row['Tgl Terbit']);
 
   // FIX: set dates properly
   const dateVal = row['Tgl Jatuh Tempo/Bayar'] || '';
-  if (m === 'invoice') document.getElementById('due-date').value  = dateVal;
-  else                  document.getElementById('paid-date').value = dateVal;
+  if (m === 'invoice') document.getElementById('due-date').value  = dateToInput(dateVal);
+  else                  document.getElementById('paid-date').value = dateToInput(dateVal);
 
   document.getElementById('client-name').value    = row['Nama Pelanggan'] || '';
   document.getElementById('client-phone').value   = row['No. HP'] || '';
