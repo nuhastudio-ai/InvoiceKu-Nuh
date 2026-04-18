@@ -1894,8 +1894,18 @@ async function printAndSave() {
     resetForm();
   };
 
+  // Ubah judul halaman sementara → browser pakai ini sebagai nama file PDF/cetak
+  const companyName = (settings.company || 'InvoiceKu').replace(/[\\/:*?"<>|]/g, '');
+  const docNo       = (payload.noDoc || '').replace(/[\\/:*?"<>|]/g, '');
+  const originalTitle = document.title;
+  document.title = companyName + '-' + docNo;
+
   // Buka dialog cetak (preview masih penuh berisi data)
   window.print();
+
+  // Kembalikan judul setelah dialog cetak ditutup (onafterprint sudah handle reset)
+  const restoreTitle = () => { document.title = originalTitle; };
+  window.addEventListener('afterprint', restoreTitle, { once: true });
 }
 
 function markInvoiceLunas(invNo) {
