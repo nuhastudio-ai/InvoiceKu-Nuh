@@ -1886,11 +1886,52 @@ function updateSaveButton() {
 /* Ambil semua data form ke satu objek payload */
 function buildPayload() {
   const clientName = document.getElementById('client-name').value.trim();
+  const clientPhone = document.getElementById('client-phone').value.trim();
+  const clientEmail = document.getElementById('client-email').value.trim();
+  const clientAddr  = document.getElementById('client-address').value.trim();
   const invNo      = document.getElementById('inv-number').value.trim();
   const validItems = items.filter(i => i.name);
-  if (!clientName) { showToast('Nama pelanggan wajib diisi!', 'warning'); return null; }
-  if (!invNo)      { showToast('Nomor dokumen wajib diisi!', 'warning');  return null; }
-  if (validItems.length === 0) { showToast('Tambahkan minimal 1 item!', 'warning'); return null; }
+
+  // ── Validasi umum ──
+  if (!clientName) {
+    showToast('⚠️ Nama pelanggan wajib diisi!', 'warning');
+    document.getElementById('client-name').focus();
+    return null;
+  }
+  if (!invNo) {
+    showToast('⚠️ Nomor dokumen wajib diisi!', 'warning');
+    document.getElementById('inv-number').focus();
+    return null;
+  }
+  if (validItems.length === 0) {
+    showToast('⚠️ Tambahkan minimal 1 item!', 'warning');
+    return null;
+  }
+
+  // ── Validasi khusus Nota Pelunasan ──
+  if (mode === 'receipt') {
+    // Data pelanggan: minimal nama + (HP atau email atau alamat)
+    if (!clientPhone && !clientEmail && !clientAddr) {
+      showToast('⚠️ Nota: lengkapi data pelanggan (HP / Email / Alamat)!', 'warning');
+      document.getElementById('client-phone').focus();
+      return null;
+    }
+    // Metode pembayaran wajib dipilih minimal 1
+    if (invoicePayments.length === 0) {
+      showToast('⚠️ Nota: pilih minimal 1 metode pembayaran!', 'warning');
+      // Scroll ke section pembayaran
+      const pmSection = document.getElementById('payment-chips');
+      if (pmSection) pmSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Highlight section pembayaran
+      const pmParent = pmSection?.closest('.form-section');
+      if (pmParent) {
+        pmParent.style.outline = '2px solid var(--danger)';
+        pmParent.style.borderRadius = 'var(--radius)';
+        setTimeout(() => { pmParent.style.outline = ''; }, 2500);
+      }
+      return null;
+    }
+  }
 
   const detailItem = validItems.map(i => `${i.name} (${i.qty}x${formatRp(i.price)})`).join('; ');
   const discAmt    = parseFloat(document.getElementById('discount').value)||0;
