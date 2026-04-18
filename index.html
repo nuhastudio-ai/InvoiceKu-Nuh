@@ -101,7 +101,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 /* ── LAYOUT ── */
 .app-container { display: grid; grid-template-columns: 420px 1fr; gap: 0; height: calc(100vh - 56px); }
 .app-container.hidden { display: none; }
-.full-page { display: none; height: calc(100vh - 56px); overflow-y: auto; background: var(--bg); padding: 24px 28px; flex-direction: column; gap: 20px; }
+.full-page { display: none; height: calc(100vh - 56px); overflow-y: auto; -webkit-overflow-scrolling: touch; background: var(--bg); padding: 24px 28px; flex-direction: column; gap: 20px; }
 .full-page.active { display: flex; }
 
 /* ── FORM PANEL ── */
@@ -282,7 +282,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 .stat-card.danger { border-color: var(--danger); }
 .stat-card.danger .stat-value { color: var(--danger); }
 
-.history-section { background: var(--surface); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; box-shadow: var(--shadow); }
+.history-section { background: var(--surface); border-radius: 12px; border: 1px solid var(--border); overflow: clip; box-shadow: var(--shadow); }
 .history-section-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: var(--surface-2); flex-wrap: wrap; gap: 10px; }
 .history-section-header h3 { font-size: 14px; font-weight: 800; color: var(--navy); }
 .history-filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
@@ -292,7 +292,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 .accordion-list { display: flex; flex-direction: column; gap: 0; }
 .acc-card { border-bottom: 1px solid var(--border); }
 .acc-card:last-child { border-bottom: none; }
-.acc-header { display: flex; align-items: center; gap: 10px; padding: 12px 16px; cursor: pointer; transition: background .15s; }
+.acc-header { display: flex; align-items: center; gap: 10px; padding: 12px 16px; cursor: pointer; transition: background .15s; touch-action: manipulation; }
 .acc-header:hover { background: var(--surface-2); }
 .acc-toggle { font-size: 10px; color: var(--text-muted); transition: transform .2s; flex-shrink: 0; }
 .acc-card.open .acc-toggle { transform: rotate(90deg); }
@@ -302,7 +302,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 .acc-date { color: var(--text-muted); font-size: 11px; }
 .acc-total { font-weight: 800; color: var(--navy); }
 .acc-actions { display: flex; gap: 4px; }
-.acc-body { display: none; padding: 14px 16px 14px 40px; background: var(--surface-2); border-top: 1px solid var(--border); }
+.acc-body { display: none; padding: 14px 16px 14px 40px; background: var(--surface-2); border-top: 1px solid var(--border); touch-action: pan-y; }
 .acc-card.open .acc-body { display: block; }
 .acc-body-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .acc-detail-box { background: var(--surface); border-radius: 8px; padding: 10px 12px; border: 1px solid var(--border); }
