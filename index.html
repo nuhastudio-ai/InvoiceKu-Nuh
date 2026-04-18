@@ -921,6 +921,31 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 </div>
 
 <!-- CONFIRM DELETE MODAL -->
+<!-- DUPLICATE DOCUMENT MODAL -->
+<div class="modal-overlay" id="duplicate-modal">
+  <div class="modal" style="max-width:420px">
+    <h2>⚠️ Nomor Dokumen Sudah Ada</h2>
+    <p style="font-size:13px;color:var(--text-muted);line-height:1.6;margin-bottom:6px">
+      Dokumen <strong id="dupe-nodoc-label"></strong> sudah ada di database.<br>
+      Pilih tindakan:
+    </p>
+    <div style="display:flex;flex-direction:column;gap:8px;margin:14px 0">
+      <div style="padding:10px 14px;border:1.5px solid var(--border);border-radius:9px;background:var(--surface-2);font-size:12px;color:var(--text-muted)">
+        <strong style="color:var(--danger)">⚠️ Timpa (Overwrite)</strong><br>
+        Data lama akan diganti dengan data baru. Tidak bisa dibatalkan.
+      </div>
+      <div style="padding:10px 14px;border:1.5px solid var(--border);border-radius:9px;background:var(--surface-2);font-size:12px;color:var(--text-muted)">
+        <strong style="color:var(--navy)">✏️ Ganti Nomor</strong><br>
+        Kembali ke form dan ubah nomor dokumen secara manual.
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="dupeChangeNumber()">✏️ Ganti Nomor</button>
+      <button class="btn-danger" onclick="dupeOverwrite()">⚠️ Timpa Data Lama</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="delete-modal">
   <div class="modal" style="max-width:400px">
     <h2>🗑️ Hapus Dokumen?</h2>
@@ -1834,78 +1859,101 @@ function commitLocal(payload) {
   }
 }
 
-async function saveToDatabase(silent = false) {
-  // scriptUrl sudah tertanam, selalu tersedia
-  const payload = buildPayload();
-  if (!payload) return false;
+// ── State untuk duplicate modal ──
+let _pendingPayload  = null; // payload yang menunggu keputusan user
+let _pendingMode     = null; // 'save' | 'print'
 
-  const btn = document.getElementById('btn-save-db');
-  btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
-
-  try {
-    let savedOk = false;
-    try {
-      const res  = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
-      const data = await res.json();
-      if (data.success) savedOk = true;
-      else showToast('Gagal: ' + (data.message||'Error'), 'error');
-    } catch(e) {
-      showToast('Koneksi gagal – data disimpan lokal saja.', 'warning');
-    }
-
-    commitLocal(payload);
-    if (!silent) showToast(`✅ Tersimpan! (${payload.noDoc})`, 'success');
-    resetForm();
-    return true;
-  } catch(err) {
-    if (!silent) showToast('Error saat menyimpan.', 'error');
-    return false;
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = '💾 Simpan';
-  }
-}
-
-async function printAndSave() {
+/** Cek duplikat, lalu lanjut simpan atau cetak */
+async function checkDuplicateThenProceed(mode) {
   const payload = buildPayload();
   if (!payload) return;
 
-  // Pastikan preview sudah terisi sebelum cetak
-  updatePreview();
+  const isDupe = allHistoryData.some(r => r['No. Dokumen'] === payload.noDoc);
+  if (isDupe) {
+    // Simpan state, tampilkan modal pilihan
+    _pendingPayload = payload;
+    _pendingMode    = mode;
+    document.getElementById('dupe-nodoc-label').textContent = payload.noDoc;
+    document.getElementById('duplicate-modal').classList.add('open');
+    return;
+  }
+  // Tidak duplikat — langsung proses
+  await _executeSaveOrPrint(payload, mode, false);
+}
 
-  // Cetak DULU — preview harus masih berisi data saat dialog cetak terbuka
-  // Setelah user tutup dialog cetak, baru simpan & reset via onafterprint
-  window.onafterprint = async function() {
-    window.onafterprint = null; // reset handler
+/** User pilih "Ganti Nomor" → tutup modal, fokus ke field nomor */
+function dupeChangeNumber() {
+  document.getElementById('duplicate-modal').classList.remove('open');
+  _pendingPayload = null;
+  _pendingMode    = null;
+  document.getElementById('inv-number').focus();
+  document.getElementById('inv-number').select();
+  showToast('Ubah nomor dokumen lalu simpan kembali.', 'warning');
+}
 
-    // Simpan lokal
-    commitLocal(payload);
+/** User pilih "Timpa" → set action ke update lalu lanjut */
+async function dupeOverwrite() {
+  document.getElementById('duplicate-modal').classList.remove('open');
+  if (!_pendingPayload || !_pendingMode) return;
+  const payload = { ..._pendingPayload, action: 'update' };
+  const mode    = _pendingMode;
+  _pendingPayload = null;
+  _pendingMode    = null;
+  await _executeSaveOrPrint(payload, mode, true);
+}
 
-    // Kirim ke cloud
+/** Eksekusi inti: simpan ke lokal+cloud, atau cetak+simpan setelah print */
+async function _executeSaveOrPrint(payload, mode, isOverwrite) {
+  if (mode === 'save') {
+    const btn = document.getElementById('btn-save-db');
+    btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
     try {
-      const res  = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
-      const data = await res.json();
-      if (!data.success) showToast('Remote gagal, tapi data tersimpan lokal.', 'warning');
-    } catch(e) {
-      showToast('Koneksi gagal – disimpan lokal saja.', 'warning');
+      commitLocal(payload);
+      try {
+        const res  = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
+        const data = await res.json();
+        if (!data.success) showToast('Gagal: ' + (data.message||'Error'), 'error');
+      } catch(e) {
+        showToast('Koneksi gagal – disimpan lokal saja.', 'warning');
+      }
+      showToast(isOverwrite ? `✅ Data ${payload.noDoc} ditimpa!` : `✅ Tersimpan! (${payload.noDoc})`, 'success');
+      resetForm();
+    } finally {
+      btn.disabled = false; btn.innerHTML = '💾 Simpan';
     }
 
-    showToast(`✅ Tersimpan! (${payload.noDoc})`, 'success');
-    resetForm();
-  };
+  } else { // mode === 'print'
+    updatePreview();
 
-  // Ubah judul halaman sementara → browser pakai ini sebagai nama file PDF/cetak
-  const companyName = (settings.company || 'InvoiceKu').replace(/[\\/:*?"<>|]/g, '');
-  const docNo       = (payload.noDoc || '').replace(/[\\/:*?"<>|]/g, '');
-  const originalTitle = document.title;
-  document.title = companyName + '-' + docNo;
+    window.onafterprint = async function() {
+      window.onafterprint = null;
+      commitLocal(payload);
+      try {
+        const res  = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
+        const data = await res.json();
+        if (!data.success) showToast('Remote gagal, tapi data tersimpan lokal.', 'warning');
+      } catch(e) {
+        showToast('Koneksi gagal – disimpan lokal saja.', 'warning');
+      }
+      showToast(isOverwrite ? `✅ Data ${payload.noDoc} ditimpa!` : `✅ Tersimpan! (${payload.noDoc})`, 'success');
+      resetForm();
+    };
 
-  // Buka dialog cetak (preview masih penuh berisi data)
-  window.print();
+    const companyName = (settings.company || 'InvoiceKu').replace(/[\//:*?"<>|]/g, '');
+    const docNo       = (payload.noDoc || '').replace(/[\//:*?"<>|]/g, '');
+    const originalTitle = document.title;
+    document.title = companyName + '-' + docNo;
+    window.print();
+    window.addEventListener('afterprint', () => { document.title = originalTitle; }, { once: true });
+  }
+}
 
-  // Kembalikan judul setelah dialog cetak ditutup (onafterprint sudah handle reset)
-  const restoreTitle = () => { document.title = originalTitle; };
-  window.addEventListener('afterprint', restoreTitle, { once: true });
+async function saveToDatabase(silent = false) {
+  await checkDuplicateThenProceed('save');
+}
+
+async function printAndSave() {
+  await checkDuplicateThenProceed('print');
 }
 
 function markInvoiceLunas(invNo) {
@@ -2468,7 +2516,7 @@ function showToast(msg, type='') {
 // ══════════════════════════════════════════════
 // CLOSE MODALS ON OVERLAY
 // ══════════════════════════════════════════════
-['settings-modal','customer-modal','item-modal','edit-modal','delete-modal','catalog-modal','payment-modal'].forEach(id => {
+['settings-modal','customer-modal','item-modal','edit-modal','delete-modal','catalog-modal','payment-modal','duplicate-modal'].forEach(id => {
   const el = document.getElementById(id);
   if (el) el.addEventListener('click', function(e) { if (e.target===this) this.classList.remove('open'); });
 });
