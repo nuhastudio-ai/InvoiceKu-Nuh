@@ -1868,25 +1868,34 @@ async function saveToDatabase(silent = false) {
 
 async function printAndSave() {
   const payload = buildPayload();
-  if (!payload) return; // Validasi gagal
+  if (!payload) return;
 
-  // Simpan lokal + auto-save customer selalu
-  commitLocal(payload);
+  // Pastikan preview sudah terisi sebelum cetak
+  updatePreview();
 
-  // Kirim ke cloud (URL sudah tertanam)
-  try {
-    const res  = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
-    const data = await res.json();
-    if (!data.success) showToast('Remote gagal, tapi data sudah tersimpan lokal.', 'warning');
-  } catch(e) {
-    showToast('Koneksi gagal – disimpan lokal saja.', 'warning');
-  }
+  // Cetak DULU — preview harus masih berisi data saat dialog cetak terbuka
+  // Setelah user tutup dialog cetak, baru simpan & reset via onafterprint
+  window.onafterprint = async function() {
+    window.onafterprint = null; // reset handler
 
-  showToast(`✅ Tersimpan! (${payload.noDoc})`, 'success');
-  resetForm();
+    // Simpan lokal
+    commitLocal(payload);
 
-  // Cetak setelah data tersimpan
-  setTimeout(() => window.print(), 300);
+    // Kirim ke cloud
+    try {
+      const res  = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
+      const data = await res.json();
+      if (!data.success) showToast('Remote gagal, tapi data tersimpan lokal.', 'warning');
+    } catch(e) {
+      showToast('Koneksi gagal – disimpan lokal saja.', 'warning');
+    }
+
+    showToast(`✅ Tersimpan! (${payload.noDoc})`, 'success');
+    resetForm();
+  };
+
+  // Buka dialog cetak (preview masih penuh berisi data)
+  window.print();
 }
 
 function markInvoiceLunas(invNo) {
