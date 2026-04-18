@@ -38,6 +38,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 .topbar-title { color: #fff; font-size: 16px; font-weight: 800; }
 .topbar-title span { color: var(--accent); }
 
+/* Desktop tab group — di dalam topbar */
 .tab-group { display: flex; gap: 3px; background: rgba(255,255,255,0.08); padding: 4px; border-radius: 10px; overflow-x: auto; flex-shrink: 0; }
 .tab-group::-webkit-scrollbar { display: none; }
 .tab-btn { padding: 6px 12px; border: none; background: transparent; color: rgba(255,255,255,0.65); font-family: inherit; font-size: 12px; font-weight: 600; border-radius: 7px; cursor: pointer; transition: all .2s; white-space: nowrap; }
@@ -46,6 +47,55 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 .topbar-actions { display: flex; gap: 6px; flex-shrink: 0; }
 .btn-icon { width: 34px; height: 34px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.8); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .2s; font-size: 14px; }
 .btn-icon:hover { background: rgba(255,255,255,0.18); color: #fff; }
+
+/* ── BOTTOM NAV (mobile only) ── */
+.bottom-nav { display: none; }
+@media (max-width: 680px) {
+  /* Sembunyikan tab-group dari topbar di mobile */
+  .tab-group { display: none; }
+  /* Topbar mobile: hanya brand + settings icon */
+  .topbar { justify-content: space-between; }
+
+  /* Bottom nav bar fixed di bawah */
+  .bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--navy);
+    border-top: 1px solid rgba(255,255,255,0.1);
+    z-index: 300;
+    padding: 0;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.25);
+  }
+  .bn-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 4px 10px;
+    border: none;
+    background: transparent;
+    color: rgba(255,255,255,0.5);
+    font-family: inherit;
+    font-size: 9px;
+    font-weight: 600;
+    cursor: pointer;
+    gap: 3px;
+    transition: all .2s;
+    -webkit-tap-highlight-color: transparent;
+    letter-spacing: 0.2px;
+  }
+  .bn-item .bn-icon { font-size: 20px; line-height: 1; }
+  .bn-item.active { color: var(--accent); }
+  .bn-item.active .bn-icon { transform: translateY(-2px); }
+  .bn-item:not(.active):active { background: rgba(255,255,255,0.06); border-radius: 10px; }
+
+  /* Beri padding bawah pada konten agar tidak tertutup bottom nav */
+  .app-container, .full-page { padding-bottom: 64px !important; }
+  .form-panel { padding-bottom: 72px !important; }
+  .preview-scroll { padding-bottom: 72px !important; }
+}
 
 /* ── LAYOUT ── */
 .app-container { display: grid; grid-template-columns: 420px 1fr; gap: 0; height: calc(100vh - 56px); }
@@ -350,7 +400,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 
   /* Sembunyikan semua UI kecuali dokumen invoice */
   .topbar, .form-panel, .preview-topbar, .full-page,
-  .print-bar, .toast, .modal-overlay { display: none !important; }
+  .print-bar, .toast, .modal-overlay, .bottom-nav { display: none !important; }
 
   /* Layout: tampilkan hanya area preview */
   .app-container { display: block !important; height: auto !important; }
@@ -448,6 +498,28 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
     <button class="btn-icon" title="Pengaturan" onclick="openSettings()">⚙️</button>
   </div>
 </div>
+
+<!-- BOTTOM NAV (mobile only) -->
+<nav class="bottom-nav" id="bottom-nav">
+  <button class="bn-item active" id="bn-invoice" onclick="switchMode('invoice')">
+    <span class="bn-icon">📄</span><span>Invoice</span>
+  </button>
+  <button class="bn-item" id="bn-receipt" onclick="switchMode('receipt')">
+    <span class="bn-icon">✅</span><span>Nota</span>
+  </button>
+  <button class="bn-item" id="bn-history" onclick="showPage('history')">
+    <span class="bn-icon">📊</span><span>Riwayat</span>
+  </button>
+  <button class="bn-item" id="bn-customers" onclick="showPage('customers')">
+    <span class="bn-icon">👥</span><span>Customer</span>
+  </button>
+  <button class="bn-item" id="bn-items" onclick="showPage('items')">
+    <span class="bn-icon">📦</span><span>Item</span>
+  </button>
+  <button class="bn-item" id="bn-settings" onclick="openSettings()">
+    <span class="bn-icon">⚙️</span><span>Pengaturan</span>
+  </button>
+</nav>
 
 <!-- APP LAYOUT -->
 <div class="app-container" id="main-app">
@@ -1188,6 +1260,13 @@ function escJs(s)   { return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\
 // ══════════════════════════════════════════════
 // NAV
 // ══════════════════════════════════════════════
+/** Sinkronkan active state bottom nav (mobile) */
+function syncBottomNav(activeId) {
+  document.querySelectorAll('.bn-item').forEach(b => b.classList.remove('active'));
+  const el = document.getElementById('bn-' + activeId);
+  if (el) el.classList.add('active');
+}
+
 function switchMode(m) {
   mode = m;
   document.getElementById('main-app').classList.remove('hidden');
@@ -1196,6 +1275,7 @@ function switchMode(m) {
 
   if (m === 'invoice') {
     document.getElementById('tab-invoice').classList.add('active');
+    syncBottomNav('invoice');
     document.getElementById('due-date-row').style.display = '';
     document.getElementById('paid-date-wrap').style.display = 'none';
     document.getElementById('pay-status-wrap').style.display = 'none';
@@ -1208,6 +1288,7 @@ function switchMode(m) {
     document.getElementById('inv-number').value = 'INV-' + String(parseInt(lastNo)+1).padStart(3,'0');
   } else {
     document.getElementById('tab-receipt').classList.add('active');
+    syncBottomNav('receipt');
     document.getElementById('due-date-row').style.display = 'none';
     document.getElementById('paid-date-wrap').style.display = '';
     document.getElementById('pay-status-wrap').style.display = '';
@@ -1229,6 +1310,7 @@ function showPage(p) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('page-' + p).classList.add('active');
   document.getElementById('tab-' + p).classList.add('active');
+  syncBottomNav(p);
   if (p === 'history') loadHistory();
   if (p === 'customers') renderCustomers();
   if (p === 'items') renderItems();
