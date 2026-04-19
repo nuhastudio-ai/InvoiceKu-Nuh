@@ -96,6 +96,10 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
   .app-container, .full-page { padding-bottom: 64px !important; }
   .form-panel { padding-bottom: 72px !important; }
   .preview-scroll { padding-bottom: 72px !important; }
+
+  /* Pastikan scroll tidak terblokir oleh child elements */
+  .full-page, .form-panel, .preview-scroll { touch-action: pan-y; }
+  #items-accordion { touch-action: pan-y; }
 }
 
 /* ── LAYOUT ── */
@@ -159,9 +163,9 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 .wholesale-badge { display: inline-block; background: var(--success); color: #fff; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 4px; margin-left: 4px; letter-spacing: 0.3px; vertical-align: middle; }
 
 /* ── ACCORDION ITEMS PAGE ── */
-.accordion-item-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; transition: box-shadow .2s; }
+.accordion-item-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: clip; transition: box-shadow .2s; touch-action: pan-y; }
 .accordion-item-card:hover { box-shadow: var(--shadow); }
-.accordion-item-header { display: flex; align-items: center; gap: 10px; padding: 12px 14px; cursor: pointer; user-select: none; }
+.accordion-item-header { display: flex; align-items: center; gap: 10px; padding: 12px 14px; cursor: pointer; user-select: none; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 .accordion-item-icon { width: 36px; height: 36px; background: var(--surface-2); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; border: 1px solid var(--border); }
 .accordion-item-main { flex: 1; min-width: 0; }
 .accordion-item-name { font-size: 13px; font-weight: 700; color: var(--navy); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -169,7 +173,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 .accordion-item-price { font-size: 12px; font-weight: 700; color: var(--success); flex-shrink: 0; text-align: right; }
 .accordion-item-chevron { font-size: 10px; color: var(--text-muted); transition: transform .2s; flex-shrink: 0; }
 .accordion-item-card.open .accordion-item-chevron { transform: rotate(180deg); }
-.accordion-item-body { display: none; border-top: 1px solid var(--border); padding: 12px 14px; background: var(--surface-2); }
+.accordion-item-body { display: none; border-top: 1px solid var(--border); padding: 12px 14px; background: var(--surface-2); touch-action: pan-y; }
 .accordion-item-card.open .accordion-item-body { display: block; }
 .accordion-sub-section { margin-bottom: 12px; }
 .accordion-sub-section:last-child { margin-bottom: 0; }
@@ -183,7 +187,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 .accordion-item-actions { display: flex; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
 
 /* ── ITEM MODAL – VARIAN & GROSIR SECTIONS ── */
-.im-section { border: 1.5px solid var(--border); border-radius: 8px; overflow: hidden; }
+.im-section { border: 1.5px solid var(--border); border-radius: 8px; overflow: clip; }
 .im-section-header { background: var(--navy); color: #fff; padding: 7px 12px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; display: flex; justify-content: space-between; align-items: center; }
 .im-section-body { padding: 10px 12px; background: var(--surface-2); display: flex; flex-direction: column; gap: 6px; }
 .variant-form-row { display: grid; grid-template-columns: 1fr 100px 26px; gap: 6px; align-items: center; }
@@ -302,6 +306,11 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 500; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity .2s; }
 .modal-overlay.open { opacity: 1; pointer-events: all; }
 .modal { background: var(--surface); border-radius: 16px; padding: 24px; width: 500px; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-lg); transform: translateY(20px); transition: transform .25s; }
+.modal-catalog { display: flex; flex-direction: column; overflow: hidden; padding-bottom: 0; }
+.catalog-list-scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y; display: flex; flex-direction: column; gap: 6px; min-height: 0; padding-bottom: 4px; }
+@media (max-width: 680px) {
+  .modal-catalog { max-height: 80vh; width: calc(100vw - 32px); }
+}
 .modal-overlay.open .modal { transform: translateY(0); }
 .modal-wide { width: 680px; }
 .modal-xl { width: 860px; }
@@ -389,7 +398,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 /* ── CUSTOMERS / ITEMS PAGE ── */
 .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .page-header h2 { font-size: 20px; font-weight: 800; color: var(--navy); }
-.data-table-wrap { background: var(--surface); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; box-shadow: var(--shadow); }
+.data-table-wrap { background: var(--surface); border-radius: 12px; border: 1px solid var(--border); overflow: clip; box-shadow: var(--shadow); }
 .data-table-header { padding: 14px 16px; background: var(--surface-2); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
 .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .data-table thead th { padding: 9px 14px; background: var(--navy); color: rgba(255,255,255,0.85); font-size: 10px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; text-align: left; white-space: nowrap; }
@@ -1105,11 +1114,11 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 
 <!-- ITEM CATALOG PICKER MODAL -->
 <div class="modal-overlay" id="catalog-modal">
-  <div class="modal">
+  <div class="modal modal-catalog">
     <h2>📦 Pilih Item dari Katalog</h2>
-    <input type="text" id="catalog-search" placeholder="🔍 Cari item..." oninput="renderCatalogList()" style="width:100%;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:12px;outline:none;margin-bottom:10px">
-    <div id="catalog-list" style="max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:4px"></div>
-    <div class="modal-actions"><button class="btn-secondary" onclick="closeCatalogModal()">Tutup</button></div>
+    <input type="text" id="catalog-search" placeholder="🔍 Cari item..." oninput="renderCatalogList()" style="width:100%;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:12px;outline:none;margin-bottom:10px;flex-shrink:0">
+    <div id="catalog-list" class="catalog-list-scroll"></div>
+    <div class="modal-actions" style="flex-shrink:0"><button class="btn-secondary" onclick="closeCatalogModal()">Tutup</button></div>
   </div>
 </div>
 
@@ -1663,37 +1672,39 @@ function renderItemsList() {
 function openCatalogModal(itemId) { catalogTargetItemId = itemId; document.getElementById('catalog-search').value = ''; renderCatalogList(); document.getElementById('catalog-modal').classList.add('open'); }
 function closeCatalogModal() { document.getElementById('catalog-modal').classList.remove('open'); }
 function renderCatalogList() {
-  const q = document.getElementById('catalog-search').value.toLowerCase();
+  const q    = document.getElementById('catalog-search').value.toLowerCase();
   const list = document.getElementById('catalog-list');
-  const filtered = catalogItems.filter(c => c.name.toLowerCase().includes(q));
-  if (filtered.length === 0) { list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted)">Tidak ada item</div>'; return; }
+  const filtered = catalogItems.filter(c => c.name.toLowerCase().includes(q) || (c.desc||'').toLowerCase().includes(q));
+  if (filtered.length === 0) {
+    list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:12px">Tidak ada item ditemukan</div>';
+    return;
+  }
   list.innerHTML = filtered.map(c => {
-    const hasVariants = c.variants && c.variants.length > 0;
+    const hasVariants  = c.variants && c.variants.length > 0;
     const hasWholesale = c.wholesalePrices && c.wholesalePrices.length > 0;
-    let variantHTML = '';
-    if (hasVariants) {
-      variantHTML = `<div style="margin-top:6px;display:flex;flex-direction:column;gap:3px">
-        ${c.variants.map(v => `
-          <div onclick="event.stopPropagation();selectCatalogItem('${escJs(c.name)}',${v.price||0},'${escJs(v.name)}')" style="display:flex;justify-content:space-between;align-items:center;padding:5px 10px;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='#e8f0fe'" onmouseout="this.style.background='var(--surface-2)'">
-            <span style="font-size:11px;font-weight:600;color:var(--navy)">↳ ${escHtml(v.name)}</span>
-            <span style="font-size:11px;font-weight:700;color:var(--success)">${formatRp(v.price||0)}</span>
-          </div>`).join('')}
-      </div>`;
-    }
-    let wholesaleHTML = '';
-    if (hasWholesale) {
-      const tiers = [...c.wholesalePrices].sort((a,b)=>parseInt(a.minQty)-parseInt(b.minQty));
-      wholesaleHTML = `<div style="margin-top:4px;font-size:10px;color:var(--text-muted)">📦 Grosir: ${tiers.map(t=>`≥${t.minQty} → ${formatRp(t.price)}`).join(' | ')}</div>`;
-    }
-    const clickable = !hasVariants;
+
+    // Info baris bawah
+    let metaParts = [];
+    if (c.unit) metaParts.push(c.unit);
+    if (hasVariants)  metaParts.push(`${c.variants.length} varian`);
+    if (hasWholesale) metaParts.push('ada grosir');
+    const meta = metaParts.join(' · ');
+
+    // Harga tampil: jika ada varian → "Mulai Rp x", kalau tidak → harga jual langsung
+    const priceLabel = hasVariants
+      ? `<span style="font-size:10px;color:var(--text-muted)">Pilih varian setelah memilih item ini</span>`
+      : `<span style="font-size:12px;font-weight:700;color:var(--success)">${formatRp(c.sellPrice||0)}</span>`;
+
     return `
-    <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;${clickable?'cursor:pointer;':''}" ${clickable?`onclick="selectCatalogItem('${escJs(c.name)}',${c.sellPrice||0},'')"`:''} onmouseover="${clickable?'this.style.background=\'var(--surface-2)\'':''}" onmouseout="${clickable?'this.style.background=\'\'':''}">
-      <div style="padding:10px 12px">
-        <div style="font-weight:700;font-size:12px;color:var(--navy)">${escHtml(c.name)}${hasVariants?` <span style="font-size:10px;color:var(--accent);font-weight:600">(${c.variants.length} varian)</span>`:''}</div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${c.unit?c.unit+' · ':''}${hasVariants?'Pilih varian di bawah':'Jual: '+formatRp(c.sellPrice||0)}</div>
-        ${wholesaleHTML}
-        ${variantHTML}
+    <div onclick="selectCatalogItem('${escJs(c.name)}',${c.sellPrice||0},'')"
+         style="border:1px solid var(--border);border-radius:10px;padding:11px 14px;cursor:pointer;background:var(--surface);transition:background .15s;display:flex;align-items:center;gap:12px;min-height:0"
+         onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background='var(--surface)'">
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:13px;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(c.name)}</div>
+        ${meta ? `<div style="font-size:10px;color:var(--text-muted);margin-top:2px">${escHtml(meta)}</div>` : ''}
+        ${c.desc ? `<div style="font-size:10px;color:var(--text-muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-style:italic">${escHtml(c.desc)}</div>` : ''}
       </div>
+      <div style="flex-shrink:0;text-align:right">${priceLabel}</div>
     </div>`;
   }).join('');
 }
