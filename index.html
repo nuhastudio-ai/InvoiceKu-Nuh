@@ -180,10 +180,13 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 .accordion-sub-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
 .variant-pill { display: inline-flex; align-items: center; gap: 6px; background: var(--surface); border: 1.5px solid var(--border); border-radius: 20px; padding: 4px 10px; font-size: 11px; color: var(--navy); font-weight: 600; margin: 2px; }
 .variant-pill .vp-price { color: var(--success); font-weight: 700; }
-.wholesale-tier { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; font-size: 11px; margin-bottom: 4px; }
+.wholesale-tier { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 7px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; font-size: 11px; margin-bottom: 4px; }
 .wholesale-tier .wt-qty { font-weight: 700; color: var(--navy); min-width: 80px; }
 .wholesale-tier .wt-price { font-weight: 700; color: var(--success); }
-.wholesale-tier .wt-disc { font-size: 10px; color: var(--text-muted); margin-left: auto; }
+.wholesale-tier .wt-disc { font-size: 10px; color: var(--text-muted); }
+.wholesale-tier .wt-variants { display: flex; flex-wrap: wrap; gap: 3px; margin-left: auto; }
+.wt-var-tag { font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 10px; background: #e8f0fe; color: #3b5bdb; border: 1px solid #c5d3f6; }
+.wt-var-tag.all { background: #e8f5e9; color: #27ae60; border-color: #a5d6a7; }
 .accordion-item-actions { display: flex; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
 
 /* ── ITEM MODAL – VARIAN & GROSIR SECTIONS ── */
@@ -193,9 +196,17 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 .variant-form-row { display: grid; grid-template-columns: 1fr 100px 26px; gap: 6px; align-items: center; }
 .variant-form-row input { padding: 5px 8px; border: 1.5px solid var(--border); border-radius: 6px; font-family: inherit; font-size: 11px; outline: none; width: 100%; }
 .variant-form-row input:focus { border-color: var(--steel); }
-.wholesale-form-row { display: grid; grid-template-columns: 110px 1fr 26px; gap: 6px; align-items: center; }
-.wholesale-form-row input { padding: 5px 8px; border: 1.5px solid var(--border); border-radius: 6px; font-family: inherit; font-size: 11px; outline: none; width: 100%; }
-.wholesale-form-row input:focus { border-color: var(--steel); }
+.wholesale-form-row { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; background: var(--surface); border: 1.5px solid var(--border); border-radius: 8px; }
+.wholesale-form-row-top { display: grid; grid-template-columns: 110px 1fr 26px; gap: 6px; align-items: center; }
+.wholesale-form-row input[type="number"] { padding: 5px 8px; border: 1.5px solid var(--border); border-radius: 6px; font-family: inherit; font-size: 11px; outline: none; width: 100%; }
+.wholesale-form-row input[type="number"]:focus { border-color: var(--steel); }
+.ws-variant-picker { display: flex; flex-direction: column; gap: 4px; }
+.ws-variant-picker-label { font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; }
+.ws-variant-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.ws-vchip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 20px; border: 1.5px solid var(--border); background: var(--surface-2); font-size: 11px; font-weight: 600; color: var(--text-muted); cursor: pointer; transition: all .15s; user-select: none; -webkit-tap-highlight-color: transparent; }
+.ws-vchip.selected { border-color: var(--navy); background: var(--navy); color: #fff; }
+.ws-vchip-all { border-color: var(--steel-light); color: var(--steel); }
+.ws-vchip-all.selected { border-color: var(--steel); background: var(--steel); color: #fff; }
 .btn-add-row { padding: 5px 10px; border: 1.5px dashed var(--border); background: transparent; color: var(--steel); border-radius: 6px; font-family: inherit; font-size: 11px; font-weight: 600; cursor: pointer; width: 100%; text-align: center; transition: all .2s; }
 .btn-add-row:hover { border-color: var(--steel); background: var(--surface); }
 .btn-del-row { width: 26px; height: 26px; border: none; background: #fde8e8; color: var(--danger); border-radius: 5px; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
@@ -1022,12 +1033,9 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
           <span style="font-size:10px;font-weight:400;opacity:0.8">Otomatis berlaku di invoice saat QTY terpenuhi</span>
         </div>
         <div class="im-section-body">
-          <div style="display:grid;grid-template-columns:110px 1fr 26px;gap:6px;padding:0 0 4px;font-size:9px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px">
-            <span>Min. QTY</span><span>Harga / satuan</span><span></span>
-          </div>
           <div id="im-wholesale-list"></div>
           <button class="btn-add-row" onclick="addWholesaleRow()">＋ Tambah Tingkat Harga</button>
-          <div class="wholesale-hint">💡 Contoh: min. 3 → Rp 45.000/pcs, min. 10 → Rp 40.000/pcs</div>
+          <div class="wholesale-hint">💡 Tiap tingkat harga bisa untuk semua varian atau varian tertentu saja</div>
         </div>
       </div>
     </div>
@@ -1565,7 +1573,7 @@ function updateItem(id, field, val) {
     if (cat) {
       // Jika tidak ada varian, set harga langsung
       if (!cat.variants || cat.variants.length === 0) {
-        it.price = applyWholesalePrice(cat, it.qty, parseFloat(cat.sellPrice) || 0);
+        it.price = applyWholesalePrice(cat, it.qty, parseFloat(cat.sellPrice) || 0, '');
       } else {
         it.price = 0; // tunggu varian dipilih
       }
@@ -1576,7 +1584,7 @@ function updateItem(id, field, val) {
     const cat = catalogItems.find(c => c.name === it.name);
     if (cat && cat.variants && cat.variants.length > 0) {
       const v = cat.variants.find(v => v.name === val);
-      if (v) it.price = applyWholesalePrice(cat, it.qty, parseFloat(v.price) || 0);
+      if (v) it.price = applyWholesalePrice(cat, it.qty, parseFloat(v.price) || 0, val);
     }
     renderItemsList();
   } else if (field === 'qty') {
@@ -1586,7 +1594,7 @@ function updateItem(id, field, val) {
     if (cat) {
       const basePrice = getBasePrice(cat, it.variant);
       if (basePrice > 0) {
-        it.price = applyWholesalePrice(cat, it.qty, basePrice);
+        it.price = applyWholesalePrice(cat, it.qty, basePrice, it.variant || '');
         renderItemsList();
       }
     }
@@ -1605,12 +1613,19 @@ function getBasePrice(cat, variantName) {
   return parseFloat(cat.sellPrice) || 0;
 }
 
-/** Terapkan harga grosir jika QTY memenuhi threshold */
-function applyWholesalePrice(cat, qty, basePrice) {
+/** Terapkan harga grosir jika QTY memenuhi threshold, filtered by variant */
+function applyWholesalePrice(cat, qty, basePrice, variantName) {
   if (!cat.wholesalePrices || cat.wholesalePrices.length === 0) return basePrice;
   const tiers = [...cat.wholesalePrices]
-    .filter(t => parseInt(t.minQty) > 0)
-    .sort((a, b) => parseInt(b.minQty) - parseInt(a.minQty)); // descending minQty
+    .filter(t => {
+      if (!parseInt(t.minQty) > 0) return false;
+      // Tier berlaku jika: variants kosong (=semua), atau variant dipilih ada di list
+      const tv = Array.isArray(t.variants) ? t.variants : [];
+      if (tv.length === 0) return true; // berlaku untuk semua
+      if (!variantName) return true;    // item tanpa varian
+      return tv.includes(variantName);
+    })
+    .sort((a, b) => parseInt(b.minQty) - parseInt(a.minQty)); // descending
   for (const tier of tiers) {
     if (qty >= parseInt(tier.minQty)) {
       return parseFloat(tier.price) || basePrice;
@@ -1626,7 +1641,7 @@ function renderItemsList() {
     const cat = catalogItems.find(c => c.name === item.name);
     const hasVariants    = cat && cat.variants && cat.variants.length > 0;
     const hasWholesale   = cat && cat.wholesalePrices && cat.wholesalePrices.length > 0;
-    const isWholesaleActive = hasWholesale && applyWholesalePrice(cat, item.qty, getBasePrice(cat, item.variant)) < getBasePrice(cat, item.variant);
+    const isWholesaleActive = hasWholesale && applyWholesalePrice(cat, item.qty, getBasePrice(cat, item.variant), item.variant || '') < getBasePrice(cat, item.variant);
 
     // Build variant select HTML
     let variantHtml = '';
@@ -1716,7 +1731,7 @@ function selectCatalogItem(name, price, variant) {
     it.price   = price;
     // Apply wholesale if applicable
     const cat = catalogItems.find(c => c.name === name);
-    if (cat) it.price = applyWholesalePrice(cat, it.qty, price);
+    if (cat) it.price = applyWholesalePrice(cat, it.qty, price, variant || '');
   }
   renderItemsList(); updatePreview(); closeCatalogModal();
 }
@@ -2844,11 +2859,27 @@ function renderItems() {
     if (hasWholesale) {
       const sorted = [...c.wholesalePrices].sort((a,b)=>parseInt(a.minQty)-parseInt(b.minQty));
       const tiers  = sorted.map(t => {
-        const disc = c.sellPrice > 0 ? Math.round((1-(parseFloat(t.price)/c.sellPrice))*100) : 0;
+        // Hitung diskon relatif: untuk item tanpa varian pakai sellPrice, untuk varian pakai harga varian terkait
+        let refPrice = parseFloat(c.sellPrice) || 0;
+        const tv = Array.isArray(t.variants) ? t.variants : [];
+        // Badge varian
+        let varTagsHTML = '';
+        if (hasVariants) {
+          if (tv.length === 0) {
+            varTagsHTML = `<span class="wt-var-tag all">Semua Varian</span>`;
+          } else {
+            varTagsHTML = tv.map(vn => `<span class="wt-var-tag">${escHtml(vn)}</span>`).join('');
+            // Refine refPrice pakai rata-rata harga varian yang terlibat (untuk info hemat)
+            const relVars = c.variants.filter(v => tv.includes(v.name));
+            if (relVars.length > 0) refPrice = relVars.reduce((s,v)=>s+parseFloat(v.price||0),0)/relVars.length;
+          }
+        }
+        const disc = refPrice > 0 ? Math.round((1-(parseFloat(t.price)/refPrice))*100) : 0;
         return `<div class="wholesale-tier">
           <span class="wt-qty">Min. ${t.minQty} ${c.unit||'pcs'}</span>
           <span class="wt-price">${formatRp(t.price)}</span>
-          <span class="wt-disc">${disc>0?`Hemat ${disc}%`:''}</span>
+          ${disc > 0 ? `<span class="wt-disc">Hemat ${disc}%</span>` : ''}
+          <div class="wt-variants">${varTagsHTML}</div>
         </div>`;
       }).join('');
       variantsSection += `
@@ -2856,7 +2887,7 @@ function renderItems() {
           <div class="accordion-sub-title">📦 Ketentuan Harga Grosir</div>
           ${tiers}
         </div>`;
-      wholesaleSection = variantsSection; // merge into body
+      wholesaleSection = variantsSection;
     }
 
     // Body: base info
@@ -2921,7 +2952,7 @@ function openItemForm(idx=-1) {
     document.getElementById('im-desc').value      = c.desc||'';
     // Load existing variants & wholesale
     imVariants  = (c.variants||[]).map(v=>({id:++imRowCounter, name:v.name, price:v.price}));
-    imWholesale = (c.wholesalePrices||[]).map(t=>({id:++imRowCounter, minQty:t.minQty, price:t.price}));
+    imWholesale = (c.wholesalePrices||[]).map(t=>({id:++imRowCounter, minQty:t.minQty, price:t.price, variants:Array.isArray(t.variants)?t.variants:[]}));
   } else {
     document.getElementById('item-modal-title').textContent = '➕ Tambah Item';
     ['im-name','im-unit','im-buy-price','im-sell-price','im-desc'].forEach(id => document.getElementById(id).value='');
@@ -2947,37 +2978,110 @@ function renderVariantRows() {
 function addVariantRow() {
   imVariants.push({id:++imRowCounter, name:'', price:0});
   renderVariantRows();
+  renderWholesaleRows(); // refresh chip picker grosir
 }
 function updateVRow(id, field, val) {
   const v = imVariants.find(v=>v.id===id);
   if (v) v[field] = field==='price' ? parseFloat(val)||0 : val;
+  if (field === 'name') renderWholesaleRows(); // nama varian berubah → update chips
 }
 function delVRow(id) {
+  const v = imVariants.find(v=>v.id===id);
   imVariants = imVariants.filter(v=>v.id!==id);
+  // Hapus juga nama varian ini dari semua tier grosir
+  if (v && v.name) {
+    imWholesale.forEach(t => {
+      if (t.variants) t.variants = t.variants.filter(n => n !== v.name);
+    });
+  }
   renderVariantRows();
+  renderWholesaleRows();
 }
 
 /* ── Wholesale rows ── */
 function renderWholesaleRows() {
   const list = document.getElementById('im-wholesale-list');
-  if (imWholesale.length===0) { list.innerHTML='<div style="font-size:11px;color:var(--text-muted);font-style:italic;padding:4px 0">Belum ada ketentuan grosir</div>'; return; }
-  list.innerHTML = imWholesale.map(t=>`
-    <div class="wholesale-form-row">
-      <input type="number" value="${t.minQty||''}" min="1" placeholder="Min. QTY" oninput="updateWRow(${t.id},'minQty',this.value)">
-      <input type="number" value="${t.price||''}"  min="0" placeholder="Harga/satuan" oninput="updateWRow(${t.id},'price',this.value)">
-      <button class="btn-del-row" onclick="delWRow(${t.id})">✕</button>
-    </div>`).join('');
+  const hasVars = imVariants.filter(v => v.name.trim()).length > 0;
+
+  if (imWholesale.length === 0) {
+    list.innerHTML = '<div style="font-size:11px;color:var(--text-muted);font-style:italic;padding:4px 0">Belum ada ketentuan grosir</div>';
+    return;
+  }
+  list.innerHTML = imWholesale.map(t => {
+    // Build variant chip picker jika ada varian
+    let variantPickerHTML = '';
+    if (hasVars) {
+      const validVars = imVariants.filter(v => v.name.trim());
+      const allSelected = !t.variants || t.variants.length === 0;
+      const chipsHTML = [
+        `<span class="ws-vchip ws-vchip-all ${allSelected ? 'selected' : ''}"
+          onclick="toggleWRowVariant(${t.id}, '__all__')">✓ Semua Varian</span>`
+      ].concat(validVars.map(v => {
+        const sel = !allSelected && t.variants && t.variants.includes(v.name.trim());
+        return `<span class="ws-vchip ${sel ? 'selected' : ''}"
+          onclick="toggleWRowVariant(${t.id}, '${escJs(v.name.trim())}')">${escHtml(v.name.trim())}</span>`;
+      })).join('');
+      variantPickerHTML = `
+        <div class="ws-variant-picker">
+          <div class="ws-variant-picker-label">Berlaku untuk varian:</div>
+          <div class="ws-variant-chips">${chipsHTML}</div>
+        </div>`;
+    }
+
+    return `
+    <div class="wholesale-form-row" id="wrow-${t.id}">
+      <div class="wholesale-form-row-top">
+        <div>
+          <div style="font-size:9px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:3px">Min. QTY</div>
+          <input type="number" value="${t.minQty||''}" min="1" placeholder="misal: 3" oninput="updateWRow(${t.id},'minQty',this.value)">
+        </div>
+        <div>
+          <div style="font-size:9px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:3px">Harga / satuan</div>
+          <input type="number" value="${t.price||''}" min="0" placeholder="Rp" oninput="updateWRow(${t.id},'price',this.value)">
+        </div>
+        <button class="btn-del-row" onclick="delWRow(${t.id})" style="align-self:flex-end">✕</button>
+      </div>
+      ${variantPickerHTML}
+    </div>`;
+  }).join('');
 }
+
 function addWholesaleRow() {
-  imWholesale.push({id:++imRowCounter, minQty:'', price:0});
+  imWholesale.push({ id: ++imRowCounter, minQty: '', price: 0, variants: [] });
   renderWholesaleRows();
 }
+
 function updateWRow(id, field, val) {
-  const t = imWholesale.find(t=>t.id===id);
-  if (t) t[field] = field==='minQty' ? parseInt(val)||'' : parseFloat(val)||0;
+  const t = imWholesale.find(t => t.id === id);
+  if (!t) return;
+  if (field === 'minQty') t.minQty = parseInt(val) || '';
+  else if (field === 'price') t.price = parseFloat(val) || 0;
 }
+
+function toggleWRowVariant(tierId, varName) {
+  const t = imWholesale.find(t => t.id === tierId);
+  if (!t) return;
+  if (varName === '__all__') {
+    t.variants = []; // kosong = semua
+  } else {
+    if (!t.variants) t.variants = [];
+    const idx = t.variants.indexOf(varName);
+    if (idx >= 0) {
+      t.variants.splice(idx, 1);
+    } else {
+      t.variants.push(varName);
+    }
+    // Kalau semua varian dipilih individual → anggap "semua" lagi
+    const validNames = imVariants.filter(v => v.name.trim()).map(v => v.name.trim());
+    if (validNames.length > 0 && validNames.every(n => t.variants.includes(n))) {
+      t.variants = [];
+    }
+  }
+  renderWholesaleRows();
+}
+
 function delWRow(id) {
-  imWholesale = imWholesale.filter(t=>t.id!==id);
+  imWholesale = imWholesale.filter(t => t.id !== id);
   renderWholesaleRows();
 }
 
@@ -2989,7 +3093,14 @@ function saveItem() {
   // Bersihkan data varian (harus ada nama)
   const cleanVariants  = imVariants.filter(v=>v.name.trim()).map(v=>({name:v.name.trim(), price:parseFloat(v.price)||0}));
   // Bersihkan data grosir (harus ada minQty)
-  const cleanWholesale = imWholesale.filter(t=>t.minQty>0).sort((a,b)=>a.minQty-b.minQty).map(t=>({minQty:parseInt(t.minQty), price:parseFloat(t.price)||0}));
+  const cleanWholesale = imWholesale
+    .filter(t => t.minQty > 0)
+    .sort((a, b) => a.minQty - b.minQty)
+    .map(t => ({
+      minQty:   parseInt(t.minQty),
+      price:    parseFloat(t.price) || 0,
+      variants: Array.isArray(t.variants) ? t.variants : [] // [] = semua varian
+    }));
 
   const c = {
     id:              idx>=0 ? catalogItems[idx].id : Date.now(),
