@@ -307,6 +307,26 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 
 .paid-stamp { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%) rotate(-15deg); border: 5px solid rgba(39,174,96,0.4); border-radius: 8px; padding: 4px 14px; color: rgba(39,174,96,0.4); font-family: 'DM Serif Display', serif; font-size: 40px; font-weight: 700; letter-spacing: 4px; pointer-events: none; white-space: nowrap; z-index: 5; }
 
+/* ── STAMP LUNAS ── */
+.doc-stamp-wrap { position: relative; display: flex; align-items: flex-end; }
+.doc-stamp-img  { position: absolute; right: 120px; bottom: -10px; width: 163px; height: 163px; object-fit: contain; opacity: 0.88; transform: rotate(-10deg); pointer-events: none; z-index: 10; }
+@media print {
+  .doc-stamp-img { right: 110px; bottom: -8px; width: 163px; height: 163px; }
+}
+
+/* ── AUTO-REFRESH STATUS CHIP ── */
+.refresh-chip { position: fixed; bottom: 70px; right: 14px; background: rgba(30,45,66,0.85); color: rgba(255,255,255,0.8); font-size: 10px; font-weight: 600; padding: 4px 10px; border-radius: 20px; z-index: 250; display: none; align-items: center; gap: 5px; backdrop-filter: blur(4px); }
+.refresh-chip.show { display: flex; }
+.refresh-chip .rc-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: rc-pulse 1s infinite; }
+@keyframes rc-pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+@media (min-width: 681px) { .refresh-chip { bottom: 14px; } }
+
+/* ── SUPERSCRIPT TOOLBAR ── */
+.unit-wrap { display: flex; flex-direction: column; gap: 3px; }
+.superscript-bar { display: flex; gap: 3px; flex-wrap: wrap; }
+.sup-btn { padding: 2px 7px; border: 1px solid var(--border); background: var(--surface-2); border-radius: 4px; font-size: 12px; cursor: pointer; color: var(--navy); font-family: inherit; transition: all .15s; line-height: 1.4; }
+.sup-btn:hover { background: var(--navy); color: #fff; border-color: var(--navy); }
+
 .doc-footer { background: #f9fafb; border-top: 1px solid #eaeef3; padding: 14px 28px; display: flex; justify-content: space-between; align-items: flex-end; }
 .doc-footer-left { font-size: 10px; color: #666; line-height: 1.7; }
 .doc-footer-right { text-align: center; }
@@ -566,6 +586,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 </div>
 
 <!-- BOTTOM NAV (mobile only) -->
+<div class="refresh-chip" id="refresh-chip"><span class="rc-dot"></span><span id="refresh-chip-text">Memperbarui...</span></div>
 <nav class="bottom-nav" id="bottom-nav">
   <button class="bn-item active" id="bn-invoice" onclick="switchMode('invoice')">
     <span class="bn-icon">📄</span><span>Invoice</span>
@@ -657,7 +678,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
       <div class="section-body">
         <div class="field autocomplete-wrap">
           <label>Nama Pelanggan / Perusahaan</label>
-          <input type="text" id="client-name" placeholder="Ketik nama atau pilih..." oninput="onClientNameInput()" autocomplete="off">
+          <input type="text" id="client-name" placeholder="Ketik nama atau pilih..." oninput="onClientNameInput();this.value=this.value.toUpperCase()" autocomplete="off" autocapitalize="characters" style="text-transform:uppercase">
           <div class="autocomplete-dropdown" id="client-dropdown" style="display:none"></div>
           <div id="new-customer-hint" style="display:none;font-size:10px;color:var(--steel);margin-top:3px;padding:3px 6px;background:var(--surface-2);border-radius:5px;border:1px dashed var(--border)">✨ Pelanggan baru – akan disimpan otomatis saat Simpan/Cetak</div>
         </div>
@@ -783,12 +804,15 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
           <thead><tr><th>Nama Layanan / Barang</th><th>Qty</th><th>Harga Satuan</th><th>Total</th></tr></thead>
           <tbody id="doc-items-body"><tr><td colspan="4" style="text-align:center;color:#aaa;padding:16px">Tambahkan item di panel kiri</td></tr></tbody>
         </table>
-        <div class="doc-totals">
-          <div class="doc-totals-box">
-            <div class="doc-total-row"><span>Subtotal</span><span id="doc-subtotal">Rp 0</span></div>
-            <div class="doc-total-row" id="doc-discount-row" style="display:none"><span>Diskon</span><span id="doc-discount-val">–</span></div>
-            <div class="doc-total-row" id="doc-tax-row" style="display:none"><span id="doc-tax-label">PPN</span><span id="doc-tax-val">–</span></div>
-            <div class="doc-total-row grand"><span>TOTAL</span><span id="doc-grand-total">Rp 0</span></div>
+        <div class="doc-stamp-wrap">
+          <img id="doc-stamp-img" class="doc-stamp-img" src="" alt="LUNAS" style="display:none">
+          <div class="doc-totals" style="flex:1">
+            <div class="doc-totals-box">
+              <div class="doc-total-row"><span>Subtotal</span><span id="doc-subtotal">Rp 0</span></div>
+              <div class="doc-total-row" id="doc-discount-row" style="display:none"><span>Diskon</span><span id="doc-discount-val">–</span></div>
+              <div class="doc-total-row" id="doc-tax-row" style="display:none"><span id="doc-tax-label">PPN</span><span id="doc-tax-val">–</span></div>
+              <div class="doc-total-row grand"><span>TOTAL</span><span id="doc-grand-total">Rp 0</span></div>
+            </div>
           </div>
         </div>
         <div class="doc-payment-row">
@@ -929,6 +953,21 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
         <div class="field"><label>Diskon Default (Rp)</label><input type="number" id="s-default-discount" min="0" value="0" placeholder="0"></div>
         <div class="field"><label>PPN Default (%)</label><input type="number" id="s-default-tax" min="0" max="100" value="0" placeholder="0"></div>
       </div>
+      <div class="field">
+        <label>🔏 Stempel LUNAS (muncul di Nota saat status Lunas)</label>
+        <div class="logo-upload-wrap">
+          <div class="logo-preview-box" id="stamp-preview-box" style="width:56px;height:56px;border-radius:6px;background:var(--surface-2);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;overflow:hidden;flex-shrink:0">🔏</div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+            <label class="logo-upload-btn" for="stamp-file-input">📁 Upload Stempel (PNG/SVG transparan)</label>
+            <input type="file" id="stamp-file-input" accept="image/*" style="display:none" onchange="handleStampUpload(event)">
+            <div style="display:flex;gap:6px">
+              <input type="text" id="s-stamp-url" placeholder="Atau URL stempel: images/stamp.svg" style="padding:6px 8px;border:1.5px solid var(--border);border-radius:7px;font-size:11px;outline:none;flex:1">
+              <button class="btn-secondary" onclick="clearStamp()" style="font-size:11px;padding:6px 10px">Hapus</button>
+            </div>
+            <span style="font-size:10px;color:var(--text-muted)">Gunakan gambar transparan (PNG/SVG) agar terlihat natural di dokumen</span>
+          </div>
+        </div>
+      </div>
       <hr style="border:none;border-top:1px solid var(--border);margin:4px 0">
       <div class="field">
         <label>🔗 Database Google Sheets</label>
@@ -1004,7 +1043,22 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
     <div style="display:flex;flex-direction:column;gap:12px">
       <input type="hidden" id="im-id">
       <div class="field"><label>Nama Item / Layanan *</label><input type="text" id="im-name" placeholder="Desain Logo, Print A3, Stempel, dll"></div>
-      <div class="field"><label>Satuan</label><input type="text" id="im-unit" placeholder="pcs, lembar, jam, paket..."></div>
+      <div class="field">
+        <label>Satuan</label>
+        <div class="unit-wrap">
+          <input type="text" id="im-unit" placeholder="pcs, lembar, m², m³, jam...">
+          <div class="superscript-bar">
+            <button type="button" class="sup-btn" onclick="insertSup('²')" title="Kuadrat">x²</button>
+            <button type="button" class="sup-btn" onclick="insertSup('³')" title="Kubik">x³</button>
+            <button type="button" class="sup-btn" onclick="insertSup('¹')" title="Pangkat 1">x¹</button>
+            <button type="button" class="sup-btn" onclick="insertSup('⁴')" title="Pangkat 4">x⁴</button>
+            <button type="button" class="sup-btn" onclick="insertSup('⁵')" title="Pangkat 5">x⁵</button>
+            <button type="button" class="sup-btn" onclick="insertSup('½')" title="Setengah">½</button>
+            <button type="button" class="sup-btn" onclick="insertSup('¼')" title="Seperempat">¼</button>
+            <button type="button" class="sup-btn" onclick="insertSup('°')" title="Derajat">°</button>
+          </div>
+        </div>
+      </div>
       <div class="field-row">
         <div class="field"><label>Harga Beli (Modal)</label><input type="number" id="im-buy-price" min="0" placeholder="0"></div>
         <div class="field"><label>Harga Jual (Satuan)</label><input type="number" id="im-sell-price" min="0" placeholder="0"></div>
@@ -1241,8 +1295,10 @@ async function loadCloudData() {
       const cs = data.settings;
       settings = {
         ...cs,
-        scriptUrl: SCRIPT_URL, // selalu dari konstanta, tidak bisa ditimpa cloud
-      }; // logoDataUrl & logoUrl ikut dari cloud
+        scriptUrl:    SCRIPT_URL,       // selalu dari konstanta
+        logoDataUrl:  settings.logoDataUrl  || cs.logoDataUrl  || '', // prefer lokal (base64 besar)
+        stampDataUrl: settings.stampDataUrl || cs.stampDataUrl || '', // prefer lokal
+      };
       localStorage.setItem('invoiceku_settings', JSON.stringify(settings));
       applySettings();
       updateSaveButton();
@@ -1385,6 +1441,84 @@ function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&
 function escJs(s)   { return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
 
 // ══════════════════════════════════════════════
+// DOCUMENT NUMBER GENERATOR
+// ══════════════════════════════════════════════
+/**
+ * Buat datePart ddmmyy dari string YYYY-MM-DD
+ */
+function getDatePart(dateStr) {
+  const d = dateStr ? new Date(dateStr + 'T00:00:00') : new Date();
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yy = String(d.getFullYear()).slice(-2);
+  return dd + mm + yy;
+}
+
+/**
+ * Fallback lokal (hanya jika cloud gagal):
+ * Ambil counter dari localStorage per prefix+tanggal
+ */
+function generateDocNumberLocal(prefix, datePart) {
+  const key = 'invoiceku_counter_' + prefix.toLowerCase() + '_' + datePart;
+  const seq = (parseInt(localStorage.getItem(key) || '0')) + 1;
+  return prefix + '-' + datePart + String(seq).padStart(3, '0');
+}
+
+/**
+ * Simpan counter lokal (untuk backup / offline).
+ */
+function persistDocCounter(noDoc) {
+  const m = noDoc.match(/^([A-Z]+)-(\d{6})(\d{3,})$/);
+  if (!m) return;
+  const key = 'invoiceku_counter_' + m[1].toLowerCase() + '_' + m[2];
+  const cur = parseInt(localStorage.getItem(key) || '0');
+  const seq = parseInt(m[3]);
+  if (seq > cur) localStorage.setItem(key, String(seq));
+}
+
+let _docNumberLoading = false; // debounce flag
+
+/**
+ * Minta nomor berikutnya dari Spreadsheet (atomik via LockService).
+ * Dipanggil saat init, mode switch, reset, dan tanggal berubah.
+ */
+async function refreshDocNumber() {
+  if (_docNumberLoading) return;
+  _docNumberLoading = true;
+
+  const dateStr  = document.getElementById('inv-date').value;
+  const prefix   = mode === 'invoice' ? 'INV' : 'NP';
+  const datePart = getDatePart(dateStr);
+  const field    = document.getElementById('inv-number');
+
+  field.disabled = true;
+  field.value    = prefix + '-' + datePart + '...';
+
+  try {
+    const res  = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'getNextCounter', prefix, datePart })
+    });
+    const data = await res.json();
+    if (data.success && data.noDoc) {
+      field.value = data.noDoc;
+      persistDocCounter(data.noDoc); // sinkron lokal juga
+    } else {
+      // Fallback lokal jika server error
+      field.value = generateDocNumberLocal(prefix, datePart);
+      showToast('⚠️ Gunakan counter lokal (server sibuk)', 'warning');
+    }
+  } catch(e) {
+    // Offline fallback
+    field.value = generateDocNumberLocal(prefix, datePart);
+  } finally {
+    field.disabled = false;
+    _docNumberLoading = false;
+    updatePreview();
+  }
+}
+
+// ══════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════
 (function init() {
@@ -1393,9 +1527,11 @@ function escJs(s)   { return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\
   const due = new Date(); due.setDate(due.getDate()+14);
   document.getElementById('due-date').value = due.toISOString().split('T')[0];
 
-  // Simple invoice numbering
-  const lastNo = localStorage.getItem('invoiceku_lastno') || '0';
-  document.getElementById('inv-number').value = 'INV-' + String(parseInt(lastNo)+1).padStart(3,'0');
+  // Nomor dokumen berbasis tanggal
+  refreshDocNumber();
+
+  // Saat tanggal terbit diubah → nomor ikut diperbarui otomatis
+  document.getElementById('inv-date').addEventListener('change', refreshDocNumber);
 
   if (settings.defaultDiscount) document.getElementById('discount').value = settings.defaultDiscount;
   if (settings.defaultTax) document.getElementById('tax').value = settings.defaultTax;
@@ -1416,6 +1552,107 @@ function escJs(s)   { return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\
     }
   });
 })();
+
+// ══════════════════════════════════════════════
+// SUPERSCRIPT INSERT
+// ══════════════════════════════════════════════
+function insertSup(char) {
+  const el = document.getElementById('im-unit');
+  if (!el) return;
+  const s = el.selectionStart, e = el.selectionEnd;
+  el.value = el.value.slice(0, s) + char + el.value.slice(e);
+  el.setSelectionRange(s + char.length, s + char.length);
+  el.focus();
+}
+
+// ══════════════════════════════════════════════
+// AUTO BACKGROUND REFRESH
+// ══════════════════════════════════════════════
+let _refreshInterval  = null;
+let _lastRefreshEtag  = '';   // simple hash to detect changes
+const REFRESH_INTERVAL = 30000; // 30 detik
+
+function startAutoRefresh() {
+  if (_refreshInterval) return; // already running
+  _refreshInterval = setInterval(backgroundRefresh, REFRESH_INTERVAL);
+}
+
+function stopAutoRefresh() {
+  if (_refreshInterval) { clearInterval(_refreshInterval); _refreshInterval = null; }
+}
+
+async function backgroundRefresh() {
+  const chip     = document.getElementById('refresh-chip');
+  const chipText = document.getElementById('refresh-chip-text');
+  if (chip) { chip.classList.add('show'); chipText.textContent = 'Memperbarui…'; }
+
+  try {
+    const res  = await fetch(SCRIPT_URL + '?t=' + Date.now()); // bust cache
+    const data = await res.json();
+    if (!data.success) { if (chip) chip.classList.remove('show'); return; }
+
+    let changed = false;
+
+    // Customers
+    if (Array.isArray(data.customers)) {
+      const newHash = JSON.stringify(data.customers.map(c=>c.id));
+      if (newHash !== _lastRefreshEtag) { _lastRefreshEtag = newHash; changed = true; }
+      customers = data.customers.map(c => ({
+        id:c.id||String(Date.now()+Math.random()), name:c.name||'',
+        phone:c.phone||'', email:c.email||'', address:c.address||'', note:c.note||''
+      }));
+      localStorage.setItem('invoiceku_customers', JSON.stringify(customers));
+      renderCustomers();
+    }
+
+    // Items
+    if (Array.isArray(data.items)) {
+      catalogItems = data.items.map(c => {
+        let variants=[], wholesalePrices=[];
+        try{variants=JSON.parse(c.variants||'[]');}catch(e){}
+        try{wholesalePrices=JSON.parse(c.wholesalePrices||'[]');}catch(e){}
+        return { id:c.id||String(Date.now()+Math.random()), name:c.name||'',
+          unit:c.unit||'', buyPrice:parseFloat(c.buyPrice)||0,
+          sellPrice:parseFloat(c.sellPrice)||0, desc:c.desc||'',
+          variants:Array.isArray(variants)?variants:[],
+          wholesalePrices:Array.isArray(wholesalePrices)?wholesalePrices:[] };
+      });
+      localStorage.setItem('invoiceku_catalog', JSON.stringify(catalogItems));
+      renderItems();
+    }
+
+    // History (untuk duplicate check)
+    if (Array.isArray(data.data)) {
+      // Merge cloud → lokal (cloud menang untuk data yang sama)
+      const cloudMap = {};
+      data.data.forEach(r => { cloudMap[r['No. Dokumen']] = r; });
+      const localOnly = allHistoryData.filter(r => !cloudMap[r['No. Dokumen']]);
+      allHistoryData = [...Object.values(cloudMap), ...localOnly];
+      localStorage.setItem('invoiceku_local_history', JSON.stringify(allHistoryData));
+    }
+
+    // Payment methods
+    if (Array.isArray(data.paymentMethods)) {
+      paymentMethods = data.paymentMethods.map(p => ({
+        id:p.id||String(Date.now()+Math.random()), name:p.name||'',
+        type:p.type||'Transfer Bank', bank:p.bank||'', account:p.account||'', holder:p.holder||''
+      }));
+      localStorage.setItem('invoiceku_payments', JSON.stringify(paymentMethods));
+      renderPaymentChips();
+      renderPMDBList();
+    }
+
+    if (chip) {
+      chipText.textContent = 'Diperbarui ✓';
+      setTimeout(() => chip.classList.remove('show'), 1800);
+    }
+  } catch(e) {
+    if (chip) chip.classList.remove('show');
+  }
+}
+
+// ── Mulai auto-refresh setelah halaman siap ──
+setTimeout(startAutoRefresh, 5000); // mulai 5 detik setelah init
 
 // ══════════════════════════════════════════════
 // NAV
@@ -1444,8 +1681,7 @@ function switchMode(m) {
     document.getElementById('use-inv-ref-toggle').checked = false;
     document.getElementById('inv-ref-body').style.display = 'none';
     // New INV number
-    const lastNo = localStorage.getItem('invoiceku_lastno') || '0';
-    document.getElementById('inv-number').value = 'INV-' + String(parseInt(lastNo)+1).padStart(3,'0');
+    refreshDocNumber();
   } else {
     document.getElementById('tab-receipt').classList.add('active');
     syncBottomNav('receipt');
@@ -1456,8 +1692,7 @@ function switchMode(m) {
     document.getElementById('paid-date').value = new Date().toISOString().split('T')[0];
     document.getElementById('pay-status').value = 'Lunas';
     // New NP number
-    const lastNota = localStorage.getItem('invoiceku_lastno_nota') || '0';
-    document.getElementById('inv-number').value = 'NP-' + String(parseInt(lastNota)+1).padStart(3,'0');
+    refreshDocNumber();
     // Load local history for invoice ref search
     loadHistoryLocal();
   }
@@ -1551,7 +1786,7 @@ function clearInvRef() {
 // ══════════════════════════════════════════════
 function addItem(name='', qty=1, price=0, variant='') {
   const id = ++itemIdCounter;
-  items.push({ id, name, variant, qty: parseInt(qty)||1, price: parseFloat(price)||0 });
+  items.push({ id, name, variant, qty: parseFloat(qty)||1, price: parseFloat(price)||0 });
   renderItemsList();
   updatePreview();
 }
@@ -1588,7 +1823,7 @@ function updateItem(id, field, val) {
     }
     renderItemsList();
   } else if (field === 'qty') {
-    it.qty = parseInt(val) || 1;
+    it.qty = parseFloat(val) || 0.01;
     // Auto-apply wholesale price
     const cat = catalogItems.find(c => c.name === it.name);
     if (cat) {
@@ -1666,7 +1901,7 @@ function renderItemsList() {
         </div>
         ${variantHtml}
       </div>
-      <input type="number" min="1" value="${item.qty}" onchange="updateItem(${item.id},'qty',this.value)" style="text-align:center;align-self:start;margin-top:4px">
+      <input type="number" min="0.01" step="0.01" value="${item.qty}" onchange="updateItem(${item.id},'qty',this.value)" style="text-align:center;align-self:start;margin-top:4px">
       <div style="align-self:start;margin-top:4px">
         <input type="number" min="0" value="${item.price}" onchange="updateItem(${item.id},'price',this.value)" placeholder="0" style="width:100%">
         ${wsBadge}
@@ -2021,7 +2256,7 @@ function updatePreview() {
   } else {
     tbody.innerHTML = validItems.map(i => {
       const displayName = i.variant ? `${escHtml(i.name)} <span style="font-size:10px;color:#888">(${escHtml(i.variant)})</span>` : escHtml(i.name);
-      return `<tr><td>${displayName}</td><td>${i.qty}</td><td>${formatRp(i.price)}</td><td>${formatRp(i.qty*i.price)}</td></tr>`;
+      return `<tr><td>${displayName}</td><td>${parseFloat(i.qty.toFixed(4))}</td><td>${formatRp(i.price)}</td><td>${formatRp(i.qty*i.price)}</td></tr>`;
     }).join('');
   }
 
@@ -2036,6 +2271,20 @@ function updatePreview() {
   const afterDisc = Math.max(0, sub - discAmt);
   document.getElementById('doc-tax-val').textContent = '+ ' + formatRp(afterDisc * tax/100);
   document.getElementById('doc-grand-total').textContent = formatRp(calcTotal());
+
+  // Stamp LUNAS — hanya untuk nota pelunasan dengan status Lunas
+  const stampEl = document.getElementById('doc-stamp-img');
+  if (stampEl) {
+    const isLunas = isReceipt && document.getElementById('pay-status') &&
+                    document.getElementById('pay-status').value === 'Lunas';
+    const stampSrc = settings.stampDataUrl || settings.stampUrl || '';
+    if (isLunas && stampSrc) {
+      stampEl.src = stampSrc;
+      stampEl.style.display = 'block';
+    } else {
+      stampEl.style.display = 'none';
+    }
+  }
 
   // Payment
   document.getElementById('doc-payment-method').innerHTML = getPaymentHTML();
@@ -2054,45 +2303,53 @@ function openSettings() {
   document.getElementById('s-signer').value   = settings.signer || '';
   document.getElementById('s-role').value     = settings.role || '';
   document.getElementById('s-logo-emoji').value = settings.logoEmoji || '';
-  // scriptUrl di-handle oleh konstanta SCRIPT_URL, tidak perlu diisi user
   document.getElementById('s-default-discount').value = settings.defaultDiscount || '0';
   document.getElementById('s-default-tax').value = settings.defaultTax || '0';
   document.getElementById('s-show-signer').checked = settings.showSigner === true;
 
   const prev = document.getElementById('logo-preview-box');
-  if (settings.logoDataUrl) prev.innerHTML = `<img src="${settings.logoDataUrl}" alt="logo">`;
+  if (settings.logoDataUrl) prev.innerHTML = `<img src="${settings.logoDataUrl}" alt="logo" style="max-width:100%;max-height:100%;object-fit:contain">`;
   else if (settings.logoUrl) prev.innerHTML = `<img src="${settings.logoUrl}" alt="logo" style="max-width:100%;max-height:100%;object-fit:contain">`;
   else prev.innerHTML = settings.logoEmoji || '🎨';
   document.getElementById('s-logo-url').value = settings.logoUrl || '';
+
+  // Stamp preview
+  const stampPrev = document.getElementById('stamp-preview-box');
+  if (settings.stampDataUrl) stampPrev.innerHTML = `<img src="${settings.stampDataUrl}" alt="stamp" style="max-width:100%;max-height:100%;object-fit:contain">`;
+  else if (settings.stampUrl) stampPrev.innerHTML = `<img src="${settings.stampUrl}" alt="stamp" style="max-width:100%;max-height:100%;object-fit:contain">`;
+  else stampPrev.innerHTML = '🔏';
+  document.getElementById('s-stamp-url').value = settings.stampUrl || '';
+
   document.getElementById('settings-modal').classList.add('open');
 }
 function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
 
 function saveSettings() {
   settings = {
-    company: document.getElementById('s-company').value,
-    tagline: document.getElementById('s-tagline').value,
-    phone: document.getElementById('s-phone').value,
-    email: document.getElementById('s-email').value,
-    address: document.getElementById('s-address').value,
-    signer: document.getElementById('s-signer').value,
-    role: document.getElementById('s-role').value,
-    logoEmoji: document.getElementById('s-logo-emoji').value,
-    logoUrl: document.getElementById('s-logo-url').value.trim(),
-    logoDataUrl: settings.logoDataUrl || '',
-    scriptUrl: SCRIPT_URL, // selalu gunakan URL bawaan
+    company:         document.getElementById('s-company').value,
+    tagline:         document.getElementById('s-tagline').value,
+    phone:           document.getElementById('s-phone').value,
+    email:           document.getElementById('s-email').value,
+    address:         document.getElementById('s-address').value,
+    signer:          document.getElementById('s-signer').value,
+    role:            document.getElementById('s-role').value,
+    logoEmoji:       document.getElementById('s-logo-emoji').value,
+    logoUrl:         document.getElementById('s-logo-url').value.trim(),
+    logoDataUrl:     settings.logoDataUrl || '',
+    stampUrl:        document.getElementById('s-stamp-url').value.trim(),
+    stampDataUrl:    settings.stampDataUrl || '',
+    scriptUrl:       SCRIPT_URL,
     defaultDiscount: document.getElementById('s-default-discount').value,
-    defaultTax: document.getElementById('s-default-tax').value,
-    showSigner: document.getElementById('s-show-signer').checked,
+    defaultTax:      document.getElementById('s-default-tax').value,
+    showSigner:      document.getElementById('s-show-signer').checked,
   };
   localStorage.setItem('invoiceku_settings', JSON.stringify(settings));
   applySettings();
   updateSaveButton();
-  // Simpan pengaturan ke cloud agar semua device pakai setting yang sama
   syncCloudSettings(settings);
   closeSettings();
   showToast('Pengaturan disimpan!', 'success');
-  loadCloudData(); // ← Langsung sync cloud setelah URL script diperbarui
+  loadCloudData();
 }
 
 /** Kirim settings ke Spreadsheet (sheet "Settings") */
@@ -2116,6 +2373,25 @@ function clearLogo() {
   settings.logoDataUrl = '';
   document.getElementById('logo-preview-box').innerHTML = document.getElementById('s-logo-emoji').value || '🎨';
   applySettings();
+}
+
+function handleStampUpload(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    settings.stampDataUrl = ev.target.result;
+    document.getElementById('stamp-preview-box').innerHTML = `<img src="${ev.target.result}" alt="stamp" style="max-width:100%;max-height:100%;object-fit:contain">`;
+    updatePreview();
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearStamp() {
+  settings.stampDataUrl = '';
+  settings.stampUrl = '';
+  document.getElementById('stamp-preview-box').innerHTML = '🔏';
+  document.getElementById('s-stamp-url').value = '';
+  updatePreview();
 }
 
 function applySettings() {
@@ -2216,7 +2492,7 @@ function buildPayload() {
 
   const detailItem = validItems.map(i => {
     const varPart = i.variant ? ` [${i.variant}]` : '';
-    return `${i.name}${varPart} (${i.qty}x${formatRp(i.price)})`;
+    return `${i.name}${varPart} (${parseFloat(i.qty.toFixed(4))}x${formatRp(i.price)})`;
   }).join('; ');
   const discAmt    = parseFloat(document.getElementById('discount').value)||0;
   const tax        = parseFloat(document.getElementById('tax').value)||0;
@@ -2271,14 +2547,8 @@ function commitLocal(payload) {
   // Auto-save customer (selalu, tanpa perlu scriptUrl)
   autoSaveCustomer(payload.namaPelanggan, payload.noHp, payload.email, payload.alamat);
 
-  // Increment nomor dokumen
-  const cur   = payload.noDoc;
-  const match = cur.match(/(\d+)$/);
-  if (match) {
-    const nextN = parseInt(match[1]) + 1;
-    if (payload.jenis === 'invoice') localStorage.setItem('invoiceku_lastno', String(nextN));
-    else localStorage.setItem('invoiceku_lastno_nota', String(nextN));
-  }
+  // Simpan counter nomor dokumen berdasarkan tanggal
+  persistDocCounter(payload.noDoc);
 }
 
 // ── State untuk duplicate modal ──
@@ -2414,7 +2684,7 @@ function detectCustomerByEmail() {
 }
 
 function fillCustomerFields(c, showNotif=false) {
-  document.getElementById('client-name').value    = c.name;
+  document.getElementById('client-name').value    = (c.name||'').toUpperCase();
   document.getElementById('client-phone').value   = c.phone||'';
   document.getElementById('client-email').value   = c.email||'';
   document.getElementById('client-address').value = c.address||'';
@@ -3148,16 +3418,6 @@ function resetForm() {
   renderPaymentRows();
   addItem(); addItem();
 
-  // Advance document number
-  if (mode === 'invoice') {
-    const lastNo = localStorage.getItem('invoiceku_lastno') || '0';
-    document.getElementById('inv-number').value = 'INV-' + String(parseInt(lastNo)+1).padStart(3,'0');
-  } else {
-    const lastNota = localStorage.getItem('invoiceku_lastno_nota') || '0';
-    document.getElementById('inv-number').value = 'NP-' + String(parseInt(lastNota)+1).padStart(3,'0');
-    document.getElementById('pay-status').value = 'Lunas';
-  }
-
   // Reset today date
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('inv-date').value = today;
@@ -3166,7 +3426,11 @@ function resetForm() {
     document.getElementById('due-date').value = due.toISOString().split('T')[0];
   } else {
     document.getElementById('paid-date').value = today;
+    document.getElementById('pay-status').value = 'Lunas';
   }
+
+  // Nomor dokumen baru berbasis tanggal hari ini
+  refreshDocNumber();
 
   updatePreview();
 }

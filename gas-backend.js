@@ -26,8 +26,10 @@ const HEADERS = [
 ];
 
 const CUSTOMER_HEADERS = ['id', 'name', 'phone', 'email', 'address', 'note'];
-const ITEMS_HEADERS    = ['id', 'name', 'unit', 'buyPrice', 'sellPrice', 'desc'];
+const ITEMS_HEADERS    = ['id', 'name', 'unit', 'buyPrice', 'sellPrice', 'desc', 'variants', 'wholesalePrices'];
 const SETTINGS_HEADERS = ['key', 'value'];
+const PM_SHEET        = 'PaymentMethods';
+const PM_HEADERS      = ['id', 'name', 'type', 'bank', 'account', 'holder'];
 
 // ────────────────────────────────────────────
 // CORS helper
@@ -36,6 +38,22 @@ function output(obj) {
   return ContentService
     .createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+/**
+ * Konversi nilai sel Spreadsheet ke string yang aman untuk JSON.
+ * Jika nilainya Date object, format sebagai DD/MM/YYYY.
+ * Jika nilainya number/string/boolean, kembalikan apa adanya.
+ */
+function cellToSafe(val) {
+  if (val instanceof Date) {
+    if (isNaN(val.getTime())) return '';
+    const d = val.getDate().toString().padStart(2,'0');
+    const m = (val.getMonth()+1).toString().padStart(2,'0');
+    const y = val.getFullYear();
+    return d + '/' + m + '/' + y;
+  }
+  return val !== undefined ? val : '';
 }
 
 // ────────────────────────────────────────────
@@ -49,7 +67,7 @@ function fetchSheetData(ss, sheetName) {
   const headers = values[0];
   return values.slice(1).map(row => {
     const obj = {};
-    headers.forEach((h, i) => { obj[h] = row[i] !== undefined ? row[i] : ''; });
+    headers.forEach((h, i) => { obj[h] = cellToSafe(row[i]); });
     return obj;
   });
 }
@@ -67,6 +85,20 @@ function ensureSheet(ss, name, headers) {
       .setFontColor('#ffffff')
       .setFontWeight('bold');
     sheet.setFrozenRows(1);
+  } else {
+    // ── Migrasi: tambah kolom baru yang belum ada (tanpa hapus data lama) ──
+    const existingHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const missingHeaders  = headers.filter(h => !existingHeaders.includes(h));
+    if (missingHeaders.length > 0) {
+      const startCol = existingHeaders.length + 1;
+      missingHeaders.forEach((h, i) => {
+        const col = startCol + i;
+        sheet.getRange(1, col).setValue(h)
+          .setBackground('#1e2d42')
+          .setFontColor('#ffffff')
+          .setFontWeight('bold');
+      });
+    }
   }
   return sheet;
 }
@@ -87,7 +119,7 @@ function doGet(e) {
         const headers = values[0];
         invoiceRows = values.slice(1).map(row => {
           const obj = {};
-          headers.forEach((h, i) => { obj[h] = row[i] !== undefined ? row[i] : ''; });
+          headers.forEach((h, i) => { obj[h] = cellToSafe(row[i]); });
           return obj;
         });
       }
@@ -99,17 +131,21 @@ function doGet(e) {
     // ── Items / Katalog data ──
     const itemsData = fetchSheetData(ss, ITEMS_SHEET);
 
+    // ── Payment Methods ──
+    const pmData = fetchSheetData(ss, PM_SHEET);
+
     // ── Settings dari cloud ──
     const settingsRows = fetchSheetData(ss, SETTINGS_SHEET);
     const settingsObj  = {};
     settingsRows.forEach(r => { if (r.key) settingsObj[r.key] = r.value; });
 
     return output({
-      success:   true,
-      data:      invoiceRows,    // backward-compatible: invoice rows
-      customers: customersData,  // customer list
-      items:     itemsData,      // item/catalog list
-      settings:  Object.keys(settingsObj).length > 0 ? settingsObj : null
+      success:        true,
+      data:           invoiceRows,
+      customers:      customersData,
+      items:          itemsData,
+      paymentMethods: pmData,
+      settings:       Object.keys(settingsObj).length > 0 ? settingsObj : null
     });
 
   } catch (err) {
@@ -257,31 +293,33 @@ function doPost(e) {
     if (data.action === 'saveItem') {
       const sheet  = ensureSheet(ss, ITEMS_SHEET, ITEMS_HEADERS);
       const values = sheet.getDataRange().getValues();
+      const headers = values[0]; // pakai header aktual sheet (sudah migrasi)
+
+      // Helper: buat array row berdasarkan header aktual
+      function buildItemRow(d) {
+        return headers.map(h => {
+          if (h === 'id')             return d.id || '';
+          if (h === 'name')           return d.name || '';
+          if (h === 'unit')           return d.unit || '';
+          if (h === 'buyPrice')       return d.buyPrice || 0;
+          if (h === 'sellPrice')      return d.sellPrice || 0;
+          if (h === 'desc')           return d.desc || '';
+          if (h === 'variants')       return JSON.stringify(d.variants || []);
+          if (h === 'wholesalePrices') return JSON.stringify(d.wholesalePrices || []);
+          return '';
+        });
+      }
 
       // Cek apakah id sudah ada → update
       for (let i = 1; i < values.length; i++) {
         if (String(values[i][0]) === String(data.id)) {
-          sheet.getRange(i + 1, 1, 1, ITEMS_HEADERS.length).setValues([[
-            data.id,
-            data.name      || '',
-            data.unit      || '',
-            data.buyPrice  || 0,
-            data.sellPrice || 0,
-            data.desc      || ''
-          ]]);
+          sheet.getRange(i + 1, 1, 1, headers.length).setValues([buildItemRow(data)]);
           return output({ success: true, message: 'Item diperbarui: ' + data.name });
         }
       }
 
       // Belum ada → tambah baris baru
-      sheet.appendRow([
-        data.id,
-        data.name      || '',
-        data.unit      || '',
-        data.buyPrice  || 0,
-        data.sellPrice || 0,
-        data.desc      || ''
-      ]);
+      sheet.appendRow(buildItemRow(data));
       return output({ success: true, message: 'Item ditambahkan: ' + data.name });
     }
 
@@ -302,14 +340,92 @@ function doPost(e) {
     }
 
     // ══════════════════════════════
+    // ── PAYMENT METHOD: SAVE / UPDATE ──
+    // ══════════════════════════════
+    if (data.action === 'savePaymentMethod') {
+      const sheet  = ensureSheet(ss, PM_SHEET, PM_HEADERS);
+      const values = sheet.getDataRange().getValues();
+
+      for (let i = 1; i < values.length; i++) {
+        if (String(values[i][0]) === String(data.id)) {
+          sheet.getRange(i + 1, 1, 1, PM_HEADERS.length).setValues([[
+            data.id, data.name||'', data.type||'', data.bank||'', data.account||'', data.holder||''
+          ]]);
+          return output({ success: true, message: 'Metode diperbarui: ' + data.name });
+        }
+      }
+      sheet.appendRow([data.id, data.name||'', data.type||'', data.bank||'', data.account||'', data.holder||'']);
+      return output({ success: true, message: 'Metode ditambahkan: ' + data.name });
+    }
+
+    // ══════════════════════════════
+    // ── PAYMENT METHOD: DELETE ──
+    // ══════════════════════════════
+    if (data.action === 'deletePaymentMethod') {
+      const sheet = ss.getSheetByName(PM_SHEET);
+      if (!sheet) return output({ success: false, message: 'Sheet PaymentMethods tidak ditemukan' });
+      const values = sheet.getDataRange().getValues();
+      for (let i = 1; i < values.length; i++) {
+        if (String(values[i][0]) === String(data.id)) {
+          sheet.deleteRow(i + 1);
+          return output({ success: true, message: 'Metode dihapus: ' + data.id });
+        }
+      }
+      return output({ success: false, message: 'Metode tidak ditemukan: ' + data.id });
+    }
+
+    // ══════════════════════════════
+    // ── COUNTER: AMBIL NOMOR URUT BERIKUTNYA (ATOMIK) ──
+    // ══════════════════════════════
+    if (data.action === 'getNextCounter') {
+      // Gunakan LockService agar multi-user tidak tabrakan
+      const lock = LockService.getScriptLock();
+      try {
+        lock.waitLock(8000); // tunggu max 8 detik
+      } catch(e) {
+        return output({ success: false, message: 'Server sibuk, coba lagi.' });
+      }
+
+      try {
+        const sheet  = ensureSheet(ss, SETTINGS_SHEET, SETTINGS_HEADERS);
+        const values = sheet.getDataRange().getValues();
+        const prefix   = data.prefix  || 'INV';   // 'INV' atau 'NP'
+        const datePart = data.datePart || '';       // format ddmmyy, misal '200426'
+        const counterKey = 'counter_' + prefix.toLowerCase() + '_' + datePart;
+
+        let found    = false;
+        let nextVal  = 1;
+        for (let i = 1; i < values.length; i++) {
+          if (String(values[i][0]) === counterKey) {
+            const cur = parseInt(values[i][1]) || 0;
+            nextVal   = cur + 1;
+            sheet.getRange(i + 1, 2).setValue(nextVal);
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          sheet.appendRow([counterKey, 1]);
+          nextVal = 1;
+        }
+
+        const noDoc = prefix + '-' + datePart + String(nextVal).padStart(3, '0');
+        return output({ success: true, counter: nextVal, noDoc: noDoc });
+
+      } finally {
+        lock.releaseLock();
+      }
+    }
+
+    // ══════════════════════════════
     // ── SETTINGS: SAVE ──
     // ══════════════════════════════
     if (data.action === 'saveSettings') {
       const sheet = ensureSheet(ss, SETTINGS_SHEET, SETTINGS_HEADERS);
       const values = sheet.getDataRange().getValues();
 
-      // Field yang disimpan di cloud (kecualikan logoDataUrl karena base64 besar)
-      const skipKeys = ['action', 'logoDataUrl'];
+      // Field yang disimpan di cloud (kecualikan base64 besar)
+      const skipKeys = ['action', 'logoDataUrl', 'stampDataUrl'];
       const toSave   = Object.entries(data).filter(([k]) => !skipKeys.includes(k));
 
       toSave.forEach(([key, val]) => {
@@ -355,11 +471,15 @@ function initSheet() {
   ensureSheet(ss, CUSTOMER_SHEET, CUSTOMER_HEADERS);
   Logger.log('Sheet Customers siap.');
 
-  // Sheet Items
+  // Sheet Items (migrasi otomatis tambah kolom baru jika belum ada)
   ensureSheet(ss, ITEMS_SHEET, ITEMS_HEADERS);
   Logger.log('Sheet Items siap.');
 
   // Sheet Settings
   ensureSheet(ss, SETTINGS_SHEET, SETTINGS_HEADERS);
   Logger.log('Sheet Settings siap.');
+
+  // Sheet PaymentMethods
+  ensureSheet(ss, PM_SHEET, PM_HEADERS);
+  Logger.log('Sheet PaymentMethods siap.');
 }
