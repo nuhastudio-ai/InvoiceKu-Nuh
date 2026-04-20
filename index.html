@@ -309,9 +309,9 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 
 /* ── STAMP LUNAS ── */
 .doc-stamp-wrap { position: relative; display: flex; align-items: flex-end; }
-.doc-stamp-img  { position: absolute; right: 175px; bottom: -30px; width: 125px; height: 125px; object-fit: contain; opacity: 0.88; transform: rotate(-10deg); pointer-events: none; z-index: 10; }
+.doc-stamp-img  { position: absolute; right: 120px; bottom: -25px; width: 125px; height: 125px; object-fit: contain; opacity: 0.88; transform: rotate(-10deg); pointer-events: none; z-index: 10; }
 @media print {
-  .doc-stamp-img { right: 175px; bottom: -28px; width: 125px; height: 125px; }
+  .doc-stamp-img { right: 110px; bottom: -18px; width: 125px; height: 125px; }
 }
 
 /* ── AUTO-REFRESH STATUS CHIP ── */
@@ -1476,11 +1476,11 @@ function persistDocCounter(noDoc) {
   if (seq > cur) localStorage.setItem(key, String(seq));
 }
 
-let _docNumberLoading = false; // debounce flag
+let _docNumberLoading = false;
 
 /**
- * Minta nomor berikutnya dari Spreadsheet (atomik via LockService).
- * Dipanggil saat init, mode switch, reset, dan tanggal berubah.
+ * Tampilkan ESTIMASI nomor berikutnya (peek — tidak increment counter).
+ * Hanya untuk display. Nomor final dikonfirmasi saat save.
  */
 async function refreshDocNumber() {
   if (_docNumberLoading) return;
@@ -1491,9 +1491,34 @@ async function refreshDocNumber() {
   const datePart = getDatePart(dateStr);
   const field    = document.getElementById('inv-number');
 
-  field.disabled = true;
-  field.value    = prefix + '-' + datePart + '...';
+  // Tampilkan estimasi lokal dulu (langsung, tidak perlu tunggu)
+  const localEst = generateDocNumberLocal(prefix, datePart);
+  field.value = localEst;
+  updatePreview();
 
+  // Fetch peek dari cloud untuk akurasi lebih baik (non-blocking)
+  try {
+    const res  = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'peekNextCounter', prefix, datePart })
+    });
+    const data = await res.json();
+    if (data.success && data.noDoc) {
+      field.value = data.noDoc;
+      updatePreview();
+    }
+  } catch(e) {
+    // Offline — tetap pakai estimasi lokal
+  } finally {
+    _docNumberLoading = false;
+  }
+}
+
+/**
+ * Ambil nomor FINAL dari cloud saat simpan (atomik — increment + lock).
+ * Returns noDoc string, atau null jika gagal total.
+ */
+async function claimDocNumber(prefix, datePart) {
   try {
     const res  = await fetch(SCRIPT_URL, {
       method: 'POST',
@@ -1501,21 +1526,14 @@ async function refreshDocNumber() {
     });
     const data = await res.json();
     if (data.success && data.noDoc) {
-      field.value = data.noDoc;
-      persistDocCounter(data.noDoc); // sinkron lokal juga
-    } else {
-      // Fallback lokal jika server error
-      field.value = generateDocNumberLocal(prefix, datePart);
-      showToast('⚠️ Gunakan counter lokal (server sibuk)', 'warning');
+      persistDocCounter(data.noDoc);
+      return data.noDoc;
     }
-  } catch(e) {
-    // Offline fallback
-    field.value = generateDocNumberLocal(prefix, datePart);
-  } finally {
-    field.disabled = false;
-    _docNumberLoading = false;
-    updatePreview();
-  }
+  } catch(e) {}
+  // Fallback: pakai lokal jika cloud tidak bisa
+  const local = generateDocNumberLocal(prefix, datePart);
+  persistDocCounter(local);
+  return local;
 }
 
 // ══════════════════════════════════════════════
@@ -2555,22 +2573,19 @@ function commitLocal(payload) {
 let _pendingPayload  = null; // payload yang menunggu keputusan user
 let _pendingMode     = null; // 'save' | 'print'
 
-/** Cek duplikat, lalu lanjut simpan atau cetak */
-async function checkDuplicateThenProceed(mode) {
+async function checkDuplicateThenProceed(execMode) {
   const payload = buildPayload();
   if (!payload) return;
 
   const isDupe = allHistoryData.some(r => r['No. Dokumen'] === payload.noDoc);
   if (isDupe) {
-    // Simpan state, tampilkan modal pilihan
     _pendingPayload = payload;
-    _pendingMode    = mode;
+    _pendingMode    = execMode;
     document.getElementById('dupe-nodoc-label').textContent = payload.noDoc;
     document.getElementById('duplicate-modal').classList.add('open');
     return;
   }
-  // Tidak duplikat — langsung proses
-  await _executeSaveOrPrint(payload, mode, false);
+  await _executeSaveOrPrint(payload, execMode, false);
 }
 
 /** User pilih "Ganti Nomor" → tutup modal, fokus ke field nomor */
@@ -2587,52 +2602,105 @@ function dupeChangeNumber() {
 async function dupeOverwrite() {
   document.getElementById('duplicate-modal').classList.remove('open');
   if (!_pendingPayload || !_pendingMode) return;
-  const payload = { ..._pendingPayload, action: 'update' };
-  const mode    = _pendingMode;
+  const payload  = { ..._pendingPayload, action: 'update' };
+  const execMode = _pendingMode;
   _pendingPayload = null;
   _pendingMode    = null;
-  await _executeSaveOrPrint(payload, mode, true);
+  await _executeSaveOrPrint(payload, execMode, true);
 }
 
 /** Eksekusi inti: simpan ke lokal+cloud, atau cetak+simpan setelah print */
-async function _executeSaveOrPrint(payload, mode, isOverwrite) {
-  if (mode === 'save') {
+async function _executeSaveOrPrint(payload, execMode, isOverwrite) {
+  // ── Klaim nomor dokumen final dari cloud (atomik) ──
+  if (!isOverwrite) {
+    const dateStr  = document.getElementById('inv-date').value;
+    const prefix   = mode === 'invoice' ? 'INV' : 'NP';
+    const datePart = getDatePart(dateStr);
+    const finalNo  = await claimDocNumber(prefix, datePart);
+    payload = { ...payload, noDoc: finalNo };
+    // Update field tampilan
+    document.getElementById('inv-number').value = finalNo;
+    updatePreview();
+  }
+
+  if (execMode === 'save') {
     const btn = document.getElementById('btn-save-db');
-    btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
+    btn.disabled = true; btn.innerHTML = '⏳ Menyimpan...';
     try {
+      // 1. Simpan lokal dulu (instant)
       commitLocal(payload);
+
+      // 2. Kirim ke cloud dan tunggu hasilnya
+      let cloudOk = false;
+      let cloudMsg = '';
       try {
-        const res  = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
-        const data = await res.json();
-        if (!data.success) showToast('Gagal: ' + (data.message||'Error'), 'error');
+        const res  = await fetch(SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify(payload)
+        });
+        const result = await res.json();
+        cloudOk  = result.success === true;
+        cloudMsg = result.message || '';
       } catch(e) {
-        showToast('Koneksi gagal – disimpan lokal saja.', 'warning');
+        cloudOk  = false;
+        cloudMsg = e.message || 'Network error';
       }
-      showToast(isOverwrite ? `✅ Data ${payload.noDoc} ditimpa!` : `✅ Tersimpan! (${payload.noDoc})`, 'success');
+
+      // 3. Notifikasi jelas cloud vs lokal
+      if (cloudOk) {
+        showToast(`☁️ Tersimpan ke Spreadsheet! (${payload.noDoc})`, 'success');
+      } else {
+        showToast(`📴 Tersimpan lokal saja — koneksi gagal. Coba lagi nanti.`, 'warning');
+        console.warn('Cloud save failed:', cloudMsg);
+      }
+
+      // 4. Reset form dan refresh history
       resetForm();
+      if (cloudOk) _refreshHistoryIfOpen();
+
     } finally {
       btn.disabled = false; btn.innerHTML = '💾 Simpan';
     }
 
-  } else { // mode === 'print'
+  } else { // execMode === 'print'
     updatePreview();
 
-    window.onafterprint = async function() {
-      window.onafterprint = null;
+    // Simpan setelah dialog cetak selesai
+    const doSaveAfterPrint = async () => {
       commitLocal(payload);
+      let cloudOk = false;
       try {
-        const res  = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
-        const data = await res.json();
-        if (!data.success) showToast('Remote gagal, tapi data tersimpan lokal.', 'warning');
-      } catch(e) {
-        showToast('Koneksi gagal – disimpan lokal saja.', 'warning');
+        const res    = await fetch(SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify(payload)
+        });
+        const result = await res.json();
+        cloudOk = result.success === true;
+      } catch(e) { cloudOk = false; }
+
+      if (cloudOk) {
+        showToast(`☁️ Tersimpan ke Spreadsheet! (${payload.noDoc})`, 'success');
+        _refreshHistoryIfOpen();
+      } else {
+        showToast(`📴 Tersimpan lokal saja — koneksi gagal.`, 'warning');
       }
-      showToast(isOverwrite ? `✅ Data ${payload.noDoc} ditimpa!` : `✅ Tersimpan! (${payload.noDoc})`, 'success');
       resetForm();
     };
 
-    const companyName = (settings.company || 'InvoiceKu').replace(/[\//:*?"<>|]/g, '');
-    const docNo       = (payload.noDoc || '').replace(/[\//:*?"<>|]/g, '');
+    // Gunakan onafterprint agar tidak block dialog cetak
+    window.onafterprint = function() {
+      window.onafterprint = null;
+      doSaveAfterPrint();
+    };
+    // Fallback: jika onafterprint tidak terpanggil (browser lama)
+    setTimeout(() => {
+      if (window.onafterprint) { window.onafterprint = null; doSaveAfterPrint(); }
+    }, 30000);
+
+    const companyName = (settings.company || 'InvoiceKu').replace(/[\/\\:*?"<>|]/g, '');
+    const docNo       = (payload.noDoc || '').replace(/[\/\\:*?"<>|]/g, '');
     const originalTitle = document.title;
     document.title = companyName + '-' + docNo;
     window.print();
@@ -2640,7 +2708,15 @@ async function _executeSaveOrPrint(payload, mode, isOverwrite) {
   }
 }
 
-async function saveToDatabase(silent = false) {
+/** Refresh history page jika sedang dibuka */
+function _refreshHistoryIfOpen() {
+  const historyPage = document.getElementById('page-history');
+  if (historyPage && historyPage.classList.contains('active')) {
+    loadHistory();
+  }
+}
+
+async function saveToDatabase() {
   await checkDuplicateThenProceed('save');
 }
 
