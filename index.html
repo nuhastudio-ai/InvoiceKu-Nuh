@@ -1841,7 +1841,7 @@ function updateItem(id, field, val) {
     }
     renderItemsList();
   } else if (field === 'qty') {
-    it.qty = parseFloat(val) || 0.01;
+    it.qty = parseFloat(val) || 0.1;
     // Auto-apply wholesale price
     const cat = catalogItems.find(c => c.name === it.name);
     if (cat) {
@@ -1919,7 +1919,7 @@ function renderItemsList() {
         </div>
         ${variantHtml}
       </div>
-      <input type="number" min="0.01" step="0.01" value="${item.qty}" onchange="updateItem(${item.id},'qty',this.value)" style="text-align:center;align-self:start;margin-top:4px">
+      <input type="number" min="0.1" step="0.1" value="${item.qty}" onchange="updateItem(${item.id},'qty',this.value)" style="text-align:center;align-self:start;margin-top:4px">
       <div style="align-self:start;margin-top:4px">
         <input type="number" min="0" value="${item.price}" onchange="updateItem(${item.id},'price',this.value)" placeholder="0" style="width:100%">
         ${wsBadge}
