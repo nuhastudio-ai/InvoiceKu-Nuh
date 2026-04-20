@@ -309,7 +309,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 
 /* ── STAMP LUNAS ── */
 .doc-stamp-wrap { position: relative; display: flex; align-items: flex-end; }
-.doc-stamp-img  { position: absolute; right: 175px; bottom: -30px; width: 133px; height: 133px; object-fit: contain; opacity: 0.88; transform: rotate(-10deg); pointer-events: none; z-index: 10; }
+.doc-stamp-img  { position: absolute; right: 175px; bottom: -26px; width: 133px; height: 133px; object-fit: contain; opacity: 0.88; transform: rotate(-10deg); pointer-events: none; z-index: 10; }
 @media print {
   .doc-stamp-img { right: 175px; bottom: -18px; width: 133px; height: 133px; }
 }
@@ -448,6 +448,50 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 .toast.success { background: var(--success); }
 .toast.error { background: var(--danger); }
 .toast.warning { background: var(--warning); color: var(--navy); }
+
+/* ── SUCCESS POPUP ── */
+.success-popup-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 9999; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity .25s; }
+.success-popup-overlay.show { opacity: 1; pointer-events: all; }
+.success-popup { background: #fff; border-radius: 20px; padding: 36px 32px 28px; width: 340px; max-width: 90vw; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.22); transform: scale(0.85) translateY(20px); transition: transform .3s cubic-bezier(.34,1.56,.64,1); position: relative; overflow: hidden; }
+.success-popup-overlay.show .success-popup { transform: scale(1) translateY(0); }
+.success-popup::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; }
+.success-popup.type-save::before { background: linear-gradient(90deg, #27ae60, #2ecc71); }
+.success-popup.type-print::before { background: linear-gradient(90deg, #2980b9, #3498db); }
+.success-popup.type-share::before { background: linear-gradient(90deg, #8e44ad, #9b59b6); }
+.sp-icon { font-size: 52px; line-height: 1; margin-bottom: 12px; animation: sp-bounce .5s cubic-bezier(.34,1.56,.64,1); }
+@keyframes sp-bounce { from{transform:scale(0)} to{transform:scale(1)} }
+.sp-title { font-size: 18px; font-weight: 800; color: var(--navy); margin-bottom: 6px; }
+.sp-subtitle { font-size: 12px; color: var(--text-muted); line-height: 1.6; margin-bottom: 20px; }
+.sp-nodoc { display: inline-block; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 4px 14px; font-size: 13px; font-weight: 700; color: var(--navy); font-family: monospace; margin-bottom: 18px; }
+.sp-actions { display: flex; gap: 8px; justify-content: center; }
+.sp-btn { padding: 10px 20px; border-radius: 10px; border: none; font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; transition: all .2s; }
+.sp-btn-primary { background: var(--navy); color: #fff; }
+.sp-btn-primary:hover { background: var(--navy-mid); }
+.sp-btn-secondary { background: var(--surface-2); color: var(--text-muted); border: 1.5px solid var(--border); }
+.sp-btn-secondary:hover { border-color: var(--steel); color: var(--text); }
+.sp-confetti { position: absolute; pointer-events: none; }
+
+/* ── PRINT FRAME (hidden, for history reprint) ── */
+#print-frame { display: none; }
+@media print {
+  body.printing-history .topbar,
+  body.printing-history .form-panel,
+  body.printing-history .preview-panel,
+  body.printing-history .preview-topbar,
+  body.printing-history .full-page,
+  body.printing-history .bottom-nav,
+  body.printing-history .toast,
+  body.printing-history .modal-overlay,
+  body.printing-history .success-popup-overlay,
+  body.printing-history .refresh-chip { display: none !important; }
+  body.printing-history .app-container { display: none !important; }
+  body.printing-history #print-frame { display: block !important; width: 100% !important; }
+  body.printing-history #print-frame #invoice-doc { width: 100% !important; max-width: 192mm !important; box-shadow: none !important; border-radius: 0 !important; }
+}
+
+/* ── SHARE BUTTON in history ── */
+.btn-sm-share { background: #f3e8ff; color: #7c3aed; border: 1px solid #ddd6fe; }
+.btn-sm-share:hover { background: #7c3aed; color: #fff; }
 
 /* ── SETTINGS ── */
 .logo-upload-wrap { display: flex; align-items: center; gap: 10px; }
@@ -1113,16 +1157,32 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
       </div>
       <div class="field-row">
         <div class="field"><label id="edit-date2-label">Jatuh Tempo</label><input type="date" id="edit-tgl-jatuh"></div>
-        <div class="field"><label>Nama Pelanggan</label><input type="text" id="edit-client"></div>
+        <div class="field"><label>Nama Pelanggan</label><input type="text" id="edit-client" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
       </div>
       <div class="field-row">
         <div class="field"><label>No. HP</label><input type="text" id="edit-phone"></div>
         <div class="field"><label>Email</label><input type="email" id="edit-email"></div>
       </div>
-      <div class="field-row">
-        <div class="field"><label>Diskon (Rp)</label><input type="number" id="edit-discount" min="0"></div>
-        <div class="field"><label>PPN (%)</label><input type="number" id="edit-tax" min="0" max="100"></div>
+
+      <!-- Item / Layanan Editor -->
+      <div style="border:1.5px solid var(--border);border-radius:8px;overflow:clip">
+        <div style="background:var(--navy);color:#fff;padding:8px 12px;font-size:11px;font-weight:700;letter-spacing:0.5px;display:flex;justify-content:space-between;align-items:center">
+          <span>📦 Item / Layanan</span>
+          <button onclick="addEditItem()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:10px;font-weight:600;padding:3px 9px;border-radius:5px;cursor:pointer">＋ Tambah</button>
+        </div>
+        <div style="padding:10px 12px;background:var(--surface-2)">
+          <div style="display:grid;grid-template-columns:2fr 60px 90px 26px;gap:4px;font-size:9px;font-weight:700;color:var(--text-muted);text-transform:uppercase;padding-bottom:4px">
+            <span>Nama Item</span><span style="text-align:center">Qty</span><span style="text-align:center">Harga</span><span></span>
+          </div>
+          <div id="edit-items-list" style="display:flex;flex-direction:column;gap:3px"></div>
+        </div>
       </div>
+
+      <div class="field-row">
+        <div class="field"><label>Diskon (Rp)</label><input type="number" id="edit-discount" min="0" oninput="recalcEditTotal()"></div>
+        <div class="field"><label>PPN (%)</label><input type="number" id="edit-tax" min="0" max="100" oninput="recalcEditTotal()"></div>
+      </div>
+      <div style="text-align:right;font-size:12px;color:var(--text-muted)">Total: <strong id="edit-total-preview" style="color:var(--navy);font-size:14px">Rp 0</strong></div>
       <!-- Status hanya untuk nota -->
       <div class="field" id="edit-status-row" style="display:none">
         <label>Status Pelunasan</label>
@@ -1184,6 +1244,23 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
   </div>
 </div>
 
+<!-- ══ SUCCESS POPUP ══ -->
+<div class="success-popup-overlay" id="success-popup-overlay" onclick="closeSuccessPopup()">
+  <div class="success-popup" id="success-popup" onclick="event.stopPropagation()">
+    <div class="sp-icon" id="sp-icon">✅</div>
+    <div class="sp-title" id="sp-title">Berhasil Disimpan!</div>
+    <div class="sp-nodoc" id="sp-nodoc"></div>
+    <div class="sp-subtitle" id="sp-subtitle"></div>
+    <div class="sp-actions" id="sp-actions"></div>
+  </div>
+</div>
+
+<!-- ══ PRINT FRAME (hidden, untuk cetak ulang dari riwayat) ══ -->
+<div id="print-frame">
+  <div id="pf-invoice-doc"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script>
 // ══════════════════════════════════════════════
 // STATE
@@ -1617,14 +1694,12 @@ async function backgroundRefresh() {
       renderItems();
     }
 
-    // History (untuk duplicate check)
+    // History (untuk duplicate check - update in-memory saja)
     if (Array.isArray(data.data)) {
-      // Merge cloud → lokal (cloud menang untuk data yang sama)
       const cloudMap = {};
       data.data.forEach(r => { cloudMap[r['No. Dokumen']] = r; });
       const localOnly = allHistoryData.filter(r => !cloudMap[r['No. Dokumen']]);
       allHistoryData = [...Object.values(cloudMap), ...localOnly];
-      localStorage.setItem('invoiceku_local_history', JSON.stringify(allHistoryData));
     }
 
     // Payment methods
@@ -1689,8 +1764,6 @@ function switchMode(m) {
     document.getElementById('pay-status').value = 'Lunas';
     // New NP number
     refreshDocNumber();
-    // Load local history for invoice ref search
-    loadHistoryLocal();
   }
   updatePreview();
 }
@@ -2516,37 +2589,6 @@ function buildPayload() {
 }
 
 /* Simpan ke localStorage + update riwayat + auto-save customer */
-function commitLocal(payload) {
-  const existing = JSON.parse(localStorage.getItem('invoiceku_local_history') || '[]');
-  const idx = existing.findIndex(r => r['No. Dokumen'] === payload.noDoc);
-  const row = {
-    'No. Dokumen': payload.noDoc, 'Jenis': payload.jenis,
-    'Tgl Terbit': payload.tglTerbit, 'Tgl Jatuh Tempo/Bayar': payload.tglJatuhTempo,
-    'Nama Pelanggan': payload.namaPelanggan,
-    'No. HP': payload.noHp, 'Email': payload.email, 'Alamat': payload.alamat,
-    'Detail Item': payload.detailItem, 'Subtotal': payload.subtotal,
-    'Diskon(Rp)': payload.diskon, 'PPN(%)': payload.ppn, 'Total': payload.total,
-    'Metode Bayar': payload.metodeBayar,
-    'Catatan': payload.catatan, 'Status': payload.status,
-    'InvRef': payload.invRef,
-    'Timestamp': new Date().toISOString()
-  };
-  if (idx >= 0) existing[idx] = row; else existing.push(row);
-  localStorage.setItem('invoiceku_local_history', JSON.stringify(existing));
-  allHistoryData = existing;
-
-  // Mark invoice lunas jika nota pelunasan
-  if (payload.jenis === 'receipt' && payload.invRef && payload.status === 'Lunas') {
-    markInvoiceLunas(payload.invRef);
-  }
-
-  // Auto-save customer (selalu, tanpa perlu scriptUrl)
-  autoSaveCustomer(payload.namaPelanggan, payload.noHp, payload.email, payload.alamat);
-
-  // Simpan counter nomor dokumen berdasarkan tanggal
-  persistDocCounter(payload.noDoc);
-}
-
 // ── State untuk duplicate modal ──
 let _pendingPayload  = null; // payload yang menunggu keputusan user
 let _pendingMode     = null; // 'save' | 'print'
@@ -2599,49 +2641,52 @@ async function _fetchGAS(payload) {
   try { return JSON.parse(text); } catch(e) { throw new Error('Response bukan JSON: ' + text.slice(0, 100)); }
 }
 
-/** Eksekusi inti: simpan ke lokal+cloud, atau cetak+simpan setelah print */
+/** Eksekusi inti: simpan ke cloud saja, atau cetak+simpan setelah print */
 async function _executeSaveOrPrint(payload, execMode, isOverwrite) {
-
-  // ── Pause auto-refresh agar tidak bertumpuk dengan request save ──
   stopAutoRefresh();
-
   try {
     if (execMode === 'save') {
       const btn = document.getElementById('btn-save-db');
       btn.disabled = true; btn.innerHTML = '⏳ Menyimpan...';
       try {
-        await _doCloudSave(payload, isOverwrite);
+        const finalNo = await _doCloudSave(payload, isOverwrite);
+        if (finalNo) {
+          showSuccessPopup('save', finalNo);
+          resetForm();
+          _refreshHistoryIfOpen();
+        }
+        // Jika false (gagal), _doCloudSave sudah tampilkan alert — tidak reset form
       } finally {
         btn.disabled = false; btn.innerHTML = '💾 Simpan';
       }
 
-    } else { // execMode === 'print'
+    } else { // print
       updatePreview();
-
       await new Promise(resolve => {
-        const afterPrint = () => { window.removeEventListener('afterprint', afterPrint); resolve(); };
-        window.addEventListener('afterprint', afterPrint, { once: true });
-        // Fallback jika afterprint tidak terpicu (iOS Safari)
-        const fallback = setTimeout(() => { window.removeEventListener('afterprint', afterPrint); resolve(); }, 60000);
-        window.addEventListener('afterprint', () => clearTimeout(fallback), { once: true });
-
-        const companyName  = (settings.company || 'InvoiceKu').replace(/[\/\\:*?"<>|]/g, '');
-        const docNo        = (payload.noDoc || '').replace(/[\/\\:*?"<>|]/g, '');
-        const origTitle    = document.title;
-        document.title     = companyName + '-' + docNo;
+        const onAfter = () => { window.removeEventListener('afterprint', onAfter); resolve(); };
+        window.addEventListener('afterprint', onAfter, { once: true });
+        setTimeout(resolve, 60000); // fallback timeout
+        const companyName = (settings.company || 'InvoiceKu').replace(/[\/\\:*?"<>|]/g, '');
+        const docNo       = (payload.noDoc || '').replace(/[\/\\:*?"<>|]/g, '');
+        const origTitle   = document.title;
+        document.title    = companyName + '-' + docNo;
         window.print();
         window.addEventListener('afterprint', () => { document.title = origTitle; }, { once: true });
       });
 
-      await _doCloudSave(payload, isOverwrite);
+      const finalNo = await _doCloudSave(payload, isOverwrite);
+      if (finalNo) {
+        showSuccessPopup('print', finalNo);
+        resetForm();
+        _refreshHistoryIfOpen();
+      }
     }
   } finally {
-    // ── Resume auto-refresh setelah save selesai ──
     setTimeout(startAutoRefresh, 3000);
   }
 }
 
-/** Inti penyimpanan: lokal + cloud, notif jelas */
+/** Inti penyimpanan: HANYA cloud. Jika gagal, blokir dan alert user. */
 async function _doCloudSave(payload, isOverwrite) {
   const dateStr  = document.getElementById('inv-date').value;
   const prefix   = mode === 'invoice' ? 'INV' : 'NP';
@@ -2649,24 +2694,19 @@ async function _doCloudSave(payload, isOverwrite) {
 
   let cloudOk = false;
   let finalNo  = payload.noDoc;
+  let errMsg   = '';
 
   if (isOverwrite) {
-    // ── Update: pakai noDoc yang sudah ada ──
-    commitLocal({ ...payload, noDoc: finalNo });
     try {
       const result = await _fetchGAS({ ...payload, action: 'update', noDoc: finalNo });
       cloudOk = result.success === true;
-      if (!cloudOk) console.error('GAS update error:', result.message);
-    } catch(e) {
-      console.error('GAS update fetch error:', e);
-    }
+      if (!cloudOk) errMsg = result.message || 'Update gagal';
+    } catch(e) { errMsg = e.message || 'Koneksi gagal'; }
   } else {
-    // ── Simpan baru: 1 atomic request (counter + save sekaligus) ──
     try {
       const result = await _fetchGAS({
         action:        'saveInvoiceAtomic',
-        prefix,
-        datePart,
+        prefix, datePart,
         jenis:         payload.jenis,
         tglTerbit:     payload.tglTerbit,
         tglJatuhTempo: payload.tglJatuhTempo,
@@ -2688,34 +2728,45 @@ async function _doCloudSave(payload, isOverwrite) {
       if (cloudOk && result.noDoc) {
         finalNo = result.noDoc;
         persistDocCounter(finalNo);
-        // Update tampilan nomor dengan nomor final dari cloud
         document.getElementById('inv-number').value = finalNo;
         updatePreview();
       } else {
-        console.error('GAS saveInvoiceAtomic error:', result.message);
+        errMsg = result.message || 'Penyimpanan gagal';
       }
-    } catch(e) {
-      console.error('GAS saveInvoiceAtomic fetch error:', e);
-    }
-
-    // Selalu commit lokal (dengan noDoc final — entah dari cloud atau estimate)
-    commitLocal({ ...payload, noDoc: finalNo });
+    } catch(e) { errMsg = e.message || 'Koneksi gagal'; }
   }
 
-  // ── Notifikasi ──
-  if (cloudOk) {
-    showToast(`☁️ Tersimpan ke Spreadsheet! (${finalNo})`, 'success');
-    _refreshHistoryIfOpen();
-  } else {
-    showToast(`📴 Tersimpan lokal — gagal ke Spreadsheet. Cek konsol untuk detail.`, 'warning');
+  if (!cloudOk) {
+    // Blokir — tampilkan alert, TIDAK simpan lokal
+    alert(`⚠️ Gagal menyimpan ke Spreadsheet.\n\nMohon tunggu, server sedang padat. Coba lagi dalam beberapa saat.\n\nDetail: ${errMsg}`);
+    return false; // signal: gagal
   }
 
-  // Tandai invoice lunas jika nota pelunasan
+  // Update allHistoryData in-memory saja (bukan localStorage)
+  const row = {
+    'No. Dokumen': finalNo, 'Jenis': payload.jenis,
+    'Tgl Terbit': payload.tglTerbit, 'Tgl Jatuh Tempo/Bayar': payload.tglJatuhTempo,
+    'Nama Pelanggan': payload.namaPelanggan,
+    'No. HP': payload.noHp, 'Email': payload.email, 'Alamat': payload.alamat,
+    'Detail Item': payload.detailItem, 'Subtotal': payload.subtotal,
+    'Diskon(Rp)': payload.diskon, 'PPN(%)': payload.ppn, 'Total': payload.total,
+    'Metode Bayar': payload.metodeBayar,
+    'Catatan': payload.catatan, 'Status': payload.status,
+    'InvRef': payload.invRef || '',
+    'Timestamp': new Date().toISOString()
+  };
+  const existIdx = allHistoryData.findIndex(r => r['No. Dokumen'] === finalNo);
+  if (existIdx >= 0) allHistoryData[existIdx] = row; else allHistoryData.push(row);
+
+  // Mark invoice lunas jika nota pelunasan
   if (payload.jenis === 'receipt' && payload.invRef && payload.status === 'Lunas') {
     markInvoiceLunas(payload.invRef);
   }
 
-  resetForm();
+  // Auto-save customer
+  autoSaveCustomer(payload.namaPelanggan, payload.noHp, payload.email, payload.alamat);
+
+  return finalNo; // signal: sukses, kembalikan noDoc final
 }
 
 /** Refresh history page jika sedang dibuka */
@@ -2736,9 +2787,7 @@ async function printAndSave() {
 
 function markInvoiceLunas(invNo) {
   const invIdx = allHistoryData.findIndex(r => r['No. Dokumen'] === invNo && r['Jenis'] === 'invoice');
-  if (invIdx < 0) return;
-  allHistoryData[invIdx]['Status'] = 'Lunas';
-  localStorage.setItem('invoiceku_local_history', JSON.stringify(allHistoryData));
+  if (invIdx >= 0) allHistoryData[invIdx]['Status'] = 'Lunas';
   fetch(SCRIPT_URL, { method:'POST', body: JSON.stringify({ action:'update', noDoc: invNo, status:'Lunas' }) }).catch(()=>{});
 }
 
@@ -2811,32 +2860,27 @@ function autoSaveCustomer(name, phone, email, address) {
 // ══════════════════════════════════════════════
 // HISTORY
 // ══════════════════════════════════════════════
-function loadHistoryLocal() {
-  const local = JSON.parse(localStorage.getItem('invoiceku_local_history') || '[]');
-  if (allHistoryData.length === 0) allHistoryData = local;
-}
-
 async function loadHistory() {
-  const banner = document.getElementById('db-setup-banner');
+  const banner  = document.getElementById('db-setup-banner');
   const loading = document.getElementById('history-loading');
-  const hasUrl = true; // URL sudah tertanam
-  banner.style.display = 'none';
+  const empty   = document.getElementById('history-empty');
+  banner.style.display  = 'none';
+  loading.style.display = 'block';
+  empty.style.display   = 'none';
 
-  if (hasUrl) {
-    loading.style.display = 'block';
-    try {
-      const res = await fetch(SCRIPT_URL);
-      const data = await res.json();
-      if (data.success) {
-        allHistoryData = data.data || [];
-        localStorage.setItem('invoiceku_local_history', JSON.stringify(allHistoryData));
-      }
-    } catch(e) {}
-    loading.style.display = 'none';
+  try {
+    const res  = await fetch(SCRIPT_URL + '?t=' + Date.now());
+    const data = await res.json();
+    if (data.success) {
+      allHistoryData = data.data || [];
+    } else {
+      showToast('Gagal memuat riwayat dari cloud', 'error');
+    }
+  } catch(e) {
+    showToast('Koneksi gagal saat memuat riwayat', 'error');
   }
 
-  const local = JSON.parse(localStorage.getItem('invoiceku_local_history') || '[]');
-  if (allHistoryData.length === 0) allHistoryData = local;
+  loading.style.display = 'none';
   renderHistoryAccordion(allHistoryData);
   updateStats(allHistoryData);
 }
@@ -2890,10 +2934,10 @@ function renderHistoryAccordion(data) {
       badgeHtml = `<span class="badge ${badgeCls}">${status}</span>`;
     }
 
-    // Edit button: no metode bayar for invoice tab
-    const editBtn = `<button class="btn-sm btn-sm-info" onclick="openEdit('${escJs(noDoc)}')" title="Edit">✏️</button>`;
-    const reprintBtn = `<button class="btn-sm btn-sm-warning" onclick="reprintDoc('${escJs(noDoc)}')" title="Cetak Ulang">🖨️</button>`;
-    const delBtn = `<button class="btn-sm btn-sm-danger" onclick="openDelete('${escJs(noDoc)}')" title="Hapus">🗑️</button>`;
+    const editBtn    = `<button class="btn-sm btn-sm-info"   onclick="openEdit('${escJs(noDoc)}')"   title="Edit">✏️</button>`;
+    const reprintBtn = `<button class="btn-sm btn-sm-warning" onclick="printFromHistory('${escJs(noDoc)}')" title="Cetak Ulang">🖨️</button>`;
+    const shareBtn   = `<button class="btn-sm btn-sm-share"   onclick="shareAsPDF('${escJs(noDoc)}')"   title="Bagikan PDF">📤</button>`;
+    const delBtn     = `<button class="btn-sm btn-sm-danger"  onclick="openDelete('${escJs(noDoc)}')"  title="Hapus">🗑️</button>`;
 
     return `<div class="acc-card" id="acc-${noDoc.replace(/[^a-z0-9]/gi,'_')}">
       <div class="acc-header" onclick="toggleAcc(this)">
@@ -2905,7 +2949,7 @@ function renderHistoryAccordion(data) {
           <span class="acc-total">${formatRp(total)}</span>
           <span>${badgeHtml}</span>
           <div class="acc-actions" onclick="event.stopPropagation()">
-            ${editBtn}${reprintBtn}${delBtn}
+            ${editBtn}${reprintBtn}${shareBtn}${delBtn}
           </div>
         </div>
       </div>
@@ -2983,59 +3027,70 @@ function openEdit(noDoc) {
   document.getElementById('edit-discount').value = row['Diskon(Rp)'] || row['Diskon(%)'] || '0';
   document.getElementById('edit-tax').value      = row['PPN(%)'] || '0';
   document.getElementById('edit-notes').value    = row['Catatan'] || '';
-  // Status hanya untuk nota
   document.getElementById('edit-status-row').style.display = isReceipt ? '' : 'none';
   if (isReceipt) document.getElementById('edit-status').value = row['Status'] || 'Lunas';
+  initEditItems(row['Detail Item'] || '');
   document.getElementById('edit-modal').classList.add('open');
 }
 function closeEditModal() { document.getElementById('edit-modal').classList.remove('open'); }
 
 async function saveEdit() {
-  const noDoc = currentEditDoc;
-  const jenis = document.getElementById('edit-jenis').value;
+  const noDoc   = currentEditDoc;
+  const jenis   = document.getElementById('edit-jenis').value;
   const isReceipt = jenis === 'receipt';
-  const discAmt = parseFloat(document.getElementById('edit-discount').value)||0;
-  const tax     = parseFloat(document.getElementById('edit-tax').value)||0;
-  const statusVal = isReceipt ? document.getElementById('edit-status').value : (allHistoryData.find(r=>r['No. Dokumen']===noDoc)||{})['Status'];
+  const discAmt = parseFloat(document.getElementById('edit-discount').value) || 0;
+  const tax     = parseFloat(document.getElementById('edit-tax').value) || 0;
+  const statusVal = isReceipt ? document.getElementById('edit-status').value : (allHistoryData.find(r => r['No. Dokumen'] === noDoc) || {})['Status'];
+
+  // Recalculate from edited items
+  const sub       = _editItems.reduce((s, i) => s + i.qty * i.price, 0);
+  const afterDisc = Math.max(0, sub - discAmt);
+  const newTotal  = afterDisc * (1 + tax / 100);
+  const detailItem = getEditDetailItem();
 
   const payload = {
     action: 'update', noDoc,
-    tglTerbit: document.getElementById('edit-tgl-terbit').value,
+    tglTerbit:    document.getElementById('edit-tgl-terbit').value,
     tglJatuhTempo: document.getElementById('edit-tgl-jatuh').value,
     namaPelanggan: document.getElementById('edit-client').value,
-    noHp: document.getElementById('edit-phone').value,
-    email: document.getElementById('edit-email').value,
-    diskon: discAmt, ppn: tax,
+    noHp:   document.getElementById('edit-phone').value,
+    email:  document.getElementById('edit-email').value,
+    detailItem, subtotal: sub,
+    diskon: discAmt, ppn: tax, total: newTotal,
     catatan: document.getElementById('edit-notes').value,
     status: statusVal,
   };
 
-  // Recalculate total using existing subtotal + new discount/ppn
+  const saveBtn = document.querySelector('#edit-modal .btn-primary');
+  saveBtn.disabled = true; saveBtn.textContent = '⏳ Menyimpan...';
+
+  let ok = false;
+  try {
+    const result = await _fetchGAS(payload);
+    ok = result.success === true;
+    if (!ok) { alert('Gagal menyimpan perubahan: ' + (result.message || 'Error')); return; }
+  } catch(e) {
+    alert('Koneksi gagal. Coba lagi.\n' + e.message);
+    return;
+  } finally {
+    saveBtn.disabled = false; saveBtn.textContent = '💾 Simpan Perubahan';
+  }
+
+  // Update in-memory history
   const idx = allHistoryData.findIndex(r => r['No. Dokumen'] === noDoc);
   if (idx >= 0) {
-    const sub = parseFloat(allHistoryData[idx]['Subtotal'])||0;
-    const afterDisc = Math.max(0, sub - discAmt);
-    const newTotal = afterDisc * (1 + tax/100);
-    payload.total = newTotal;
-
     allHistoryData[idx] = { ...allHistoryData[idx],
       'Tgl Terbit': payload.tglTerbit, 'Tgl Jatuh Tempo/Bayar': payload.tglJatuhTempo,
       'Nama Pelanggan': payload.namaPelanggan, 'No. HP': payload.noHp,
-      'Email': payload.email, 'Diskon(Rp)': discAmt, 'PPN(%)': tax,
-      'Total': newTotal,
+      'Email': payload.email, 'Detail Item': detailItem,
+      'Subtotal': sub, 'Diskon(Rp)': discAmt, 'PPN(%)': tax, 'Total': newTotal,
       'Catatan': payload.catatan, 'Status': statusVal
     };
-    localStorage.setItem('invoiceku_local_history', JSON.stringify(allHistoryData));
-
-    // If marking nota as lunas, also mark related invoice
     if (isReceipt && statusVal === 'Lunas') {
       const invRef = allHistoryData[idx]['InvRef'];
       if (invRef) markInvoiceLunas(invRef);
     }
   }
-
-  try { await fetch(SCRIPT_URL, { method:'POST', body: JSON.stringify(payload) }); } catch(e) {}
-
   renderHistoryAccordion(allHistoryData);
   updateStats(allHistoryData);
   closeEditModal();
@@ -3051,67 +3106,23 @@ function closeDeleteModal() { document.getElementById('delete-modal').classList.
 
 async function confirmDelete() {
   const noDoc = pendingDeleteDoc;
-  // FIX: delete ONLY this specific doc by both noDoc AND the exact match (not related docs)
   const rowToDelete = allHistoryData.find(r => r['No. Dokumen'] === noDoc);
   if (!rowToDelete) { closeDeleteModal(); return; }
   const jenis = rowToDelete['Jenis'];
-  // Remove only the exact matching doc (same noDoc AND same jenis)
+
+  try {
+    const result = await _fetchGAS({ action: 'delete', noDoc, jenis });
+    if (!result.success) { alert('Gagal hapus dari Spreadsheet: ' + (result.message||'Error')); return; }
+  } catch(e) {
+    alert('Koneksi gagal. Coba lagi.\n' + e.message);
+    return;
+  }
+
   allHistoryData = allHistoryData.filter(r => !(r['No. Dokumen'] === noDoc && r['Jenis'] === jenis));
-  localStorage.setItem('invoiceku_local_history', JSON.stringify(allHistoryData));
-
-  try { await fetch(SCRIPT_URL, { method:'POST', body: JSON.stringify({ action:'delete', noDoc, jenis }) }); } catch(e) {}
-
   renderHistoryAccordion(allHistoryData);
   updateStats(allHistoryData);
   closeDeleteModal();
   showToast(`🗑️ ${noDoc} telah dihapus`, 'warning');
-}
-
-function reprintDoc(noDoc) {
-  const row = allHistoryData.find(r => r['No. Dokumen'] === noDoc);
-  if (!row) return;
-  const m = row['Jenis'] === 'receipt' ? 'receipt' : 'invoice';
-  switchMode(m);
-
-  document.getElementById('inv-number').value = row['No. Dokumen'] || '';
-  document.getElementById('inv-date').value   = dateToInput(row['Tgl Terbit']);
-
-  // FIX: set dates properly
-  const dateVal = row['Tgl Jatuh Tempo/Bayar'] || '';
-  if (m === 'invoice') document.getElementById('due-date').value  = dateToInput(dateVal);
-  else                  document.getElementById('paid-date').value = dateToInput(dateVal);
-
-  document.getElementById('client-name').value    = row['Nama Pelanggan'] || '';
-  document.getElementById('client-phone').value   = row['No. HP'] || '';
-  document.getElementById('client-email').value   = row['Email'] || '';
-  document.getElementById('client-address').value = row['Alamat'] || '';
-  // FIX: discount as nominal Rp
-  document.getElementById('discount').value = row['Diskon(Rp)'] || '0';
-  document.getElementById('tax').value      = row['PPN(%)'] || '0';
-  document.getElementById('notes').value    = row['Catatan'] || '';
-  if (m === 'receipt') document.getElementById('pay-status').value = row['Status'] || 'Lunas';
-
-  // Restore payment methods
-  invoicePayments = parsePaymentFromStr(row['Metode Bayar']||'');
-  renderPaymentChips();
-  renderPaymentRows();
-
-  // Restore items — FIX: parseRp strips ALL non-digits
-  items = []; itemIdCounter = 0;
-  const detailStr = row['Detail Item'] || '';
-  if (detailStr) {
-    detailStr.split(';').forEach(seg => {
-      seg = seg.trim();
-      if (!seg) return;
-      const m2 = seg.match(/^(.+)\s+\((\d+)x(.+)\)$/);
-      if (m2) addItem(m2[1].trim(), parseInt(m2[2]), parseRp(m2[3]));
-      else addItem(seg, 1, 0);
-    });
-  }
-  if (items.length === 0) { addItem(); addItem(); }
-
-  updatePreview();
-  showToast(`📋 Data ${noDoc} dimuat. Klik 🖨️ Cetak & Simpan.`, 'success');
 }
 
 // ══════════════════════════════════════════════
@@ -3522,8 +3533,285 @@ function resetForm() {
 }
 
 // ══════════════════════════════════════════════
-// TOAST
+// SUCCESS POPUP
 // ══════════════════════════════════════════════
+function showSuccessPopup(type, noDoc) {
+  const overlay = document.getElementById('success-popup-overlay');
+  const popup   = document.getElementById('success-popup');
+  const configs = {
+    save:  { icon:'☁️', title:'Tersimpan ke Spreadsheet!', sub:'Data invoice berhasil disimpan ke database cloud.', color:'type-save' },
+    print: { icon:'🖨️', title:'Dicetak & Tersimpan!',      sub:'Invoice berhasil dicetak dan disimpan ke database.', color:'type-print' },
+    share: { icon:'📤', title:'PDF Siap Dibagikan!',        sub:'File PDF telah disiapkan dan siap dikirim.', color:'type-share' },
+  };
+  const cfg = configs[type] || configs.save;
+  popup.className = 'success-popup ' + cfg.color;
+  document.getElementById('sp-icon').textContent    = cfg.icon;
+  document.getElementById('sp-title').textContent   = cfg.title;
+  document.getElementById('sp-nodoc').textContent   = noDoc || '';
+  document.getElementById('sp-subtitle').textContent = cfg.sub;
+  document.getElementById('sp-actions').innerHTML   =
+    `<button class="sp-btn sp-btn-primary" onclick="closeSuccessPopup()">Oke, Lanjutkan</button>`;
+  overlay.classList.add('show');
+  // Auto-close setelah 4 detik
+  clearTimeout(overlay._autoClose);
+  overlay._autoClose = setTimeout(closeSuccessPopup, 4000);
+}
+function closeSuccessPopup() {
+  const overlay = document.getElementById('success-popup-overlay');
+  overlay.classList.remove('show');
+  clearTimeout(overlay._autoClose);
+}
+
+// ══════════════════════════════════════════════
+// PRINT FROM HISTORY (cetak langsung tanpa ubah form)
+// ══════════════════════════════════════════════
+function printFromHistory(noDoc) {
+  const row = allHistoryData.find(r => r['No. Dokumen'] === noDoc);
+  if (!row) { showToast('Data tidak ditemukan', 'error'); return; }
+
+  // Render invoice-doc ke print-frame
+  const frame = document.getElementById('pf-invoice-doc');
+  frame.innerHTML = buildInvoiceHTML(row);
+
+  // Print hanya frame
+  document.body.classList.add('printing-history');
+  const companyName = (settings.company || 'InvoiceKu').replace(/[\/\\:*?"<>|]/g, '');
+  const origTitle   = document.title;
+  document.title    = companyName + '-' + noDoc;
+  window.print();
+  window.addEventListener('afterprint', function onAP() {
+    window.removeEventListener('afterprint', onAP);
+    document.body.classList.remove('printing-history');
+    document.title = origTitle;
+    showSuccessPopup('print', noDoc);
+  }, { once: true });
+}
+
+// ══════════════════════════════════════════════
+// SHARE AS PDF
+// ══════════════════════════════════════════════
+async function shareAsPDF(noDoc) {
+  const row = allHistoryData.find(r => r['No. Dokumen'] === noDoc);
+  if (!row) { showToast('Data tidak ditemukan', 'error'); return; }
+
+  showToast('⏳ Membuat PDF...', '');
+
+  const frame = document.getElementById('pf-invoice-doc');
+  frame.innerHTML = buildInvoiceHTML(row);
+  // Briefly show frame for html2pdf to render (hidden via CSS when not printing)
+  frame.style.display = 'block';
+
+  const opt = {
+    margin:      [10, 10, 10, 10],
+    filename:    noDoc + '.pdf',
+    image:       { type: 'jpeg', quality: 0.95 },
+    html2canvas: { scale: 2, useCORS: true, logging: false },
+    jsPDF:       { unit: 'mm', format: [216, 330], orientation: 'portrait' }
+  };
+
+  try {
+    const pdfBlob = await html2pdf().set(opt).from(frame).outputPdf('blob');
+    frame.style.display = 'none';
+
+    const fileName = noDoc + '.pdf';
+    const file     = new File([pdfBlob], fileName, { type: 'application/pdf' });
+
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        title: 'Invoice ' + noDoc,
+        text:  'Terlampir invoice ' + noDoc + ' dari ' + (settings.company || 'InvoiceKu'),
+        files: [file]
+      });
+      showSuccessPopup('share', noDoc);
+    } else {
+      // Fallback: download
+      const url  = URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href     = url;
+      link.download = fileName;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      showSuccessPopup('share', noDoc);
+    }
+  } catch(e) {
+    frame.style.display = 'none';
+    if (e.name !== 'AbortError') showToast('Gagal membuat PDF: ' + e.message, 'error');
+  }
+}
+
+// ══════════════════════════════════════════════
+// BUILD INVOICE HTML (dari data row history)
+// ══════════════════════════════════════════════
+function buildInvoiceHTML(row) {
+  const s        = settings;
+  const isReceipt = row['Jenis'] === 'receipt';
+  const noDoc    = row['No. Dokumen'] || '—';
+  const client   = row['Nama Pelanggan'] || '—';
+  const phone    = row['No. HP'] || '';
+  const email    = row['Email'] || '';
+  const addr     = row['Alamat'] || '';
+  const tgl      = formatDate(row['Tgl Terbit'] || '');
+  const tgl2     = formatDate(row['Tgl Jatuh Tempo/Bayar'] || '');
+  const sub      = parseFloat(row['Subtotal']) || 0;
+  const disc     = parseFloat(row['Diskon(Rp)'] || row['Diskon(%)'] || 0);
+  const tax      = parseFloat(row['PPN(%)']) || 0;
+  const total    = parseFloat(row['Total']) || 0;
+  const status   = row['Status'] || '';
+  const catatan  = row['Catatan'] || '';
+  const isLunas  = status === 'Lunas';
+
+  // Logo
+  let logoHTML = '';
+  if (s.logoDataUrl)     logoHTML = `<img src="${s.logoDataUrl}" alt="logo" style="max-width:52px;max-height:40px;object-fit:contain">`;
+  else if (s.logoUrl)    logoHTML = `<img src="${s.logoUrl}" alt="logo" style="max-width:52px;max-height:40px;object-fit:contain">`;
+  else                   logoHTML = s.logoEmoji || '✦';
+
+  // Items table rows
+  const detailStr = row['Detail Item'] || '';
+  const itemRows  = detailStr.split(';').filter(Boolean).map(seg => {
+    seg = seg.trim();
+    // Parse: "Name [Variant] (qty x Rp price)"
+    const m = seg.match(/^(.+?)\s*\((\d+(?:\.\d+)?)x(.+)\)$/);
+    if (m) {
+      return `<tr><td style="padding:6px 10px;font-size:11px;border-bottom:1px solid #eaeef3">${escHtml(m[1].trim())}</td>
+              <td style="padding:6px 10px;font-size:11px;border-bottom:1px solid #eaeef3;text-align:center">${parseFloat(m[2])}</td>
+              <td style="padding:6px 10px;font-size:11px;border-bottom:1px solid #eaeef3;text-align:center">${escHtml(m[3].trim())}</td>
+              <td style="padding:6px 10px;font-size:11px;border-bottom:1px solid #eaeef3;text-align:right;font-weight:600;color:#1e2d42">${formatRp(parseFloat(m[2]) * parseRp(m[3]))}</td></tr>`;
+    }
+    return `<tr><td colspan="4" style="padding:6px 10px;font-size:11px;border-bottom:1px solid #eaeef3">${escHtml(seg)}</td></tr>`;
+  }).join('');
+
+  // Payment
+  const pmHTML = formatPaymentDisplay(row['Metode Bayar'] || '—');
+
+  // Stamp
+  const stampSrc = s.stampDataUrl || s.stampUrl || '';
+  const stampHTML = (isReceipt && isLunas && stampSrc)
+    ? `<img src="${stampSrc}" style="position:absolute;right:120px;bottom:-10px;width:163px;height:163px;object-fit:contain;opacity:0.88;transform:rotate(-10deg);pointer-events:none;z-index:10" alt="LUNAS">`
+    : '';
+
+  // Signer
+  const signerHTML = s.showSigner === true || s.showSigner === 'true'
+    ? `<div style="text-align:center"><div style="width:100px;height:1px;background:#999;margin:0 auto 5px"></div><p style="font-size:10px;color:#555">${escHtml(s.signer||'Nama Pimpinan')}</p><p style="font-size:10px"><strong>${escHtml(s.role||'Manajer')}</strong></p></div>` : '';
+
+  let footerText = `<strong>${escHtml(s.company||'Perusahaan')}</strong><br>`;
+  if (s.address) footerText += escHtml(s.address) + '<br>';
+  if (s.phone)   footerText += escHtml(s.phone);
+  if (s.email)   footerText += (s.phone?' · ':'') + escHtml(s.email);
+
+  return `<div id="invoice-doc" style="width:680px;max-width:100%;background:#fff;border-radius:4px;overflow:hidden;position:relative;font-family:'Plus Jakarta Sans',sans-serif">
+    <div style="background:#1e2d42;padding:22px 28px 18px;display:flex;justify-content:space-between;align-items:flex-start;position:relative">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:52px;height:40px;display:flex;align-items:center;justify-content:center;overflow:hidden">${logoHTML}</div>
+        <div>
+          <div style="font-family:serif;font-size:18px;color:#fff">${escHtml(s.company||'Nama Perusahaan')}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.55);margin-top:2px">${escHtml(s.tagline||'')}</div>
+        </div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-family:serif;font-size:28px;color:${isReceipt?'#e8a838':'#fff'};line-height:1;letter-spacing:-1px">${isReceipt?'PELUNASAN':'TAGIHAN'}</div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.6);margin-top:4px">No: <strong style="color:#fff">${escHtml(noDoc)}</strong></div>
+      </div>
+    </div>
+    ${isReceipt ? `<div style="display:flex;align-items:center;gap:12px;padding:10px 28px;background:linear-gradient(135deg,#e8f5e9,#f1f8e9);border:2px solid #a5d6a7;margin:14px 28px;border-radius:8px"><span style="font-size:22px">✅</span><div><h3 style="font-size:12px;font-weight:800;color:#27ae60">PEMBAYARAN DITERIMA</h3><p style="font-size:10px;color:#555">Bukti pelunasan yang telah dibayarkan.</p></div></div>` : ''}
+    <div style="padding:14px 28px;display:flex;justify-content:space-between;border-bottom:1px solid #eaeef3;background:#f9fafb">
+      <div>
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.8px;color:#888;font-weight:700">${isReceipt?'Nota untuk':'Ditagihkan kepada'}</div>
+        <div style="font-size:16px;font-weight:800;color:#1e2d42;margin:2px 0;font-family:serif">${escHtml(client)}</div>
+        <div style="font-size:10px;color:#666;line-height:1.5">${[phone,email,addr].filter(Boolean).join(' · ')}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:10px;color:#555;margin-bottom:2px"><strong>Tgl Terbit:</strong> ${tgl}</div>
+        <div style="font-size:10px;color:#555"><strong>${isReceipt?'Tgl Bayar':'Jatuh Tempo'}:</strong> ${tgl2}</div>
+      </div>
+    </div>
+    <div style="padding:16px 28px;position:relative">
+      <table style="width:100%;border-collapse:collapse;margin-bottom:12px">
+        <thead><tr style="background:#1e2d42;color:#fff">
+          <th style="padding:7px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase">Nama Layanan / Barang</th>
+          <th style="padding:7px 10px;text-align:center;font-size:9px;font-weight:700;text-transform:uppercase">Qty</th>
+          <th style="padding:7px 10px;text-align:center;font-size:9px;font-weight:700;text-transform:uppercase">Harga Satuan</th>
+          <th style="padding:7px 10px;text-align:right;font-size:9px;font-weight:700;text-transform:uppercase">Total</th>
+        </tr></thead>
+        <tbody>${itemRows || '<tr><td colspan="4" style="padding:12px;text-align:center;color:#aaa;font-style:italic">—</td></tr>'}</tbody>
+      </table>
+      <div style="display:flex;align-items:flex-end;position:relative">
+        ${stampHTML}
+        <div style="flex:1;display:flex;justify-content:flex-end;margin-bottom:14px">
+          <div style="min-width:220px;border:1px solid #eaeef3;border-radius:8px;overflow:hidden">
+            <div style="display:flex;justify-content:space-between;padding:5px 12px;font-size:10px;color:#555;border-bottom:1px solid #eaeef3"><span>Subtotal</span><span>${formatRp(sub)}</span></div>
+            ${disc>0?`<div style="display:flex;justify-content:space-between;padding:5px 12px;font-size:10px;color:#555;border-bottom:1px solid #eaeef3"><span>Diskon</span><span>− ${formatRp(disc)}</span></div>`:''}
+            ${tax>0?`<div style="display:flex;justify-content:space-between;padding:5px 12px;font-size:10px;color:#555;border-bottom:1px solid #eaeef3"><span>PPN (${tax}%)</span><span>+ ${formatRp(Math.max(0,sub-disc)*tax/100)}</span></div>`:''}
+            <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#1e2d42;color:#fff;font-size:12px;font-weight:800"><span>TOTAL</span><span style="color:#e8a838;font-size:13px">${formatRp(total)}</span></div>
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+        <div style="background:#f9fafb;border:1px solid #eaeef3;border-radius:6px;padding:10px 12px"><h4 style="font-size:9px;text-transform:uppercase;letter-spacing:0.8px;color:#888;font-weight:700;margin-bottom:4px">Metode Pembayaran</h4><p style="font-size:10px;color:#444;line-height:1.6">${pmHTML}</p></div>
+        <div style="background:#f9fafb;border:1px solid #eaeef3;border-radius:6px;padding:10px 12px"><h4 style="font-size:9px;text-transform:uppercase;letter-spacing:0.8px;color:#888;font-weight:700;margin-bottom:4px">Catatan</h4><p style="font-size:10px;color:#444;line-height:1.6">${escHtml(catatan)||'—'}</p></div>
+      </div>
+    </div>
+    <div style="background:#f9fafb;border-top:1px solid #eaeef3;padding:14px 28px;display:flex;justify-content:space-between;align-items:flex-end">
+      <div style="font-size:10px;color:#666;line-height:1.7">${footerText}</div>
+      ${signerHTML}
+    </div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════
+// EDIT ITEMS IN HISTORY MODAL
+// ══════════════════════════════════════════════
+let _editItems = []; // [{id, name, qty, price}]
+let _editItemCounter = 0;
+
+function initEditItems(detailStr) {
+  _editItems = []; _editItemCounter = 0;
+  if (detailStr) {
+    detailStr.split(';').forEach(seg => {
+      seg = seg.trim(); if (!seg) return;
+      const m = seg.match(/^(.+?)\s*\((\d+(?:\.\d+)?)x(.+)\)$/);
+      if (m) _editItems.push({ id: ++_editItemCounter, name: m[1].trim(), qty: parseFloat(m[2])||1, price: parseRp(m[3]) });
+      else   _editItems.push({ id: ++_editItemCounter, name: seg, qty: 1, price: 0 });
+    });
+  }
+  renderEditItems();
+}
+
+function renderEditItems() {
+  const list = document.getElementById('edit-items-list');
+  if (!list) return;
+  if (_editItems.length === 0) { list.innerHTML = '<div style="font-size:11px;color:var(--text-muted);padding:4px 0">Belum ada item</div>'; recalcEditTotal(); return; }
+  list.innerHTML = _editItems.map(it => `
+    <div style="display:grid;grid-template-columns:2fr 60px 90px 26px;gap:4px;align-items:center">
+      <input type="text" value="${escHtml(it.name)}" onchange="updateEditItem(${it.id},'name',this.value)" style="padding:5px 7px;border:1.5px solid var(--border);border-radius:6px;font-family:inherit;font-size:11px;outline:none;width:100%">
+      <input type="number" value="${it.qty}" min="0.1" step="0.1" onchange="updateEditItem(${it.id},'qty',this.value)" style="padding:5px 7px;border:1.5px solid var(--border);border-radius:6px;font-family:inherit;font-size:11px;outline:none;width:100%;text-align:center">
+      <input type="number" value="${it.price}" min="0" onchange="updateEditItem(${it.id},'price',this.value)" style="padding:5px 7px;border:1.5px solid var(--border);border-radius:6px;font-family:inherit;font-size:11px;outline:none;width:100%">
+      <button onclick="delEditItem(${it.id})" style="width:26px;height:26px;border:none;background:#fde8e8;color:var(--danger);border-radius:5px;cursor:pointer;font-size:12px">✕</button>
+    </div>`).join('');
+  recalcEditTotal();
+}
+
+function addEditItem() { _editItems.push({ id: ++_editItemCounter, name: '', qty: 1, price: 0 }); renderEditItems(); }
+function delEditItem(id) { _editItems = _editItems.filter(i => i.id !== id); renderEditItems(); }
+function updateEditItem(id, field, val) {
+  const it = _editItems.find(i => i.id === id); if (!it) return;
+  if (field === 'qty')   it.qty   = parseFloat(val) || 0;
+  else if (field === 'price') it.price = parseFloat(val) || 0;
+  else it.name = val;
+  recalcEditTotal();
+}
+function recalcEditTotal() {
+  const sub      = _editItems.reduce((s, i) => s + i.qty * i.price, 0);
+  const disc     = parseFloat(document.getElementById('edit-discount')?.value) || 0;
+  const tax      = parseFloat(document.getElementById('edit-tax')?.value) || 0;
+  const afterDisc = Math.max(0, sub - disc);
+  const total    = afterDisc * (1 + tax / 100);
+  const el = document.getElementById('edit-total-preview');
+  if (el) el.textContent = formatRp(total);
+}
+function getEditDetailItem() {
+  return _editItems.filter(i => i.name).map(i => `${i.name} (${parseFloat(i.qty.toFixed(4))}x${formatRp(i.price)})`).join('; ');
+}
 function showToast(msg, type='') {
   const t = document.getElementById('toast');
   t.textContent = msg;
