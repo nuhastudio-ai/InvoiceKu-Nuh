@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
 <link rel="icon" id="dynamic-favicon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'><text y='32' font-size='32'>✦</text></svg>">
 <title>InvoiceKu – Manajemen Invoice & Pelunasan</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
@@ -100,10 +100,19 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
   /* Pastikan scroll tidak terblokir oleh child elements */
   .full-page, .form-panel, .preview-scroll { touch-action: pan-y; }
   #items-accordion { touch-action: pan-y; }
+
+  /* Scrollbar vertikal di konten History (mobile) */
+  .history-section {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    max-height: calc(100vh - 160px);
+  }
+  .history-section::-webkit-scrollbar { width: 4px; }
+  .history-section::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 }
 
 /* ── LAYOUT ── */
-.app-container { display: grid; grid-template-columns: 420px 1fr; gap: 0; height: calc(100vh - 56px); }
+.app-container { display: grid; grid-template-columns: 40% 60%; gap: 0; height: calc(100vh - 56px); }
 .app-container.hidden { display: none; }
 .full-page { display: none; height: calc(100vh - 56px); overflow-y: auto; -webkit-overflow-scrolling: touch; background: var(--bg); padding: 24px 28px; flex-direction: column; gap: 20px; }
 .full-page.active { display: flex; }
