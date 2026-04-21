@@ -466,7 +466,6 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 .success-popup::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; }
 .success-popup.type-save::before { background: linear-gradient(90deg, #27ae60, #2ecc71); }
 .success-popup.type-print::before { background: linear-gradient(90deg, #2980b9, #3498db); }
-.success-popup.type-share::before { background: linear-gradient(90deg, #8e44ad, #9b59b6); }
 .sp-icon { font-size: 52px; line-height: 1; margin-bottom: 12px; animation: sp-bounce .5s cubic-bezier(.34,1.56,.64,1); }
 @keyframes sp-bounce { from{transform:scale(0)} to{transform:scale(1)} }
 .sp-title { font-size: 18px; font-weight: 800; color: var(--navy); margin-bottom: 6px; }
@@ -517,8 +516,6 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 .edit-item-nums input { padding: 5px 7px; border: 1.5px solid var(--border); border-radius: 6px; font-family: inherit; font-size: 11px; outline: none; width: 100%; }
 .edit-item-nums input:focus { border-color: var(--steel); }
 .edit-item-total { font-size: 11px; font-weight: 700; color: var(--success); text-align: right; }
-.btn-sm-share { background: #f3e8ff; color: #7c3aed; border: 1px solid #ddd6fe; }
-.btn-sm-share:hover { background: #7c3aed; color: #fff; }
 
 /* ── SETTINGS ── */
 .logo-upload-wrap { display: flex; align-items: center; gap: 10px; }
@@ -2969,7 +2966,6 @@ function renderHistoryAccordion(data) {
     const editBtn    = isInvoiceTab
       ? `<button class="btn-sm btn-sm-info"   onclick="openEdit('${escJs(noDoc)}')"   title="Edit">✏️</button>` : '';
     const reprintBtn = `<button class="btn-sm btn-sm-warning" onclick="printFromHistory('${escJs(noDoc)}')" title="Cetak Ulang">🖨️</button>`;
-    const shareBtn   = `<button class="btn-sm btn-sm-share"   onclick="shareAsPDF('${escJs(noDoc)}')"   title="Bagikan PDF">📤</button>`;
     const delBtn     = `<button class="btn-sm btn-sm-danger"  onclick="openDelete('${escJs(noDoc)}')"  title="Hapus">🗑️</button>`;
 
     return `<div class="acc-card" id="acc-${noDoc.replace(/[^a-z0-9]/gi,'_')}">
@@ -2982,7 +2978,7 @@ function renderHistoryAccordion(data) {
           <span class="acc-total">${formatRp(total)}</span>
           <span>${badgeHtml}</span>
           <div class="acc-actions" onclick="event.stopPropagation()">
-            ${editBtn}${reprintBtn}${shareBtn}${delBtn}
+            ${editBtn}${reprintBtn}${delBtn}
           </div>
         </div>
       </div>
@@ -3582,7 +3578,6 @@ function showSuccessPopup(type, noDoc) {
   const configs = {
     save:  { icon:'☁️', title:'Tersimpan ke Spreadsheet!', sub:'Data invoice berhasil disimpan ke database cloud.', color:'type-save' },
     print: { icon:'🖨️', title:'Dicetak & Tersimpan!',      sub:'Invoice berhasil dicetak dan disimpan ke database.', color:'type-print' },
-    share: { icon:'📤', title:'PDF Siap Dibagikan!',        sub:'File PDF telah disiapkan dan siap dikirim.', color:'type-share' },
   };
   const cfg = configs[type] || configs.save;
   popup.className = 'success-popup ' + cfg.color;
@@ -3645,139 +3640,6 @@ async function printFromHistory(noDoc) {
     document.title = origTitle;
     showSuccessPopup('print', noDoc);
   }, { once: true });
-}
-
-// ══════════════════════════════════════════════
-// SHARE AS PDF  (Print-window — teks bisa dicopy, tampilan identik preview)
-// Alur: buildInvoiceHTML → dokumen HTML lengkap → window baru → auto-print
-// Browser native PDF renderer: warna, font, logo, stamp semua terjaga.
-// ══════════════════════════════════════════════
-
-function shareAsPDF(noDoc) {
-  const row = allHistoryData.find(r => r['No. Dokumen'] === noDoc);
-  if (!row) { showToast('Data tidak ditemukan', 'error'); return; }
-
-  const s         = settings;
-  const invoiceHTML = buildInvoiceHTML(row);
-  const company   = escHtml(s.company || 'Invoice');
-
-  // ── Dokumen HTML lengkap, self-contained, siap cetak ─────────────────
-  const printDoc = `<!DOCTYPE html>
-<html lang="id">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${company} – ${escHtml(noDoc)}</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
-<style>
-  /* ── Reset & Base ── */
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body {
-    font-family: 'Plus Jakarta Sans', Arial, sans-serif;
-    background: #ffffff;
-    color: #1a2333;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-
-  /* ── Wrapper cetak: tengah di layar, full saat print ── */
-  .print-wrapper {
-    width: 680px;
-    margin: 0 auto;
-    padding: 24px 0;
-  }
-
-  /* ── Tombol cetak (hanya di layar) ── */
-  .print-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    margin-bottom: 20px;
-    padding: 12px 16px;
-    background: #1e2d42;
-    border-radius: 10px;
-    color: #fff;
-    font-size: 12px;
-    font-weight: 600;
-  }
-  .print-bar p { color: rgba(255,255,255,0.7); font-size: 11px; }
-  .btn-do-print {
-    padding: 10px 22px;
-    background: #e8a838;
-    color: #1e2d42;
-    border: none;
-    border-radius: 8px;
-    font-family: 'Plus Jakarta Sans', Arial, sans-serif;
-    font-size: 13px;
-    font-weight: 800;
-    cursor: pointer;
-    flex-shrink: 0;
-    letter-spacing: 0.2px;
-  }
-  .btn-do-print:hover { background: #d4952a; }
-
-  /* ── Page print ── */
-  @page {
-    size: 216mm 330mm;   /* Folio F4 */
-    margin: 10mm 8mm;
-  }
-  @media print {
-    html, body { background: #ffffff !important; }
-    .print-bar  { display: none !important; }
-    .print-wrapper { width: 100% !important; padding: 0 !important; margin: 0 !important; }
-    #invoice-doc  { box-shadow: none !important; border-radius: 0 !important; }
-    /* Paksa warna latar tercetak */
-    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-  }
-</style>
-</head>
-<body>
-<div class="print-wrapper">
-  <div class="print-bar">
-    <div>
-      <div>${company} &mdash; ${escHtml(noDoc)}</div>
-      <p>Pilih "Simpan sebagai PDF" di dialog cetak agar teks tetap bisa dicopy.</p>
-    </div>
-    <button class="btn-do-print" onclick="window.print()">🖨️ Cetak / Simpan PDF</button>
-  </div>
-  ${invoiceHTML}
-</div>
-<script>
-  // Auto-print setelah font & gambar siap
-  window.addEventListener('load', function () {
-    const imgs = document.querySelectorAll('img');
-    const imgPromises = Array.from(imgs).map(img =>
-      img.complete ? Promise.resolve() : new Promise(res => { img.onload = res; img.onerror = res; })
-    );
-    // Tunggu font + gambar lalu print otomatis
-    Promise.all([
-      document.fonts ? document.fonts.ready : Promise.resolve(),
-      Promise.all(imgPromises)
-    ]).then(() => {
-      setTimeout(() => window.print(), 300);
-    });
-  });
-<\/script>
-</body>
-</html>`;
-
-  // ── Buka di tab/jendela baru ──────────────────────────────────────────
-  const blob    = new Blob([printDoc], { type: 'text/html;charset=utf-8' });
-  const blobURL = URL.createObjectURL(blob);
-  const win     = window.open(blobURL, '_blank');
-
-  if (!win) {
-    // Popup diblokir browser — fallback: unduh file HTML
-    const link = document.createElement('a');
-    link.href = blobURL; link.download = noDoc + '.html'; link.click();
-    showToast('Popup diblokir. File HTML diunduh — buka lalu cetak ke PDF.', 'warning');
-  } else {
-    setTimeout(() => URL.revokeObjectURL(blobURL), 30000);
-    showSuccessPopup('share', noDoc);
-  }
 }
 
 
