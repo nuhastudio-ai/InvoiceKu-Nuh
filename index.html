@@ -3631,90 +3631,83 @@ async function printFromHistory(noDoc) {
 // ══════════════════════════════════════════════
 // SHARE AS PDF
 // ══════════════════════════════════════════════
-// ══════════════════════════════════════════════
-// BUILD STANDALONE HTML DOCUMENT (untuk share/cetak via browser native)
-// Menghasilkan dokumen HTML lengkap yang teksnya bisa di-copy (rekening, dll)
-// ══════════════════════════════════════════════
-function buildStandaloneInvoiceHTML(row) {
-  const content = buildInvoiceHTML(row);
-  const noDoc   = row['No. Dokumen'] || 'Dokumen';
-  return `<!DOCTYPE html>
-<html lang="id">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>${escHtml(noDoc)}</title>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Plus Jakarta Sans', Arial, sans-serif; background: #eef1f5; display: flex; justify-content: center; padding: 24px 16px; min-height: 100vh; }
-@media print {
-  @page { size: A4; margin: 8mm; }
-  body { background: #fff; padding: 0; display: block; }
-  #invoice-doc { box-shadow: none !important; border-radius: 0 !important; max-width: 100% !important; width: 100% !important; }
-  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-}
-</style>
-<script>
-// Auto-trigger print setelah semua gambar (stamp, logo) selesai dimuat
-window.addEventListener('load', function() {
-  var imgs = document.querySelectorAll('img');
-  var total = imgs.length;
-  if (total === 0) { setTimeout(function(){ window.print(); }, 400); return; }
-  var done = 0;
-  function tryPrint() { if (++done >= total) setTimeout(function(){ window.print(); }, 300); }
-  imgs.forEach(function(img) {
-    if (img.complete && img.naturalWidth > 0) { tryPrint(); }
-    else { img.onload = img.onerror = tryPrint; }
-  });
-  // Fallback: cetak paling lambat 4 detik
-  setTimeout(function(){ window.print(); }, 4000);
-});
-</script>
-</head>
-<body>${content}</body>
-</html>`;
-}
-
-function shareAsPDF(noDoc) {
-  // ══════════════════════════════════════════════════════════════
-  // SHARE: Buka dokumen di tab baru → browser print dialog native
-  // ──────────────────────────────────────────────────────────────
-  // Pendekatan lama: html2pdf + html2canvas → PDF berbasis GAMBAR
-  //   ❌ Teks tidak bisa di-copy (nomor rekening, dll)
-  //   ❌ CSS Grid/Flexbox sering tidak dirender sempurna
-  //   ❌ Stamp terlambat karena race condition canvas
-  //
-  // Pendekatan baru: Blob URL → tab baru → window.print() native
-  //   ✅ PDF berbasis TEKS — semua teks bisa di-copy
-  //   ✅ Tampilan identik dengan preview (engine browser sama)
-  //   ✅ Stamp/logo dimuat oleh browser sendiri sebelum print
-  //   ✅ User bisa simpan PDF / share via tombol native browser
-  // ══════════════════════════════════════════════════════════════
+async function shareAsPDF(noDoc) {
   const row = allHistoryData.find(r => r['No. Dokumen'] === noDoc);
   if (!row) { showToast('Data tidak ditemukan', 'error'); return; }
 
-  showToast('⏳ Membuka dokumen...', '');
+  showToast('⏳ Membuat PDF...', '');
 
-  const html = buildStandaloneInvoiceHTML(row);
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-  const url  = URL.createObjectURL(blob);
+  // FIX: Tampilkan print-frame (parent) agar html2canvas bisa me-render
+  const printFrame = document.getElementById('print-frame');
+  const frame = document.getElementById('pf-invoice-doc');
+  frame.innerHTML = buildInvoiceHTML(row);
 
-  // Buka di tab baru — auto-print akan berjalan setelah gambar load (lihat script di buildStandaloneInvoiceHTML)
-  const opened = window.open(url, '_blank');
+  // FIX: Parent harus visible + z-index positif agar html2canvas dapat capture
+  printFrame.style.cssText = 'display:block;position:fixed;left:-9999px;top:0;width:680px;background:#fff;z-index:9999;overflow:visible';
+  frame.style.cssText = 'width:680px;background:#fff';
 
-  // Revoke blob URL setelah 60 detik (cukup waktu untuk render + print)
-  setTimeout(() => URL.revokeObjectURL(url), 60000);
+  // FIX: Tunggu semua gambar (stamp, logo) benar-benar selesai dimuat
+  // img.complete saja tidak cukup — bisa true untuk gambar gagal/broken (naturalWidth=0)
+  // Seragamkan dengan logika printFromHistory yang sudah terbukti benar
+  await new Promise(resolve => {
+    const imgs = frame.querySelectorAll('img');
+    if (imgs.length === 0) { resolve(); return; }
+    let count = imgs.length;
+    const done = () => { if (--count <= 0) resolve(); };
+    imgs.forEach(img => {
+      if (img.complete && img.naturalWidth > 0) {
+        done(); // sudah load + valid
+      } else {
+        img.onload  = done;
+        img.onerror = done; // tetap lanjut meski gambar gagal, jangan hang
+      }
+    });
+    // Fallback: jangan hang selamanya jika ada gambar yang tidak memicu event
+    setTimeout(resolve, 4000);
+  });
 
-  if (!opened) {
-    // Popup diblokir: fallback download file HTML (bisa dibuka & dicetak manual)
-    showToast('⚠️ Popup diblokir. Mengunduh file dokumen...', 'warning');
-    const a = document.createElement('a');
-    a.href = url; a.download = noDoc + '.html'; a.click();
-    return;
+  // FIX: Beri 2 frame tambahan agar browser selesai paint gambar ke canvas
+  // Tanpa ini html2canvas menangkap frame sebelum stamp ter-render sempurna
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  const opt = {
+    margin:      [10, 10, 10, 10],
+    filename:    noDoc + '.pdf',
+    image:       { type: 'png', quality: 1 },
+    html2canvas: { scale: 2, useCORS: true, allowTaint: true, logging: false, backgroundColor: '#ffffff' },
+    jsPDF:       { unit: 'mm', format: [216, 330], orientation: 'portrait' }
+  };
+
+  try {
+    const pdfBlob = await html2pdf().set(opt).from(frame).outputPdf('blob');
+    // FIX: Restore parent print-frame ke hidden
+    printFrame.style.cssText = 'display:none';
+    frame.style.cssText = '';
+
+    const fileName = noDoc + '.pdf';
+    const file     = new File([pdfBlob], fileName, { type: 'application/pdf' });
+
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        title: 'Invoice ' + noDoc,
+        text:  'Terlampir invoice ' + noDoc + ' dari ' + (settings.company || 'InvoiceKu'),
+        files: [file]
+      });
+      showSuccessPopup('share', noDoc);
+    } else {
+      // Fallback: download
+      const url  = URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = url; link.download = fileName; link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      showSuccessPopup('share', noDoc);
+    }
+  } catch(e) {
+    // FIX: Restore parent print-frame ke hidden juga saat error
+    printFrame.style.cssText = 'display:none';
+    frame.style.cssText = '';
+    if (e.name !== 'AbortError') showToast('Gagal membuat PDF: ' + e.message, 'error');
   }
-
-  showSuccessPopup('share', noDoc);
 }
 
 // ══════════════════════════════════════════════
@@ -3751,16 +3744,7 @@ function buildInvoiceHTML(row) {
     // Parse: "Name [Variant] (qty x Rp price)"
     const m = seg.match(/^(.+?)\s*\((\d+(?:\.\d+)?)x(.+)\)$/);
     if (m) {
-      // FIX: Pisahkan varian dari nama — format simpan: "Nama [Varian]"
-      // Sebelumnya [Varian] ikut tampil mentah di PDF/cetak
-      const rawName = m[1].trim();
-      const varMatch = rawName.match(/^(.+?)\s*\[([^\]]+)\]$/);
-      const itemName    = varMatch ? varMatch[1].trim() : rawName;
-      const itemVariant = varMatch ? varMatch[2].trim() : '';
-      const nameCell = itemVariant
-        ? `${escHtml(itemName)}<br><span style="font-size:9px;color:#888;font-style:italic">${escHtml(itemVariant)}</span>`
-        : escHtml(itemName);
-      return `<tr><td style="padding:6px 10px;font-size:11px;border-bottom:1px solid #eaeef3">${nameCell}</td>
+      return `<tr><td style="padding:6px 10px;font-size:11px;border-bottom:1px solid #eaeef3">${escHtml(m[1].trim())}</td>
               <td style="padding:6px 10px;font-size:11px;border-bottom:1px solid #eaeef3;text-align:center">${parseFloat(m[2])}</td>
               <td style="padding:6px 10px;font-size:11px;border-bottom:1px solid #eaeef3;text-align:center">${escHtml(m[3].trim())}</td>
               <td style="padding:6px 10px;font-size:11px;border-bottom:1px solid #eaeef3;text-align:right;font-weight:600;color:#1e2d42">${formatRp(parseFloat(m[2]) * parseRp(m[3]))}</td></tr>`;
