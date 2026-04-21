@@ -1763,7 +1763,8 @@ function switchMode(m) {
     // Reset toggle
     document.getElementById('use-inv-ref-toggle').checked = false;
     document.getElementById('inv-ref-body').style.display = 'none';
-    // New INV number
+    // FIX: Reset flag agar refreshDocNumber tidak terblokir saat pindah menu
+    _docNumberLoading = false;
     refreshDocNumber();
   } else {
     document.getElementById('tab-receipt').classList.add('active');
@@ -1774,7 +1775,8 @@ function switchMode(m) {
     document.getElementById('inv-ref-wrap').style.display = '';
     document.getElementById('paid-date').value = new Date().toISOString().split('T')[0];
     document.getElementById('pay-status').value = 'Lunas';
-    // New NP number
+    // FIX: Reset flag agar refreshDocNumber tidak terblokir saat pindah menu
+    _docNumberLoading = false;
     refreshDocNumber();
   }
   updatePreview();
@@ -1832,18 +1834,23 @@ function selectInvoiceRef(noDoc) {
   document.getElementById('client-email').value = inv['Email'] || '';
   document.getElementById('client-address').value = inv['Alamat'] || '';
 
-  // Restore items - FIX: use parseRp properly
+  // Restore items
+  // FIX: Regex diperbaiki agar mendukung qty desimal (misal 1.5, 2.75)
+  // Regex lama \((\d+)x hanya cocok integer — qty desimal gagal parse → harga jadi 0
   items = []; itemIdCounter = 0;
   const detailStr = inv['Detail Item'] || '';
   if (detailStr) {
     detailStr.split(';').forEach(seg => {
       seg = seg.trim();
       if (!seg) return;
-      const m = seg.match(/^(.+)\s+\((\d+)x(.+)\)$/);
+      const m = seg.match(/^(.+?)\s*\((\d+(?:\.\d+)?)x(.+)\)$/);
       if (m) {
-        addItem(m[1].trim(), parseInt(m[2]), parseRp(m[3]));
+        // FIX: parseFloat agar qty desimal (1.5, 2.75) tidak terpotong menjadi integer
+        addItem(m[1].trim(), parseFloat(m[2]), parseRp(m[3]));
       } else {
+        // Fallback: hanya nama, tanpa qty/harga — tampilkan toast peringatan
         addItem(seg, 1, 0);
+        showToast('⚠️ Item "' + seg.slice(0, 30) + '" tidak terbaca lengkap, periksa kembali harga!', 'warning');
       }
     });
   }
