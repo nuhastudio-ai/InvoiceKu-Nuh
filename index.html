@@ -485,8 +485,22 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
   body.printing-history .success-popup-overlay,
   body.printing-history .refresh-chip { display: none !important; }
   body.printing-history .app-container { display: none !important; }
-  body.printing-history #print-frame { display: block !important; width: 100% !important; }
-  body.printing-history #print-frame #invoice-doc { width: 100% !important; max-width: 192mm !important; box-shadow: none !important; border-radius: 0 !important; }
+  body.printing-history #print-frame {
+    display: block !important;
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    width: 100% !important;
+    z-index: auto !important;
+    background: white !important;
+  }
+  body.printing-history #print-frame #invoice-doc {
+    width: 100% !important;
+    max-width: 192mm !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+  }
 }
 
 /* ── EDIT ITEM ROW ── */
@@ -1763,8 +1777,7 @@ function switchMode(m) {
     // Reset toggle
     document.getElementById('use-inv-ref-toggle').checked = false;
     document.getElementById('inv-ref-body').style.display = 'none';
-    // FIX: Reset flag agar refreshDocNumber tidak terblokir saat pindah menu
-    _docNumberLoading = false;
+    // New INV number
     refreshDocNumber();
   } else {
     document.getElementById('tab-receipt').classList.add('active');
@@ -1775,8 +1788,7 @@ function switchMode(m) {
     document.getElementById('inv-ref-wrap').style.display = '';
     document.getElementById('paid-date').value = new Date().toISOString().split('T')[0];
     document.getElementById('pay-status').value = 'Lunas';
-    // FIX: Reset flag agar refreshDocNumber tidak terblokir saat pindah menu
-    _docNumberLoading = false;
+    // New NP number
     refreshDocNumber();
   }
   updatePreview();
@@ -1834,23 +1846,18 @@ function selectInvoiceRef(noDoc) {
   document.getElementById('client-email').value = inv['Email'] || '';
   document.getElementById('client-address').value = inv['Alamat'] || '';
 
-  // Restore items
-  // FIX: Regex diperbaiki agar mendukung qty desimal (misal 1.5, 2.75)
-  // Regex lama \((\d+)x hanya cocok integer — qty desimal gagal parse → harga jadi 0
+  // Restore items - FIX: use parseRp properly
   items = []; itemIdCounter = 0;
   const detailStr = inv['Detail Item'] || '';
   if (detailStr) {
     detailStr.split(';').forEach(seg => {
       seg = seg.trim();
       if (!seg) return;
-      const m = seg.match(/^(.+?)\s*\((\d+(?:\.\d+)?)x(.+)\)$/);
+      const m = seg.match(/^(.+)\s+\((\d+)x(.+)\)$/);
       if (m) {
-        // FIX: parseFloat agar qty desimal (1.5, 2.75) tidak terpotong menjadi integer
-        addItem(m[1].trim(), parseFloat(m[2]), parseRp(m[3]));
+        addItem(m[1].trim(), parseInt(m[2]), parseRp(m[3]));
       } else {
-        // Fallback: hanya nama, tanpa qty/harga — tampilkan toast peringatan
         addItem(seg, 1, 0);
-        showToast('⚠️ Item "' + seg.slice(0, 30) + '" tidak terbaca lengkap, periksa kembali harga!', 'warning');
       }
     });
   }
@@ -2616,13 +2623,18 @@ async function checkDuplicateThenProceed(execMode) {
   const payload = buildPayload();
   if (!payload) return;
 
-  const isDupe = allHistoryData.some(r => r['No. Dokumen'] === payload.noDoc);
-  if (isDupe) {
-    _pendingPayload = payload;
-    _pendingMode    = execMode;
-    document.getElementById('dupe-nodoc-label').textContent = payload.noDoc;
-    document.getElementById('duplicate-modal').classList.add('open');
-    return;
+  // Untuk nomor auto-format (INV-ddmmyyNNN), server akan assign nomor unik via atomic counter.
+  // Duplicate check hanya untuk nomor manual yang diketik user.
+  const isAutoFormat = /^(INV|NP)-\d{6}\d{3,}$/.test(payload.noDoc);
+  if (!isAutoFormat) {
+    const isDupe = allHistoryData.some(r => r['No. Dokumen'] === payload.noDoc);
+    if (isDupe) {
+      _pendingPayload = payload;
+      _pendingMode    = execMode;
+      document.getElementById('dupe-nodoc-label').textContent = payload.noDoc;
+      document.getElementById('duplicate-modal').classList.add('open');
+      return;
+    }
   }
   await _executeSaveOrPrint(payload, execMode, false);
 }
@@ -3547,8 +3559,6 @@ function resetForm() {
   }
 
   // Nomor dokumen baru berbasis tanggal hari ini
-  // FIX: Reset flag agar refreshDocNumber tidak terblokir oleh request sebelumnya
-  _docNumberLoading = false;
   refreshDocNumber();
 
   updatePreview();
@@ -3591,30 +3601,24 @@ async function printFromHistory(noDoc) {
   const row = allHistoryData.find(r => r['No. Dokumen'] === noDoc);
   if (!row) { showToast('Data tidak ditemukan', 'error'); return; }
 
-  // Render invoice-doc ke print-frame
   const frame = document.getElementById('pf-invoice-doc');
   frame.innerHTML = buildInvoiceHTML(row);
+  // Position off-screen so images load but not visible
+  frame.style.cssText = 'display:block;position:fixed;left:-9999px;top:0;width:680px;z-index:-1;background:#fff';
 
-  // FIX: Tunggu semua gambar (stamp, logo) selesai dimuat sebelum print
-  // Tanpa ini, stamp hanya tampil sebagai kotak kosong saat dicetak
+  // Wait for images (stamp/logo) to load before printing
   await new Promise(resolve => {
     const imgs = frame.querySelectorAll('img');
     if (imgs.length === 0) { resolve(); return; }
-    let count = imgs.length;
-    const done = () => { if (--count <= 0) resolve(); };
+    let loaded = 0;
     imgs.forEach(img => {
-      if (img.complete && img.naturalWidth > 0) {
-        done();
-      } else {
-        img.onload  = done;
-        img.onerror = done; // tetap lanjut meski gambar gagal load
-      }
+      if (img.complete && img.naturalWidth > 0) { if (++loaded >= imgs.length) resolve(); }
+      else { img.onload = img.onerror = () => { if (++loaded >= imgs.length) resolve(); }; }
     });
-    // Fallback timeout 3 detik agar tidak hang selamanya
-    setTimeout(resolve, 3000);
+    setTimeout(resolve, 3000); // fallback: print after 3s regardless
   });
 
-  // Print hanya frame
+  frame.style.cssText = 'display:block'; // restore for printing
   document.body.classList.add('printing-history');
   const companyName = (settings.company || 'InvoiceKu').replace(/[\/\\:*?"<>|]/g, '');
   const origTitle   = document.title;
@@ -3623,6 +3627,7 @@ async function printFromHistory(noDoc) {
   window.addEventListener('afterprint', function onAP() {
     window.removeEventListener('afterprint', onAP);
     document.body.classList.remove('printing-history');
+    frame.style.cssText = 'display:none';
     document.title = origTitle;
     showSuccessPopup('print', noDoc);
   }, { once: true });
@@ -3637,38 +3642,23 @@ async function shareAsPDF(noDoc) {
 
   showToast('⏳ Membuat PDF...', '');
 
-  // FIX: Tampilkan print-frame (parent) agar html2canvas bisa me-render
-  const printFrame = document.getElementById('print-frame');
   const frame = document.getElementById('pf-invoice-doc');
   frame.innerHTML = buildInvoiceHTML(row);
+  // Make visible temporarily so html2pdf can measure/render
+  frame.style.cssText = 'display:block;position:fixed;left:-9999px;top:0;width:680px;background:#fff;z-index:-1';
 
-  // FIX: Parent harus visible + z-index positif agar html2canvas dapat capture
-  printFrame.style.cssText = 'display:block;position:fixed;left:-9999px;top:0;width:680px;background:#fff;z-index:9999;overflow:visible';
-  frame.style.cssText = 'width:680px;background:#fff';
-
-  // FIX: Tunggu semua gambar (stamp, logo) benar-benar selesai dimuat
-  // img.complete saja tidak cukup — bisa true untuk gambar gagal/broken (naturalWidth=0)
-  // Seragamkan dengan logika printFromHistory yang sudah terbukti benar
+  // Wait for images (stamp/logo) to load
   await new Promise(resolve => {
     const imgs = frame.querySelectorAll('img');
     if (imgs.length === 0) { resolve(); return; }
-    let count = imgs.length;
-    const done = () => { if (--count <= 0) resolve(); };
+    let loaded = 0;
     imgs.forEach(img => {
-      if (img.complete && img.naturalWidth > 0) {
-        done(); // sudah load + valid
-      } else {
-        img.onload  = done;
-        img.onerror = done; // tetap lanjut meski gambar gagal, jangan hang
+      if (img.complete) { if (++loaded >= imgs.length) resolve(); }
+      else {
+        img.onload  = img.onerror = () => { if (++loaded >= imgs.length) resolve(); };
       }
     });
-    // Fallback: jangan hang selamanya jika ada gambar yang tidak memicu event
-    setTimeout(resolve, 4000);
   });
-
-  // FIX: Beri 2 frame tambahan agar browser selesai paint gambar ke canvas
-  // Tanpa ini html2canvas menangkap frame sebelum stamp ter-render sempurna
-  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
   const opt = {
     margin:      [10, 10, 10, 10],
@@ -3680,9 +3670,7 @@ async function shareAsPDF(noDoc) {
 
   try {
     const pdfBlob = await html2pdf().set(opt).from(frame).outputPdf('blob');
-    // FIX: Restore parent print-frame ke hidden
-    printFrame.style.cssText = 'display:none';
-    frame.style.cssText = '';
+    frame.style.cssText = 'display:none';
 
     const fileName = noDoc + '.pdf';
     const file     = new File([pdfBlob], fileName, { type: 'application/pdf' });
@@ -3703,9 +3691,7 @@ async function shareAsPDF(noDoc) {
       showSuccessPopup('share', noDoc);
     }
   } catch(e) {
-    // FIX: Restore parent print-frame ke hidden juga saat error
-    printFrame.style.cssText = 'display:none';
-    frame.style.cssText = '';
+    frame.style.cssText = 'display:none';
     if (e.name !== 'AbortError') showToast('Gagal membuat PDF: ' + e.message, 'error');
   }
 }
@@ -3839,9 +3825,20 @@ function initEditItems(detailStr) {
   if (detailStr) {
     detailStr.split(';').forEach(seg => {
       seg = seg.trim(); if (!seg) return;
+      // Format: "Name [Variant] (qty x Rp price)" or "Name (qty x Rp price)"
       const m = seg.match(/^(.+?)\s*\((\d+(?:\.\d+)?)x(.+)\)$/);
-      if (m) _editItems.push({ id: ++_editItemCounter, name: m[1].trim(), qty: parseFloat(m[2])||1, price: parseRp(m[3]) });
-      else   _editItems.push({ id: ++_editItemCounter, name: seg, qty: 1, price: 0 });
+      if (m) {
+        const fullName = m[1].trim();
+        // Check if name contains [Variant] bracket
+        const vMatch = fullName.match(/^(.+?)\s*\[(.+)\]$/);
+        if (vMatch) {
+          _editItems.push({ id: ++_editItemCounter, name: vMatch[1].trim(), variant: vMatch[2].trim(), qty: parseFloat(m[2])||1, price: parseRp(m[3]) });
+        } else {
+          _editItems.push({ id: ++_editItemCounter, name: fullName, variant: '', qty: parseFloat(m[2])||1, price: parseRp(m[3]) });
+        }
+      } else {
+        _editItems.push({ id: ++_editItemCounter, name: seg, variant: '', qty: 1, price: 0 });
+      }
     });
   }
   renderEditItems();
