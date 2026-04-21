@@ -141,6 +141,10 @@ git commit -m "Update fitur baru"
 git push
 ```
 
+git add index.html
+git commit -m "Menambahkan fitur baru dari PC berbeda"
+git push -u origin main
+
 ---
 
 ## ⚙️ Pengaturan Tambahan Google Apps Script
