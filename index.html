@@ -1284,7 +1284,8 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
   <div id="pf-invoice-doc"></div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
 <script>
 // ══════════════════════════════════════════════
 // STATE
@@ -3647,60 +3648,288 @@ async function printFromHistory(noDoc) {
 }
 
 // ══════════════════════════════════════════════
-// SHARE AS PDF
+// SHARE AS PDF  (pdfmake — tanpa screenshot/canvas)
+// Alur: Generate PDF Blob (pdfmake) → File Object → Web Share API
 // ══════════════════════════════════════════════
+
+/** Ubah string metode bayar (JSON atau plain) ke teks bersih untuk PDF */
+function _pmText(str) {
+  try {
+    const arr = JSON.parse(str);
+    if (Array.isArray(arr)) return arr.map(p => {
+      const parts = [p.type || p.name || ''];
+      if (p.bank)    parts.push(p.bank);
+      if (p.account) parts.push('No: ' + p.account);
+      if (p.holder)  parts.push('a.n. ' + p.holder);
+      return parts.join('\n');
+    }).join('\n—\n');
+  } catch(e) {}
+  return str || '—';
+}
+
 async function shareAsPDF(noDoc) {
   const row = allHistoryData.find(r => r['No. Dokumen'] === noDoc);
   if (!row) { showToast('Data tidak ditemukan', 'error'); return; }
 
   showToast('⏳ Membuat PDF...', '');
 
-  // FIX: Tampilkan print-frame (parent) agar html2canvas bisa me-render
-  const printFrame = document.getElementById('print-frame');
-  const frame = document.getElementById('pf-invoice-doc');
-  frame.innerHTML = buildInvoiceHTML(row);
+  const s          = settings;
+  const isReceipt  = row['Jenis'] === 'receipt';
+  const client     = row['Nama Pelanggan'] || '—';
+  const phone      = row['No. HP'] || '';
+  const email      = row['Email'] || '';
+  const addr       = row['Alamat'] || '';
+  const tgl        = formatDate(row['Tgl Terbit'] || '');
+  const tgl2       = formatDate(row['Tgl Jatuh Tempo/Bayar'] || '');
+  const sub        = parseFloat(row['Subtotal']) || 0;
+  const disc       = parseFloat(row['Diskon(Rp)'] || row['Diskon(%)'] || 0);
+  const tax        = parseFloat(row['PPN(%)']) || 0;
+  const total      = parseFloat(row['Total']) || 0;
+  const status     = row['Status'] || '';
+  const catatan    = row['Catatan'] || '';
+  const isLunas    = status === 'Lunas';
+  const company    = s.company || 'Nama Perusahaan';
+  const tagline    = s.tagline || '';
+  const docTitle   = isReceipt ? 'PELUNASAN' : 'TAGIHAN';
+  const dateLabel  = isReceipt ? 'Tgl Bayar' : 'Jatuh Tempo';
 
-  // FIX: Parent harus visible + z-index positif agar html2canvas dapat capture
-  printFrame.style.cssText = 'display:block;position:fixed;left:-9999px;top:0;width:680px;background:#fff;z-index:9999;overflow:visible';
-  frame.style.cssText = 'width:680px;background:#fff';
-
-  // FIX: Tunggu semua gambar (stamp, logo) benar-benar selesai dimuat
-  // img.complete saja tidak cukup — bisa true untuk gambar gagal/broken (naturalWidth=0)
-  // Seragamkan dengan logika printFromHistory yang sudah terbukti benar
-  await new Promise(resolve => {
-    const imgs = frame.querySelectorAll('img');
-    if (imgs.length === 0) { resolve(); return; }
-    let count = imgs.length;
-    const done = () => { if (--count <= 0) resolve(); };
-    imgs.forEach(img => {
-      if (img.complete && img.naturalWidth > 0) {
-        done(); // sudah load + valid
-      } else {
-        img.onload  = done;
-        img.onerror = done; // tetap lanjut meski gambar gagal, jangan hang
-      }
-    });
-    // Fallback: jangan hang selamanya jika ada gambar yang tidak memicu event
-    setTimeout(resolve, 4000);
+  // ── Parse items ──────────────────────────────
+  const detailStr = row['Detail Item'] || '';
+  const itemBodyRows = detailStr.split(';').filter(Boolean).map(seg => {
+    seg = seg.trim();
+    const m = seg.match(/^(.+?)\s*\((\d+(?:\.\d+)?)x(.+)\)$/);
+    if (m) {
+      const qty   = parseFloat(m[2]);
+      const price = parseRp(m[3]);
+      return [
+        { text: m[1].trim(),      fontSize: 9, margin: [0, 3, 0, 3] },
+        { text: String(qty),      fontSize: 9, alignment: 'center', margin: [0, 3, 0, 3] },
+        { text: formatRp(price),  fontSize: 9, alignment: 'right',  margin: [0, 3, 0, 3] },
+        { text: formatRp(qty * price), fontSize: 9, bold: true, alignment: 'right', margin: [0, 3, 0, 3] }
+      ];
+    }
+    return [{ text: seg, fontSize: 9, colSpan: 4, margin: [0, 3, 0, 3] }, {}, {}, {}];
   });
+  if (itemBodyRows.length === 0) {
+    itemBodyRows.push([{ text: '—', fontSize: 9, colSpan: 4, alignment: 'center', color: '#aaaaaa', margin: [0, 6, 0, 6] }, {}, {}, {}]);
+  }
 
-  // FIX: Beri beberapa frame + jeda agar browser selesai paint gambar ke layar
-  // Tanpa ini html2canvas menangkap frame sebelum stamp ter-render sempurna
-  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 350))));
+  // ── Totals rows ──────────────────────────────
+  const totalsRows = [
+    [{ text: 'Subtotal', fontSize: 9, color: '#555555' }, { text: formatRp(sub), fontSize: 9, alignment: 'right', color: '#555555' }]
+  ];
+  if (disc > 0) totalsRows.push([
+    { text: 'Diskon', fontSize: 9, color: '#555555' },
+    { text: '− ' + formatRp(disc), fontSize: 9, alignment: 'right', color: '#555555' }
+  ]);
+  if (tax > 0) totalsRows.push([
+    { text: 'PPN (' + tax + '%)', fontSize: 9, color: '#555555' },
+    { text: '+ ' + formatRp(Math.max(0, sub - disc) * tax / 100), fontSize: 9, alignment: 'right', color: '#555555' }
+  ]);
+  totalsRows.push([
+    { text: 'TOTAL', fontSize: 11, bold: true, color: '#ffffff', fillColor: '#1e2d42', margin: [8, 6, 8, 6] },
+    { text: formatRp(total), fontSize: 11, bold: true, color: '#e8a838', fillColor: '#1e2d42', alignment: 'right', margin: [8, 6, 8, 6] }
+  ]);
 
-  const opt = {
-    margin:      [10, 10, 10, 10],
-    filename:    noDoc + '.pdf',
-    image:       { type: 'png', quality: 1 },
-    html2canvas: { scale: 2, useCORS: true, allowTaint: true, logging: false, backgroundColor: '#ffffff' },
-    jsPDF:       { unit: 'mm', format: [216, 330], orientation: 'portrait' }
+  // ── Footer company text ───────────────────────
+  const footerLines = [company];
+  if (s.address) footerLines.push(s.address);
+  const contact = [s.phone, s.email].filter(Boolean).join(' · ');
+  if (contact) footerLines.push(contact);
+
+  // ── pdfmake docDefinition ─────────────────────
+  const contactParts = [phone, email, addr].filter(Boolean);
+
+  const docDef = {
+    pageSize:    { width: 612, height: 936 },   // ≈ 216mm × 330mm
+    pageMargins: [32, 32, 32, 32],
+    content: [
+
+      // ── Header bar ──────────────────────────
+      {
+        table: {
+          widths: ['*', 'auto'],
+          body: [[
+            {
+              stack: [
+                { text: company,  fontSize: 15, bold: true, color: '#ffffff' },
+                tagline ? { text: tagline, fontSize: 8, color: 'rgba(255,255,255,0.6)', margin: [0, 2, 0, 0] } : { text: '' }
+              ],
+              margin: [14, 10, 0, 10]
+            },
+            {
+              stack: [
+                { text: docTitle, fontSize: 22, bold: true, color: isReceipt ? '#e8a838' : '#ffffff', alignment: 'right' },
+                { text: 'No: ' + noDoc, fontSize: 8, color: 'rgba(255,255,255,0.65)', alignment: 'right', margin: [0, 2, 0, 0] }
+              ],
+              margin: [0, 10, 14, 10]
+            }
+          ]]
+        },
+        layout: {
+          fillColor:    () => '#1e2d42',
+          hLineWidth:   () => 0,
+          vLineWidth:   () => 0,
+          paddingTop:   () => 0,
+          paddingBottom:() => 0,
+          paddingLeft:  () => 0,
+          paddingRight: () => 0
+        }
+      },
+
+      // ── Receipt banner (jika pelunasan) ─────
+      ...(isReceipt ? [{
+        table: {
+          widths: ['*'],
+          body: [[{
+            text: '✅  PEMBAYARAN DITERIMA — Bukti pelunasan yang telah dibayarkan.',
+            fontSize: 9, bold: true, color: '#27ae60', margin: [10, 7, 10, 7]
+          }]]
+        },
+        layout: {
+          fillColor:    () => '#e8f5e9',
+          hLineColor:   () => '#a5d6a7',
+          vLineColor:   () => '#a5d6a7',
+          hLineWidth:   () => 1,
+          vLineWidth:   () => 1,
+          paddingTop:   () => 0,
+          paddingBottom:() => 0,
+          paddingLeft:  () => 0,
+          paddingRight: () => 0
+        },
+        margin: [0, 8, 0, 0]
+      }] : []),
+
+      // ── Info pelanggan + tanggal ─────────────
+      {
+        columns: [
+          {
+            stack: [
+              { text: (isReceipt ? 'NOTA UNTUK' : 'DITAGIHKAN KEPADA'), fontSize: 7, bold: true, color: '#888888', characterSpacing: 0.6 },
+              { text: client, fontSize: 14, bold: true, color: '#1e2d42', margin: [0, 3, 0, 0] },
+              contactParts.length > 0
+                ? { text: contactParts.join('\n'), fontSize: 8, color: '#666666', margin: [0, 3, 0, 0] }
+                : { text: '' }
+            ]
+          },
+          {
+            stack: [
+              { text: [{ text: 'Tgl Terbit: ', bold: true, fontSize: 8 }, { text: tgl, fontSize: 8 }], color: '#555555', alignment: 'right' },
+              { text: [{ text: dateLabel + ': ', bold: true, fontSize: 8 }, { text: tgl2, fontSize: 8 }], color: '#555555', alignment: 'right', margin: [0, 4, 0, 0] }
+            ],
+            width: 160
+          }
+        ],
+        columnGap: 12,
+        margin: [0, 12, 0, 12]
+      },
+
+      // ── Tabel item ───────────────────────────
+      {
+        table: {
+          headerRows: 1,
+          widths: ['*', 36, 80, 70],
+          body: [
+            [
+              { text: 'NAMA LAYANAN / BARANG', fontSize: 8, bold: true, color: '#ffffff', fillColor: '#1e2d42', margin: [6, 6, 6, 6] },
+              { text: 'QTY',           fontSize: 8, bold: true, color: '#ffffff', fillColor: '#1e2d42', alignment: 'center', margin: [4, 6, 4, 6] },
+              { text: 'HARGA SATUAN',  fontSize: 8, bold: true, color: '#ffffff', fillColor: '#1e2d42', alignment: 'right',  margin: [4, 6, 4, 6] },
+              { text: 'TOTAL',         fontSize: 8, bold: true, color: '#ffffff', fillColor: '#1e2d42', alignment: 'right',  margin: [4, 6, 6, 6] }
+            ],
+            ...itemBodyRows
+          ]
+        },
+        layout: {
+          hLineColor:   (i, node) => i === 0 || i === node.table.body.length ? '#cccccc' : '#eaeef3',
+          vLineColor:   () => '#eaeef3',
+          hLineWidth:   () => 0.5,
+          vLineWidth:   () => 0,
+          paddingTop:   () => 0,
+          paddingBottom:() => 0,
+          paddingLeft:  () => 0,
+          paddingRight: () => 0
+        }
+      },
+
+      // ── Totals (rata kanan) ──────────────────
+      {
+        columns: [
+          { text: '', width: '*' },
+          {
+            width: 210,
+            table: {
+              widths: ['*', 90],
+              body: totalsRows
+            },
+            layout: {
+              hLineColor:   (i, node) => i === node.table.body.length - 1 ? '#1e2d42' : '#eaeef3',
+              vLineColor:   () => '#eaeef3',
+              hLineWidth:   (i, node) => (i === 0 || i === node.table.body.length - 1) ? 0 : 0.5,
+              vLineWidth:   () => 0,
+              paddingTop:   (i, node) => i === node.table.body.length - 1 ? 0 : 2,
+              paddingBottom:(i, node) => i === node.table.body.length - 1 ? 0 : 2,
+              paddingLeft:  (i, node) => i === node.table.body.length - 1 ? 0 : 8,
+              paddingRight: (i, node) => i === node.table.body.length - 1 ? 0 : 8
+            }
+          }
+        ],
+        margin: [0, 8, 0, 12]
+      },
+
+      // ── Metode bayar + catatan ───────────────
+      {
+        columns: [
+          {
+            stack: [
+              { text: 'METODE PEMBAYARAN', fontSize: 7, bold: true, color: '#888888', characterSpacing: 0.5 },
+              { text: _pmText(row['Metode Bayar'] || '—'), fontSize: 8, color: '#444444', margin: [0, 3, 0, 0] }
+            ],
+            width: '*'
+          },
+          {
+            stack: [
+              { text: 'CATATAN', fontSize: 7, bold: true, color: '#888888', characterSpacing: 0.5 },
+              { text: catatan || '—', fontSize: 8, color: '#444444', margin: [0, 3, 0, 0] }
+            ],
+            width: '*',
+            margin: [10, 0, 0, 0]
+          }
+        ]
+      },
+
+      // ── Garis pembatas footer ────────────────
+      {
+        canvas: [{ type: 'line', x1: 0, y1: 0, x2: 548, y2: 0, lineWidth: 0.5, lineColor: '#d4dbe5' }],
+        margin: [0, 14, 0, 10]
+      },
+
+      // ── Footer: info perusahaan + tanda-tangan
+      {
+        columns: [
+          { text: footerLines.join('\n'), fontSize: 8, color: '#666666', width: '*' },
+          ...(s.showSigner === true || s.showSigner === 'true' ? [{
+            stack: [
+              { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 90, y2: 0, lineWidth: 0.5, lineColor: '#999999' }] },
+              { text: s.signer || 'Nama Pimpinan', fontSize: 8, color: '#555555', alignment: 'center', margin: [0, 4, 0, 0] },
+              { text: s.role || 'Manajer', fontSize: 8, bold: true, alignment: 'center' }
+            ],
+            width: 110,
+            alignment: 'center'
+          }] : [])
+        ]
+      }
+
+    ],
+    defaultStyle: { font: 'Roboto', fontSize: 10, color: '#1a2333' }
   };
 
   try {
-    const pdfBlob = await html2pdf().set(opt).from(frame).outputPdf('blob');
-    // FIX: Restore parent print-frame ke hidden
-    printFrame.style.cssText = 'display:none';
-    frame.style.cssText = '';
+    // Generate PDF Blob (pdfmake) → File Object → Web Share API
+    const pdfBlob = await new Promise((resolve, reject) => {
+      try {
+        pdfMake.createPdf(docDef).getBlob(blob => resolve(blob));
+      } catch(err) { reject(err); }
+    });
 
     const fileName = noDoc + '.pdf';
     const file     = new File([pdfBlob], fileName, { type: 'application/pdf' });
@@ -3713,7 +3942,7 @@ async function shareAsPDF(noDoc) {
       });
       showSuccessPopup('share', noDoc);
     } else {
-      // Fallback: download
+      // Fallback: langsung download
       const url  = URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
       link.href = url; link.download = fileName; link.click();
@@ -3721,9 +3950,6 @@ async function shareAsPDF(noDoc) {
       showSuccessPopup('share', noDoc);
     }
   } catch(e) {
-    // FIX: Restore parent print-frame ke hidden juga saat error
-    printFrame.style.cssText = 'display:none';
-    frame.style.cssText = '';
     if (e.name !== 'AbortError') showToast('Gagal membuat PDF: ' + e.message, 'error');
   }
 }
