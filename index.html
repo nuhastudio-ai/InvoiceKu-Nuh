@@ -4053,6 +4053,45 @@ function showToast(msg, type='') {
   const el = document.getElementById(id);
   if (el) el.addEventListener('click', function(e) { if (e.target===this) this.classList.remove('open'); });
 });
+
+// ══════════════════════════════════════════════
+// AUTO-SCALE PREVIEW INVOICE
+// Menyesuaikan zoom invoice doc agar memenuhi
+// lebar panel preview secara otomatis.
+//
+// ✏️ KODE INI BISA KAMU SESUAIKAN:
+//   MAX_SCALE  → batas zoom tertinggi (default 1.25 = 125%)
+//   MIN_SCALE  → batas zoom terendah (default 0.5  =  50%)
+//   DOC_WIDTH  → lebar dasar invoice dalam px (default 680)
+//   PADDING    → total padding kiri+kanan preview-scroll (default 48)
+// ══════════════════════════════════════════════
+(function () {
+  const DOC_WIDTH  = 680;  // ✏️ lebar invoice (px)
+  const MAX_SCALE  = 1.25; // ✏️ zoom maksimum
+  const MIN_SCALE  = 0.50; // ✏️ zoom minimum
+  const PADDING    = 48;   // ✏️ padding kiri+kanan preview-scroll
+
+  function scaleInvoiceDoc() {
+    const panel = document.querySelector('.preview-scroll');
+    const doc   = document.getElementById('invoice-doc');
+    if (!panel || !doc) return;
+    const available = panel.clientWidth - PADDING;
+    const scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, available / DOC_WIDTH));
+    doc.style.zoom = scale;
+  }
+
+  window.addEventListener('resize', scaleInvoiceDoc);
+  // Jalankan setelah semua konten siap
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', scaleInvoiceDoc);
+  } else {
+    scaleInvoiceDoc();
+  }
+  // Panggil ulang saat tab aktif (perpindahan halaman)
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) scaleInvoiceDoc();
+  });
+})();
 </script>
 </body>
 </html>
