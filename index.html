@@ -494,8 +494,11 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 .edit-item-search-wrap { position: relative; }
 .edit-item-search { width: 100%; padding: 6px 8px; border: 1.5px solid var(--border); border-radius: 6px; font-family: inherit; font-size: 12px; outline: none; }
 .edit-item-search:focus { border-color: var(--steel); }
-.edit-item-dropdown { position: fixed; background: var(--surface); border: 1.5px solid var(--border); border-radius: 8px; box-shadow: var(--shadow-lg); z-index: 1100; max-height: 200px; overflow-y: auto; display: none; min-width: 220px; }
-.edit-item-dropdown.open { display: block; }
+/* per-item anchor divs — hidden, just hold itemId reference */
+.edit-item-dropdown { display: none !important; }
+/* single shared portal dropdown appended to <body> — no transform ancestor, so position:fixed works correctly */
+#edit-item-portal { position: fixed; background: var(--surface); border: 1.5px solid var(--border); border-radius: 8px; box-shadow: var(--shadow-lg); z-index: 1500; max-height: 200px; overflow-y: auto; display: none; }
+#edit-item-portal.open { display: block; }
 .edit-item-option { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid var(--border); font-size: 12px; transition: background .12s; }
 .edit-item-option:last-child { border-bottom: none; }
 .edit-item-option:hover { background: var(--surface-2); }
@@ -3058,7 +3061,7 @@ function openEdit(noDoc) {
   initEditItems(row['Detail Item'] || '');
   document.getElementById('edit-modal').classList.add('open');
 }
-function closeEditModal() { document.getElementById('edit-modal').classList.remove('open'); }
+function closeEditModal() { _closePortal(); document.getElementById('edit-modal').classList.remove('open'); }
 
 async function saveEdit() {
   const noDoc   = currentEditDoc;
@@ -3892,50 +3895,58 @@ function renderEditItems() {
     </div>`;
   }).join('');
 
-  // Close dropdowns when clicking outside or scrolling the modal
+  // Close portal when clicking outside the search input or portal
   setTimeout(() => {
-    function closeEditDropdowns(e) {
-      if (!e.target.closest('.edit-item-search-wrap') && !e.target.closest('.edit-item-dropdown')) {
-        document.querySelectorAll('.edit-item-dropdown').forEach(d => d.classList.remove('open'));
-        document.removeEventListener('click', closeEditDropdowns);
+    function closeOnOutsideClick(e) {
+      if (!e.target.closest('.edit-item-search-wrap') && !e.target.closest('#edit-item-portal')) {
+        _closePortal();
+        document.removeEventListener('click', closeOnOutsideClick);
         const modal = document.getElementById('edit-modal');
-        if (modal) modal.removeEventListener('scroll', closeAllEditDropdowns);
+        if (modal) modal.removeEventListener('scroll', _closePortal);
       }
     }
-    function closeAllEditDropdowns() {
-      document.querySelectorAll('.edit-item-dropdown').forEach(d => d.classList.remove('open'));
-    }
-    document.addEventListener('click', closeEditDropdowns);
+    document.addEventListener('click', closeOnOutsideClick);
     const modal = document.getElementById('edit-modal');
-    if (modal) modal.addEventListener('scroll', closeAllEditDropdowns, { passive: true });
+    if (modal) modal.addEventListener('scroll', _closePortal, { passive: true });
   }, 0);
 
   recalcEditTotal();
 }
 
-function filterEditItemCatalog(itemId, query) {
-  const dd = document.getElementById('eid-' + itemId);
-  if (!dd) return;
+// ── shared portal dropdown for edit-item search ──
+let _portalItemId = null; // which itemId the portal is currently serving
 
-  // Position the fixed dropdown below the input field
-  const inputEl = dd.previousElementSibling; // the .edit-item-search input
-  if (inputEl) {
-    const rect = inputEl.getBoundingClientRect();
-    dd.style.top   = (rect.bottom + 4) + 'px';
-    dd.style.left  = rect.left + 'px';
-    dd.style.width = rect.width + 'px';
+function _getOrCreatePortal() {
+  let p = document.getElementById('edit-item-portal');
+  if (!p) {
+    p = document.createElement('div');
+    p.id = 'edit-item-portal';
+    document.body.appendChild(p);
   }
+  return p;
+}
+
+function _closePortal() {
+  const p = document.getElementById('edit-item-portal');
+  if (p) { p.classList.remove('open'); p.innerHTML = ''; }
+  _portalItemId = null;
+}
+
+function filterEditItemCatalog(itemId, query) {
+  // Find the actual search input inside this item's row
+  const inputEl = document.querySelector(`#eirow-${itemId} .edit-item-search`);
+  const portal = _getOrCreatePortal();
 
   const q = (query || '').toLowerCase().trim();
   const filtered = q
     ? catalogItems.filter(c => c.name.toLowerCase().includes(q) || (c.desc||'').toLowerCase().includes(q))
     : catalogItems.slice(0, 8);
 
-  if (filtered.length === 0) { dd.classList.remove('open'); return; }
+  if (filtered.length === 0) { _closePortal(); return; }
 
-  dd.innerHTML = filtered.map(c => {
+  // Build options HTML
+  portal.innerHTML = filtered.map(c => {
     const hasVariants = c.variants && c.variants.length > 0;
-    // If has variants, show each variant as option
     if (hasVariants) {
       return c.variants.map(v => `
         <div class="edit-item-option" onclick="selectEditItemFromCatalog(${itemId},'${escJs(c.name)}','${escJs(v.name)}',${v.price||0},'${escJs(c.unit||'')}')">
@@ -3949,7 +3960,17 @@ function filterEditItemCatalog(itemId, query) {
         <div class="eio-meta">${c.unit ? escHtml(c.unit)+' · ' : ''}${formatRp(c.sellPrice||0)}</div>
       </div>`;
   }).join('');
-  dd.classList.add('open');
+
+  // Position portal directly below the search input using viewport coords
+  if (inputEl) {
+    const rect = inputEl.getBoundingClientRect();
+    portal.style.top   = (rect.bottom + 2) + 'px';
+    portal.style.left  = rect.left + 'px';
+    portal.style.width = rect.width + 'px';
+  }
+
+  _portalItemId = itemId;
+  portal.classList.add('open');
 }
 
 function selectEditItemFromCatalog(itemId, name, variant, price, unit) {
@@ -3962,8 +3983,7 @@ function selectEditItemFromCatalog(itemId, name, variant, price, unit) {
   // Apply wholesale if applicable
   const cat = catalogItems.find(c => c.name === name);
   if (cat) it.price = applyWholesalePrice(cat, it.qty, price, variant || '');
-  const dd = document.getElementById('eid-' + itemId);
-  if (dd) dd.classList.remove('open');
+  _closePortal();
   renderEditItems();
 }
 
