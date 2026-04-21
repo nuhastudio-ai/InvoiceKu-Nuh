@@ -3646,18 +3646,29 @@ async function shareAsPDF(noDoc) {
   printFrame.style.cssText = 'display:block;position:fixed;left:-9999px;top:0;width:680px;background:#fff;z-index:9999;overflow:visible';
   frame.style.cssText = 'width:680px;background:#fff';
 
-  // Wait for images (stamp/logo) to load
+  // FIX: Tunggu semua gambar (stamp, logo) benar-benar selesai dimuat
+  // img.complete saja tidak cukup — bisa true untuk gambar gagal/broken (naturalWidth=0)
+  // Seragamkan dengan logika printFromHistory yang sudah terbukti benar
   await new Promise(resolve => {
     const imgs = frame.querySelectorAll('img');
     if (imgs.length === 0) { resolve(); return; }
-    let loaded = 0;
+    let count = imgs.length;
+    const done = () => { if (--count <= 0) resolve(); };
     imgs.forEach(img => {
-      if (img.complete) { if (++loaded >= imgs.length) resolve(); }
-      else {
-        img.onload  = img.onerror = () => { if (++loaded >= imgs.length) resolve(); };
+      if (img.complete && img.naturalWidth > 0) {
+        done(); // sudah load + valid
+      } else {
+        img.onload  = done;
+        img.onerror = done; // tetap lanjut meski gambar gagal, jangan hang
       }
     });
+    // Fallback: jangan hang selamanya jika ada gambar yang tidak memicu event
+    setTimeout(resolve, 4000);
   });
+
+  // FIX: Beri 2 frame tambahan agar browser selesai paint gambar ke canvas
+  // Tanpa ini html2canvas menangkap frame sebelum stamp ter-render sempurna
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
   const opt = {
     margin:      [10, 10, 10, 10],
