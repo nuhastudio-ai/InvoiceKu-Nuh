@@ -2069,10 +2069,10 @@ function selectInvoiceRef(noDoc) {
     });
   }
 
-  // Discount sebagai nominal
-  const discVal = parseFloat(inv['Diskon(Rp)'] || inv['Diskon(%)'] || '0');
-  // If old data was %, convert approximately (not ideal but best effort)
-  document.getElementById('discount').value = discVal > 100 ? discVal : 0;
+  // BUG FIX: Gunakan Diskon(Rp) langsung. Kondisi `discVal > 100` sebelumnya salah —
+  // diskon Rp 50, 75, 100 akan di-reset ke 0 padahal valid.
+  const discVal = parseFloat(inv['Diskon(Rp)'] || '0');
+  document.getElementById('discount').value = discVal;
   document.getElementById('tax').value = inv['PPN(%)'] || '0';
   document.getElementById('notes').value = 'Pelunasan Invoice ' + noDoc;
   updatePreview();
@@ -2155,7 +2155,7 @@ function applyWholesalePrice(cat, qty, basePrice, variantName) {
   if (!cat.wholesalePrices || cat.wholesalePrices.length === 0) return basePrice;
   const tiers = [...cat.wholesalePrices]
     .filter(t => {
-      if (!parseInt(t.minQty) > 0) return false;
+      if (!(parseInt(t.minQty) > 0)) return false;
       // Tier berlaku jika: variants kosong (=semua), atau variant dipilih ada di list
       const tv = Array.isArray(t.variants) ? t.variants : [];
       if (tv.length === 0) return true; // berlaku untuk semua
@@ -3167,9 +3167,10 @@ function renderHistoryAccordion(data) {
     const tglF   = tgl ? formatDate(tgl) : '—';
     const items2 = (row['Detail Item']||'').split(';').filter(Boolean);
 
-    // Badge only for receipt tab
+    // BUG FIX: Badge status ditampilkan untuk SEMUA tab, bukan hanya receipt.
+    // Invoice juga perlu badge agar user bisa langsung tahu mana yang Lunas / Belum Bayar.
     let badgeHtml = '';
-    if (!isInvoiceTab && status) {
+    if (status) {
       const badgeCls = status === 'Lunas' ? 'badge-paid' : 'badge-unpaid';
       badgeHtml = `<span class="badge ${badgeCls}">${status}</span>`;
     }
@@ -3337,7 +3338,9 @@ async function saveEdit() {
       if (invRef) markInvoiceLunas(invRef);
     }
   }
-  renderHistoryAccordion(allHistoryData);
+  // BUG FIX: Ganti renderHistoryAccordion(allHistoryData) → filterHistory()
+  // agar filter pencarian & status yang sedang aktif tidak ter-reset setelah edit.
+  filterHistory();
   updateStats(allHistoryData);
   closeEditModal();
   showToast(`✅ ${noDoc} berhasil diperbarui`, 'success');
@@ -3364,8 +3367,22 @@ async function confirmDelete() {
     return;
   }
 
+  // BUG FIX: Jika nota pelunasan Lunas dihapus, kembalikan status invoice
+  // yang terhubung via InvRef ke "Belum Bayar" — di memori & cloud.
+  if (jenis === 'receipt' && rowToDelete['Status'] === 'Lunas') {
+    const invRef = rowToDelete['InvRef'];
+    if (invRef) {
+      const invIdx = allHistoryData.findIndex(r => r['No. Dokumen'] === invRef && r['Jenis'] === 'invoice');
+      if (invIdx >= 0) {
+        allHistoryData[invIdx]['Status'] = 'Belum Bayar';
+        fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'update', noDoc: invRef, status: 'Belum Bayar' }) }).catch(() => {});
+        showToast(`↩️ Invoice ${invRef} dikembalikan ke Belum Bayar`, 'warning');
+      }
+    }
+  }
+
   allHistoryData = allHistoryData.filter(r => !(r['No. Dokumen'] === noDoc && r['Jenis'] === jenis));
-  renderHistoryAccordion(allHistoryData);
+  filterHistory();
   updateStats(allHistoryData);
   closeDeleteModal();
   showToast(`🗑️ ${noDoc} telah dihapus`, 'warning');
@@ -4098,8 +4115,13 @@ function setDashChartFilter(filter, btn) {
 function _filterDashData(data, filter) {
   const now = new Date();
   return data.filter(r => {
-    if (!r['Tgl Terbit']) return false;
-    const d = new Date(r['Tgl Terbit']);
+    // BUG FIX: Untuk nota pelunasan, gunakan tanggal bayar (Tgl Jatuh Tempo/Bayar),
+    // bukan tanggal terbit, agar filter periode dashboard akurat.
+    const dateField = (r['Jenis'] === 'receipt' && r['Tgl Jatuh Tempo/Bayar'])
+      ? r['Tgl Jatuh Tempo/Bayar']
+      : r['Tgl Terbit'];
+    if (!dateField) return false;
+    const d = new Date(dateField);
     if (isNaN(d)) return false;
     if (filter === 'daily') {
       return d.toDateString() === now.toDateString();
@@ -4129,7 +4151,7 @@ function renderDashboard() {
   if (!allHistoryData || allHistoryData.length === 0) {
     _setDashEmpty();
     _renderDashOrders([]);
-    _renderDashChart([]);
+    _renderDashChart([], []); // BUG FIX: dua argumen — receipts tidak boleh undefined
     return;
   }
 
@@ -4139,17 +4161,12 @@ function renderDashboard() {
   const filteredInv  = _filterDashData(invoices, _dashFilter);
   const filteredRec  = _filterDashData(receipts, _dashFilter);
 
-  // Pendapatan kotor: sum total dari nota lunas (sesuai filter)
-  const gross = filteredRec.reduce((s, r) => s + (parseFloat(r['Total'])||0), 0);
-
-  // Pendapatan bersih: gross - diskon dari nota lunas
-  const net = filteredRec.reduce((s, r) => {
-    const total = parseFloat(r['Total'])||0;
-    return s + total;
-  }, 0);
-  // Actually net = total setelah diskon & pajak sudah dihitung (nilai 'Total' sudah bersih)
-  // Gross = subtotal sebelum diskon
+  // Pendapatan kotor (Gross): sum Subtotal sebelum diskon & pajak
   const grossRaw = filteredRec.reduce((s, r) => s + (parseFloat(r['Subtotal'])||parseFloat(r['Total'])||0), 0);
+
+  // Pendapatan bersih (Net): sum Total setelah diskon & pajak sudah dihitung
+  // Nilai 'Total' di database sudah final (bersih), tidak perlu hitung ulang.
+  const gross = filteredRec.reduce((s, r) => s + (parseFloat(r['Total'])||0), 0);
 
   // Total order = jumlah invoice pada periode ini
   const totalOrders = filteredInv.length;
@@ -4171,8 +4188,9 @@ function renderDashboard() {
   document.getElementById('dash-orders-badge').textContent = unpaidCount + ' belum lunas';
   document.getElementById('dash-orders-badge').className = 'dash-kpi-badge ' + (unpaidCount > 0 ? 'down' : 'up');
 
-  // Render recent orders table (all invoices sorted newest first, limit 15)
-  const sortedInv = invoices.slice().sort((a, b) => {
+  // Render recent orders table (filtered invoices sorted newest first, limit 15)
+  // BUG FIX: sebelumnya pakai `invoices` (semua), seharusnya `filteredInv` (sesuai filter periode)
+  const sortedInv = filteredInv.slice().sort((a, b) => {
     const da = new Date(a['Tgl Terbit']||0), db = new Date(b['Tgl Terbit']||0);
     return db - da;
   });
