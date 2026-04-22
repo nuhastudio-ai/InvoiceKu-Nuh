@@ -2019,7 +2019,7 @@ function showPage(p) {
   if (p === 'history') loadHistory();
   if (p === 'customers') renderCustomers();
   if (p === 'items') renderItems();
-  if (p === 'dashboard') renderDashboard();
+  if (p === 'dashboard') loadAndRenderDashboard();
 }
 
 // ══════════════════════════════════════════════
@@ -3386,26 +3386,29 @@ async function confirmDelete() {
   }
 
   // BUG FIX: Jika nota pelunasan Lunas dihapus, kembalikan status invoice terkait.
-  // Cloud fetch dipindah ke LUAR if(invIdx>=0) agar selalu terkirim meski invoice
-  // belum ada di memori (user belum buka tab Riwayat).
+  // - Gunakan await agar GAS proses update SELESAI sebelum backgroundRefresh jalan
+  // - Reset timer agar backgroundRefresh tidak segera overwrite status yang baru diubah
   if (jenis === 'receipt' && rowToDelete['Status'] === 'Lunas') {
     const invRef = rowToDelete['InvRef'];
     if (invRef) {
-      // Update cloud selalu — tidak bergantung pada apakah ada di memori
-      fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'update', noDoc: invRef, status: 'Belum Bayar' }) }).catch(() => {});
-      // Update memori jika invoice ada
+      try { await _fetchGAS({ action: 'update', noDoc: invRef, status: 'Belum Bayar' }); } catch(e) {}
       const invIdx = allHistoryData.findIndex(r => r['No. Dokumen'] === invRef && r['Jenis'] === 'invoice');
       if (invIdx >= 0) allHistoryData[invIdx]['Status'] = 'Belum Bayar';
+      // Reset timer: beri jeda 3 detik sebelum backgroundRefresh berjalan lagi
+      stopAutoRefresh();
+      setTimeout(startAutoRefresh, 3000);
     }
   }
 
   allHistoryData = allHistoryData.filter(r => !(r['No. Dokumen'] === noDoc && r['Jenis'] === jenis));
   filterHistory();
   updateStats(allHistoryData);
+  // Perbarui dashboard jika sedang aktif
+  const dashPageDel = document.getElementById('page-dashboard');
+  if (dashPageDel && dashPageDel.classList.contains('active')) renderDashboard();
   closeDeleteModal();
-  // Toast gabungan agar tidak saling tumpuk
   const restoredRef = (jenis === 'receipt' && rowToDelete['Status'] === 'Lunas' && rowToDelete['InvRef'])
-    ? ` · Invoice ${rowToDelete['InvRef']} dikembalikan ke Belum Bayar` : '';
+    ? ` · Invoice ${rowToDelete['InvRef']} → Belum Bayar` : '';
   showToast(`🗑️ ${noDoc} dihapus${restoredRef}`, 'warning');
 }
 
@@ -4108,6 +4111,33 @@ function _getOrCreatePortal() {
     document.body.appendChild(p);
   }
   return p;
+}
+
+// ══════════════════════════════════════════════
+// DASHBOARD LOADER
+// ROOT CAUSE FIX: Dashboard tidak bisa andalkan loadCloudData() untuk isi
+// allHistoryData karena endpoint GAS tidak dijamin kembalikan data.data.
+// loadAndRenderDashboard() fetch langsung dengan ?t= (cache-bust) seperti
+// loadHistory(), sehingga data selalu tersedia saat dashboard dibuka.
+// ══════════════════════════════════════════════
+async function loadAndRenderDashboard() {
+  // Render dulu dengan data yang ada (bisa kosong) supaya UI tidak freeze
+  renderDashboard();
+
+  try {
+    const res  = await fetch(SCRIPT_URL + '?t=' + Date.now());
+    const data = await res.json();
+    if (data.success && Array.isArray(data.data)) {
+      const cloudMap = {};
+      data.data.forEach(r => { cloudMap[r['No. Dokumen']] = r; });
+      const localOnly = allHistoryData.filter(r => !cloudMap[r['No. Dokumen']]);
+      allHistoryData = [...Object.values(cloudMap), ...localOnly];
+      updateStats(allHistoryData);
+      renderDashboard();
+    }
+  } catch(e) {
+    // Offline — tampilkan data lokal yang sudah ada
+  }
 }
 
 // ══════════════════════════════════════════════
