@@ -615,6 +615,24 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 .dash-orders-empty { padding: 32px; text-align: center; color: var(--text-muted); font-size: 12px; }
 .dash-orders-empty .empty-icon { font-size: 28px; margin-bottom: 8px; }
 
+/* ── Dashboard order item dropdown ── */
+.doi-wrap { display: flex; align-items: center; gap: 5px; }
+.doi-toggle { width: 20px; height: 20px; border: none; background: var(--navy); color: #fff; border-radius: 4px; cursor: pointer; font-size: 9px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: background .15s; padding: 0; }
+.doi-toggle:hover { background: var(--steel); }
+.doi-detail-row { background: #f8fafd; border-bottom: 1px solid var(--border); }
+.doi-detail-row td { padding: 0 !important; }
+.doi-detail-inner { padding: 6px 14px 10px 28px; display: none; }
+.doi-detail-inner.open { display: block; }
+.doi-detail-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.doi-detail-table th { padding: 4px 8px; background: var(--navy); color: #fff; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; text-align: left; }
+.doi-detail-table th:nth-child(2),
+.doi-detail-table th:nth-child(3) { text-align: center; }
+.doi-detail-table td { padding: 5px 8px; border-bottom: 1px solid var(--border); color: var(--text); }
+.doi-detail-table td:nth-child(2) { text-align: center; }
+.doi-detail-table td:nth-child(3) { text-align: center; font-weight: 700; color: var(--navy); }
+.doi-detail-table tr:last-child td { border-bottom: none; }
+.doi-multi-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 9px; font-weight: 700; background: var(--navy); color: #fff; padding: 1px 6px; border-radius: 10px; white-space: nowrap; }
+
 /* Loading shimmer for dashboard */
 .dash-shimmer { background: linear-gradient(90deg, var(--surface-2) 25%, var(--border) 50%, var(--surface-2) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px; height: 28px; }
 @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
@@ -1231,6 +1249,20 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
             <span style="font-size:10px;color:var(--text-muted)">Gunakan gambar transparan (PNG/SVG) agar terlihat natural di dokumen</span>
           </div>
         </div>
+      </div>
+      <hr style="border:none;border-top:1px solid var(--border);margin:4px 0">
+      <!-- Auto-refresh toggle -->
+      <div style="background:var(--surface-2);border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--navy)">🔄 Auto Refresh Data</div>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:2px">Perbarui data otomatis setiap 30 detik dari server. Matikan untuk menghemat kuota.</div>
+        </div>
+        <label class="toggle-wrap" style="flex-shrink:0;cursor:pointer">
+          <div class="toggle-switch">
+            <input type="checkbox" id="s-auto-refresh">
+            <div class="toggle-track"></div>
+          </div>
+        </label>
       </div>
       <hr style="border:none;border-top:1px solid var(--border);margin:4px 0">
       <div class="field">
@@ -1964,8 +1996,10 @@ async function backgroundRefresh() {
   }
 }
 
-// ── Mulai auto-refresh setelah halaman siap ──
-setTimeout(startAutoRefresh, 5000); // mulai 5 detik setelah init
+// ── Mulai auto-refresh hanya jika diaktifkan di Pengaturan (default: OFF) ──
+if (settings.autoRefresh === true) {
+  setTimeout(startAutoRefresh, 5000);
+}
 
 // ══════════════════════════════════════════════
 // NAV
@@ -2642,6 +2676,9 @@ function openSettings() {
   else stampPrev.innerHTML = '🔏';
   document.getElementById('s-stamp-url').value = settings.stampUrl || '';
 
+  // Auto-refresh toggle — default OFF (false) jika belum pernah diset
+  document.getElementById('s-auto-refresh').checked = settings.autoRefresh === true;
+
   document.getElementById('settings-modal').classList.add('open');
 }
 function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
@@ -2664,6 +2701,7 @@ function saveSettings() {
     defaultDiscount: document.getElementById('s-default-discount').value,
     defaultTax:      document.getElementById('s-default-tax').value,
     showSigner:      document.getElementById('s-show-signer').checked,
+    autoRefresh:     document.getElementById('s-auto-refresh').checked,
   };
   localStorage.setItem('invoiceku_settings', JSON.stringify(settings));
   applySettings();
@@ -2671,6 +2709,12 @@ function saveSettings() {
   syncCloudSettings(settings);
   closeSettings();
   showToast('Pengaturan disimpan!', 'success');
+  // Terapkan setting auto-refresh
+  if (settings.autoRefresh) {
+    startAutoRefresh();
+  } else {
+    stopAutoRefresh();
+  }
   loadCloudData();
 }
 
@@ -2954,7 +2998,9 @@ async function _executeSaveOrPrint(payload, execMode, isOverwrite) {
     }
   } finally {
     // FIX: Naikkan delay agar resetForm() + refreshDocNumber() async selesai lebih dulu
-    setTimeout(startAutoRefresh, 6000);
+    if (settings.autoRefresh === true) {
+      setTimeout(startAutoRefresh, 6000);
+    }
   }
 }
 
@@ -4388,28 +4434,47 @@ function _renderDashOrders(invoices) {
     tbody.innerHTML = `<tr><td colspan="7" class="dash-orders-empty"><div class="empty-icon">📂</div><div>Belum ada data invoice tersimpan</div></td></tr>`;
     return;
   }
-  tbody.innerHTML = invoices.map(row => {
+
+  // Parse semua segmen item dari string detail
+  function parseItemSegs(detail) {
+    return (detail||'').split(';').filter(Boolean).map(seg => {
+      seg = seg.trim();
+      const m = seg.match(/^(.+?)\s*\((\d+(?:\.\d+)?)x(.+)\)$/);
+      if (m) return { name: m[1].trim(), qty: m[2], price: parseRp(m[3]), priceStr: formatRp(parseRp(m[3])) };
+      return { name: seg, qty: '—', price: 0, priceStr: '—' };
+    });
+  }
+
+  let rowsHtml = '';
+  invoices.forEach((row, idx) => {
     const noDoc   = row['No. Dokumen'] || '—';
     const client  = row['Nama Pelanggan'] || '—';
     const detail  = row['Detail Item'] || '';
     const status  = row['Status'] || '';
     const tgl     = row['Tgl Terbit'] ? formatDate(row['Tgl Terbit']) : '—';
     const total   = parseFloat(row['Total'])||0;
+    const parsedItems = parseItemSegs(detail);
+    const isMulti = parsedItems.length > 1;
+    const dropId  = 'doi-' + idx;
 
-    // Parse first item
-    let firstItem = '—', firstQty = '—', firstPrice = '—';
-    const segs = detail.split(';').filter(Boolean);
-    if (segs.length > 0) {
-      const seg = segs[0].trim();
-      const m = seg.match(/^(.+?)\s*\((\d+(?:\.\d+)?)x(.+)\)$/);
-      if (m) {
-        firstItem  = m[1].trim();
-        firstQty   = m[2];
-        firstPrice = formatRp(parseRp(m[3]));
-      } else {
-        firstItem = seg;
-      }
-      if (segs.length > 1) firstItem += ` +${segs.length-1} lainnya`;
+    // Kolom item: jika multi tampilkan "nama +N lainnya" + tombol dropdown
+    let itemCell, qtyCell, priceCell;
+    if (parsedItems.length === 0) {
+      itemCell  = '—'; qtyCell = '—'; priceCell = formatRp(total);
+    } else if (!isMulti) {
+      const it = parsedItems[0];
+      itemCell  = escHtml(it.name);
+      qtyCell   = escHtml(it.qty);
+      priceCell = it.priceStr !== '—' ? it.priceStr : formatRp(total);
+    } else {
+      const first = parsedItems[0];
+      itemCell  = `<div class="doi-wrap">
+        <span>${escHtml(first.name)}</span>
+        <span class="doi-multi-badge">+${parsedItems.length-1} lainnya</span>
+        <button class="doi-toggle" onclick="toggleDoiDropdown('${escJs(dropId)}')" title="Lihat semua item">▼</button>
+      </div>`;
+      qtyCell   = `<span style="color:var(--text-muted);font-style:italic;font-size:10px">n/a</span>`;
+      priceCell = `<span class="td-price" title="Total semua item">${formatRp(total)}</span>`;
     }
 
     const isPaid = status === 'Lunas';
@@ -4417,16 +4482,47 @@ function _renderDashOrders(invoices) {
       ? `<span class="dash-status-pill paid">✅ Paid</span>`
       : `<span class="dash-status-pill working">⏳ On Working</span>`;
 
-    return `<tr>
+    // Baris utama
+    rowsHtml += `<tr>
       <td class="td-nodoc">${escHtml(noDoc)}</td>
       <td class="td-customer">${escHtml(client)}</td>
-      <td class="td-item" title="${escHtml(detail)}">${escHtml(firstItem)}</td>
-      <td>${escHtml(firstQty)}</td>
-      <td class="td-price">${firstPrice !== '—' ? firstPrice : formatRp(total)}</td>
+      <td class="td-item">${itemCell}</td>
+      <td>${qtyCell}</td>
+      <td class="td-price">${priceCell}</td>
       <td class="td-date">${tgl}</td>
       <td>${statusHtml}</td>
     </tr>`;
-  }).join('');
+
+    // Baris detail dropdown (hanya untuk multi-item)
+    if (isMulti) {
+      const detailRows = parsedItems.map(it => `
+        <tr>
+          <td>${escHtml(it.name)}</td>
+          <td style="text-align:center">${escHtml(it.qty)}</td>
+          <td style="text-align:right;font-weight:700;color:var(--navy)">${it.priceStr}</td>
+        </tr>`).join('');
+      rowsHtml += `<tr class="doi-detail-row">
+        <td colspan="7">
+          <div class="doi-detail-inner" id="${escHtml(dropId)}">
+            <table class="doi-detail-table">
+              <thead><tr><th>Item / Layanan</th><th>Qty</th><th style="text-align:right">Harga Satuan</th></tr></thead>
+              <tbody>${detailRows}</tbody>
+            </table>
+          </div>
+        </td>
+      </tr>`;
+    }
+  });
+
+  tbody.innerHTML = rowsHtml;
+}
+
+function toggleDoiDropdown(dropId) {
+  const inner  = document.getElementById(dropId);
+  const btn    = inner?.closest('tbody')?.querySelector(`button.doi-toggle[onclick*="${dropId}"]`);
+  if (!inner) return;
+  const isOpen = inner.classList.toggle('open');
+  if (btn) btn.textContent = isOpen ? '▲' : '▼';
 }
 
 function _renderDashChart(invoices, receipts) {
