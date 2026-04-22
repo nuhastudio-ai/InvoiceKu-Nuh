@@ -1590,13 +1590,28 @@ async function loadCloudData() {
       const cs = data.settings;
       settings = {
         ...cs,
-        scriptUrl:    SCRIPT_URL,       // selalu dari konstanta
-        logoDataUrl:  settings.logoDataUrl  || cs.logoDataUrl  || '', // prefer lokal (base64 besar)
-        stampDataUrl: settings.stampDataUrl || cs.stampDataUrl || '', // prefer lokal
+        scriptUrl:    SCRIPT_URL,
+        logoDataUrl:  settings.logoDataUrl  || cs.logoDataUrl  || '',
+        stampDataUrl: settings.stampDataUrl || cs.stampDataUrl || '',
       };
       localStorage.setItem('invoiceku_settings', JSON.stringify(settings));
       applySettings();
       updateSaveButton();
+    }
+
+    // ── Riwayat Invoice & Nota: isi allHistoryData sejak awal ──
+    // ROOT CAUSE FIX: loadCloudData sebelumnya tidak mengisi allHistoryData,
+    // sehingga Dashboard (Piutang, Pendapatan, Jumlah Order) selalu kosong
+    // sampai backgroundRefresh berjalan 5 detik kemudian.
+    // Sekarang data langsung diisi dan dashboard di-render segera.
+    if (Array.isArray(data.data)) {
+      const cloudMap = {};
+      data.data.forEach(r => { cloudMap[r['No. Dokumen']] = r; });
+      const localOnly = allHistoryData.filter(r => !cloudMap[r['No. Dokumen']]);
+      allHistoryData = [...Object.values(cloudMap), ...localOnly];
+      updateStats(allHistoryData);
+      const dashPage = document.getElementById('page-dashboard');
+      if (dashPage && dashPage.classList.contains('active')) renderDashboard();
     }
 
     showToast('✅ Data cloud berhasil dimuat', 'success');
@@ -3118,7 +3133,10 @@ async function loadHistory() {
   }
 
   loading.style.display = 'none';
-  renderHistoryAccordion(allHistoryData);
+  // BUG FIX (lanjutan Bug 2): loadHistory juga harus pakai filterHistory() bukan
+  // renderHistoryAccordion(allHistoryData) agar filter yang sedang aktif tidak reset
+  // saat user kembali ke tab Riwayat setelah navigasi.
+  filterHistory();
   updateStats(allHistoryData);
   // Refresh dashboard data jika terbuka
   const dashPage = document.getElementById('page-dashboard');
@@ -3367,17 +3385,17 @@ async function confirmDelete() {
     return;
   }
 
-  // BUG FIX: Jika nota pelunasan Lunas dihapus, kembalikan status invoice
-  // yang terhubung via InvRef ke "Belum Bayar" — di memori & cloud.
+  // BUG FIX: Jika nota pelunasan Lunas dihapus, kembalikan status invoice terkait.
+  // Cloud fetch dipindah ke LUAR if(invIdx>=0) agar selalu terkirim meski invoice
+  // belum ada di memori (user belum buka tab Riwayat).
   if (jenis === 'receipt' && rowToDelete['Status'] === 'Lunas') {
     const invRef = rowToDelete['InvRef'];
     if (invRef) {
+      // Update cloud selalu — tidak bergantung pada apakah ada di memori
+      fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'update', noDoc: invRef, status: 'Belum Bayar' }) }).catch(() => {});
+      // Update memori jika invoice ada
       const invIdx = allHistoryData.findIndex(r => r['No. Dokumen'] === invRef && r['Jenis'] === 'invoice');
-      if (invIdx >= 0) {
-        allHistoryData[invIdx]['Status'] = 'Belum Bayar';
-        fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'update', noDoc: invRef, status: 'Belum Bayar' }) }).catch(() => {});
-        showToast(`↩️ Invoice ${invRef} dikembalikan ke Belum Bayar`, 'warning');
-      }
+      if (invIdx >= 0) allHistoryData[invIdx]['Status'] = 'Belum Bayar';
     }
   }
 
@@ -3385,7 +3403,10 @@ async function confirmDelete() {
   filterHistory();
   updateStats(allHistoryData);
   closeDeleteModal();
-  showToast(`🗑️ ${noDoc} telah dihapus`, 'warning');
+  // Toast gabungan agar tidak saling tumpuk
+  const restoredRef = (jenis === 'receipt' && rowToDelete['Status'] === 'Lunas' && rowToDelete['InvRef'])
+    ? ` · Invoice ${rowToDelete['InvRef']} dikembalikan ke Belum Bayar` : '';
+  showToast(`🗑️ ${noDoc} dihapus${restoredRef}`, 'warning');
 }
 
 // ══════════════════════════════════════════════
