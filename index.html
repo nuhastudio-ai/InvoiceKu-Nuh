@@ -4120,7 +4120,7 @@ function buildInvoiceHTML(row) {
       </table>
       <!-- Totals + Stamp wrapper -->
       <div style="position:relative;display:flex;justify-content:flex-end;margin-bottom:14px;min-height:80px">
-        ${stampSrc && isReceipt && isLunas ? `<img src="${stampSrc}" style="position:absolute;right:170px;bottom:-5px;width:150px;height:150px;object-fit:contain;opacity:0.88;transform:rotate(-10deg);pointer-events:none;z-index:10" alt="LUNAS" crossorigin="anonymous">` : ''}
+        ${stampSrc && isReceipt && isLunas ? `<img src="${stampSrc}" style="position:absolute;right:270px;bottom:-65px;width:153px;height:153px;object-fit:contain;opacity:0.88;transform:rotate(-10deg);pointer-events:none;z-index:10" alt="LUNAS" crossorigin="anonymous">` : ''}
         <div style="min-width:220px;border:1px solid #eaeef3;border-radius:8px;overflow:hidden;align-self:flex-end">
           <div style="display:flex;justify-content:space-between;padding:5px 12px;font-size:10px;color:#555;border-bottom:1px solid #eaeef3"><span>Subtotal</span><span>${formatRp(sub)}</span></div>
           ${disc>0?`<div style="display:flex;justify-content:space-between;padding:5px 12px;font-size:10px;color:#555;border-bottom:1px solid #eaeef3"><span>Diskon</span><span>− ${formatRp(disc)}</span></div>`:''}
