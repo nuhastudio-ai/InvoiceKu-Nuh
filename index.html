@@ -2954,12 +2954,13 @@ async function _executeSaveOrPrint(payload, execMode, isOverwrite) {
           } catch(e) {
             showToast('☁️ Tersimpan ke Spreadsheet! No: ' + finalNo, 'success');
           }
-          // Reset form selalu dijalankan setelah simpan berhasil
-          try {
-            resetForm();
-          } catch(e) {
-            console.error('resetForm error:', e);
-          }
+          // Reset form — dijalankan dalam microtask terpisah agar success popup
+          // sempat render sebelum DOM di-reset, menghindari konflik rendering
+          Promise.resolve().then(() => {
+            if (!resetForm()) {
+              showToast('⚠️ Reset form otomatis gagal — klik 🗑 Reset manual.', 'warning');
+            }
+          });
           _refreshHistoryIfOpen();
         }
         // Jika false (gagal), _doCloudSave sudah tampilkan alert — tidak reset form
@@ -2988,11 +2989,11 @@ async function _executeSaveOrPrint(payload, execMode, isOverwrite) {
         } catch(e) {
           showToast('🖨️ Dicetak & Tersimpan! No: ' + finalNo, 'success');
         }
-        try {
-          resetForm();
-        } catch(e) {
-          console.error('resetForm error:', e);
-        }
+        Promise.resolve().then(() => {
+          if (!resetForm()) {
+            showToast('⚠️ Reset form otomatis gagal — klik 🗑 Reset manual.', 'warning');
+          }
+        });
         _refreshHistoryIfOpen();
       }
     }
@@ -3862,53 +3863,76 @@ function deleteItem(idx) {
 // ══════════════════════════════════════════════
 function confirmReset() { if (confirm('Reset semua data formulir?')) resetForm(); }
 function resetForm() {
-  // FIX: Set flag agar backgroundRefresh tidak jalan bersamaan
+  // Cegah concurrent reset jika dipanggil ganda
+  if (_resetInProgress) return true; // sedang berjalan, anggap ok
   _resetInProgress = true;
-  try {
-  document.getElementById('client-name').value = '';
-  document.getElementById('client-phone').value = '';
-  document.getElementById('client-email').value = '';
-  document.getElementById('client-address').value = '';
-  document.getElementById('notes').value = '';
-  document.getElementById('discount').value = settings.defaultDiscount || '0';
-  document.getElementById('tax').value = settings.defaultTax || '0';
 
-  // FIX: Null-guard untuk elemen yang hanya muncul di mode Nota Pelunasan
+  try {
+  // ── STEP 1: Bersihkan field teks ──
+  // Tiap elemen di-null-guard agar tidak throw jika DOM berubah
+  ['client-name','client-phone','client-email','client-address','notes'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  const discEl = document.getElementById('discount');
+  if (discEl) discEl.value = settings.defaultDiscount || '0';
+  const taxEl  = document.getElementById('tax');
+  if (taxEl)  taxEl.value  = settings.defaultTax || '0';
+
+  // ── STEP 2: Reset field khusus Nota Pelunasan (mungkin tidak ada di DOM) ──
   const invRefSearch = document.getElementById('inv-ref-search');
   if (invRefSearch) invRefSearch.value = '';
-  const invRefInfo = document.getElementById('inv-ref-info');
-  if (invRefInfo) invRefInfo.style.display = 'none';
+  const invRefInfo   = document.getElementById('inv-ref-info');
+  if (invRefInfo)   invRefInfo.style.display = 'none';
   const useInvRefToggle = document.getElementById('use-inv-ref-toggle');
   if (useInvRefToggle) useInvRefToggle.checked = false;
-  const invRefBody = document.getElementById('inv-ref-body');
-  if (invRefBody) invRefBody.style.display = 'none';
+  const invRefBody  = document.getElementById('inv-ref-body');
+  if (invRefBody)   invRefBody.style.display = 'none';
 
+  // ── STEP 3: Reset items & pembayaran ──
+  // PERBAIKAN UTAMA: jangan panggil addItem() di sini karena addItem() memanggil
+  // renderItemsList() + updatePreview() saat form masih dalam keadaan setengah-reset
+  // (tanggal belum di-set, nomor dokumen belum di-update) → updatePreview() membaca
+  // state yang tidak konsisten → bisa throw secara intermittent.
+  // Solusi: push langsung ke array, render SEKALI di akhir setelah semua state siap.
   items = []; itemIdCounter = 0;
-  invoicePayments = []; manualPayCounter = 0;
-  renderPaymentChips();
-  renderPaymentRows();
-  addItem(); addItem();
+  items.push({ id: ++itemIdCounter, name: '', variant: '', qty: 1, price: 0 });
+  items.push({ id: ++itemIdCounter, name: '', variant: '', qty: 1, price: 0 });
 
-  // Reset today date
+  invoicePayments = []; manualPayCounter = 0;
+  try { renderPaymentChips(); } catch(e) { console.error('[reset] renderPaymentChips:', e); }
+  try { renderPaymentRows();  } catch(e) { console.error('[reset] renderPaymentRows:', e); }
+  try { renderItemsList();    } catch(e) { console.error('[reset] renderItemsList:', e); }
+
+  // ── STEP 4: Set tanggal setelah items siap ──
   const today = new Date().toISOString().split('T')[0];
-  document.getElementById('inv-date').value = today;
+  const invDateEl = document.getElementById('inv-date');
+  if (invDateEl) invDateEl.value = today;
+
   if (mode === 'invoice') {
-    const due = new Date(); due.setDate(due.getDate()+14);
-    document.getElementById('due-date').value = due.toISOString().split('T')[0];
+    const due = new Date(); due.setDate(due.getDate() + 14);
+    const dueEl = document.getElementById('due-date');
+    if (dueEl) dueEl.value = due.toISOString().split('T')[0];
   } else {
-    document.getElementById('paid-date').value = today;
-    document.getElementById('pay-status').value = 'Lunas';
+    const paidDateEl  = document.getElementById('paid-date');
+    const payStatusEl = document.getElementById('pay-status');
+    if (paidDateEl)  paidDateEl.value  = today;
+    if (payStatusEl) payStatusEl.value = 'Lunas';
   }
 
-  // Nomor dokumen baru berbasis tanggal hari ini
-  // FIX: Reset flag agar refreshDocNumber tidak terblokir oleh request sebelumnya
+  // ── STEP 5: Refresh nomor dokumen (async, non-blocking) ──
+  // Reset flag terlebih dahulu agar fetch baru tidak terblokir request sebelumnya
   _docNumberLoading = false;
   refreshDocNumber();
 
-  updatePreview();
+  // ── STEP 6: Update preview SEKALI di akhir setelah semua state konsisten ──
+  try { updatePreview(); } catch(e) { console.error('[reset] updatePreview:', e); }
+
+  return true; // reset berhasil
+  } catch(e) {
+    console.error('[resetForm] critical error:', e);
+    return false; // sinyal ke pemanggil bahwa reset gagal
   } finally {
-    // FIX: Lepas flag setelah semua sinkron selesai.
-    // refreshDocNumber() async — beri jeda 500ms agar fetch pertama tidak bentrok.
+    // Lepas flag setelah semua sinkron selesai (refreshDocNumber() masih async)
     setTimeout(() => { _resetInProgress = false; }, 500);
   }
 }
