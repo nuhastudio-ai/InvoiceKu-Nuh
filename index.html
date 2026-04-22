@@ -4223,14 +4223,14 @@ function setDashChartFilter(filter, btn) {
 function _filterDashData(data, filter) {
   const now = new Date();
   return data.filter(r => {
-    // BUG FIX: Untuk nota pelunasan, gunakan tanggal bayar (Tgl Jatuh Tempo/Bayar),
-    // bukan tanggal terbit, agar filter periode dashboard akurat.
+    // Untuk nota pelunasan, gunakan tanggal bayar; untuk invoice, tanggal terbit.
+    // Gunakan parseDateSafe agar format DD/MM/YYYY dari spreadsheet bisa di-parse.
     const dateField = (r['Jenis'] === 'receipt' && r['Tgl Jatuh Tempo/Bayar'])
       ? r['Tgl Jatuh Tempo/Bayar']
       : r['Tgl Terbit'];
-    if (!dateField) return false;
-    const d = new Date(dateField);
-    if (isNaN(d)) return false;
+    const ts = parseDateSafe(dateField);
+    if (!ts) return false;
+    const d = new Date(ts);
     if (filter === 'daily') {
       return d.toDateString() === now.toDateString();
     } else if (filter === 'weekly') {
@@ -4296,10 +4296,38 @@ function renderDashboard() {
   document.getElementById('dash-orders-badge').textContent = unpaidCount + ' belum lunas';
   document.getElementById('dash-orders-badge').className = 'dash-kpi-badge ' + (unpaidCount > 0 ? 'down' : 'up');
 
-  // Render recent orders table (filtered invoices sorted newest first, limit 15)
-  // Gunakan parseDateSafe agar format DD/MM/YYYY dari spreadsheet ter-sort dengan benar
+  // ── Sort order terbaru di atas ──
+  // Timestamp dari spreadsheet dikembalikan GAS sebagai DD/MM/YYYY (tanpa jam),
+  // sehingga tidak bisa dipakai untuk membedakan urutan dalam satu hari.
+  // Solusi: parse No. Dokumen (format INV-DDMMYYXXX / NP-DDMMYYXXX) yang sudah
+  // mengandung tanggal + nomor urut — paling akurat dan tidak tergantung timezone.
   const sortedInv = filteredInv.slice().sort((a, b) => {
-    return parseDateSafe(b['Tgl Terbit']) - parseDateSafe(a['Tgl Terbit']);
+    // Ekstrak bagian DDMMYY dan nomor urut dari No. Dokumen
+    function parseDocKey(noDoc) {
+      // Cocokkan: PREFIX-DDMMYYXXX  misal INV-220426001 atau NP-220426001
+      const m = String(noDoc || '').match(/[-](\d{2})(\d{2})(\d{2})(\d+)$/);
+      if (m) {
+        // Ubah ke YYMMDD agar bisa di-compare sebagai string ascending
+        const sortKey = m[3] + m[2] + m[1]; // YY + MM + DD
+        const seq     = parseInt(m[4]) || 0;
+        return { sortKey, seq, valid: true };
+      }
+      return { sortKey: '000000', seq: 0, valid: false };
+    }
+
+    const pa = parseDocKey(a['No. Dokumen']);
+    const pb = parseDocKey(b['No. Dokumen']);
+
+    // Primary: tanggal dari No. Dokumen desc
+    if (pb.sortKey !== pa.sortKey) return pb.sortKey > pa.sortKey ? 1 : -1;
+    // Secondary: nomor urut desc (lebih besar = lebih baru di hari yang sama)
+    if (pb.seq !== pa.seq) return pb.seq - pa.seq;
+    // Fallback: Tgl Terbit via parseDateSafe desc
+    const ta = parseDateSafe(a['Tgl Terbit']);
+    const tb = parseDateSafe(b['Tgl Terbit']);
+    if (tb !== ta) return tb - ta;
+    // Last resort: posisi di allHistoryData desc (terbaru = index terbesar)
+    return allHistoryData.indexOf(b) - allHistoryData.indexOf(a);
   });
   _renderDashOrders(sortedInv.slice(0, 15));
 
