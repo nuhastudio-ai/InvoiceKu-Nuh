@@ -1787,13 +1787,19 @@ function persistDocCounter(noDoc) {
 }
 
 let _docNumberLoading = false;
+let _docNumberVersion = 0; // FIX: version-stamp agar response lama (stale) tidak menimpa reset
 
 /**
  * Tampilkan ESTIMASI nomor berikutnya (peek — tidak increment counter).
  * Hanya untuk display. Nomor final dikonfirmasi saat save.
+ * FIX: Setiap pemanggilan mendapat versi unik. Jika ada pemanggilan baru
+ * sebelum fetch selesai, response lama diabaikan secara otomatis.
  */
 async function refreshDocNumber() {
-  if (_docNumberLoading) return;
+  // Naikkan versi — semua fetch sebelumnya yang masih pending akan diabaikan
+  _docNumberVersion++;
+  const myVersion = _docNumberVersion;
+
   _docNumberLoading = true;
 
   const dateStr  = document.getElementById('inv-date').value;
@@ -1813,14 +1819,18 @@ async function refreshDocNumber() {
       body: JSON.stringify({ action: 'peekNextCounter', prefix, datePart })
     });
     const data = await res.json();
-    if (data.success && data.noDoc) {
+    // FIX: Hanya terapkan hasil jika versi masih cocok (tidak ada pemanggilan baru)
+    if (myVersion === _docNumberVersion && data.success && data.noDoc) {
       field.value = data.noDoc;
       updatePreview();
     }
   } catch(e) {
     // Offline — tetap pakai estimasi lokal
   } finally {
-    _docNumberLoading = false;
+    // FIX: Hanya lepas lock jika kita masih versi terbaru
+    if (myVersion === _docNumberVersion) {
+      _docNumberLoading = false;
+    }
   }
 }
 
@@ -1990,8 +2000,9 @@ function switchMode(m) {
     // Reset toggle
     document.getElementById('use-inv-ref-toggle').checked = false;
     document.getElementById('inv-ref-body').style.display = 'none';
-    // FIX: Reset flag agar refreshDocNumber tidak terblokir saat pindah menu
+    // FIX: Bump version agar refreshDocNumber tidak terblokir saat pindah menu
     _docNumberLoading = false;
+    _docNumberVersion++;
     refreshDocNumber();
   } else {
     document.getElementById('tab-receipt').classList.add('active');
@@ -2002,8 +2013,9 @@ function switchMode(m) {
     document.getElementById('inv-ref-wrap').style.display = '';
     document.getElementById('paid-date').value = new Date().toISOString().split('T')[0];
     document.getElementById('pay-status').value = 'Lunas';
-    // FIX: Reset flag agar refreshDocNumber tidak terblokir saat pindah menu
+    // FIX: Bump version agar refreshDocNumber tidak terblokir saat pindah menu
     _docNumberLoading = false;
+    _docNumberVersion++;
     refreshDocNumber();
   }
   updatePreview();
@@ -2907,12 +2919,9 @@ async function _executeSaveOrPrint(payload, execMode, isOverwrite) {
           } catch(e) {
             showToast('☁️ Tersimpan ke Spreadsheet! No: ' + finalNo, 'success');
           }
-          // Reset form selalu dijalankan setelah simpan berhasil
-          try {
-            resetForm();
-          } catch(e) {
-            console.error('resetForm error:', e);
-          }
+          // FIX: resetForm() sudah null-safe — tidak perlu dibungkus try-catch
+          // agar error tidak tertelan diam-diam dan reset dijamin berjalan
+          resetForm();
           _refreshHistoryIfOpen();
         }
         // Jika false (gagal), _doCloudSave sudah tampilkan alert — tidak reset form
@@ -2922,10 +2931,14 @@ async function _executeSaveOrPrint(payload, execMode, isOverwrite) {
 
     } else { // print
       updatePreview();
+      // FIX: Timeout fallback 60s → 15s agar form tidak membeku lama
+      // jika afterprint tidak terpicu (umum di browser mobile/Android).
       await new Promise(resolve => {
-        const onAfter = () => { window.removeEventListener('afterprint', onAfter); resolve(); };
+        let settled = false;
+        const done = () => { if (!settled) { settled = true; resolve(); } };
+        const onAfter = () => { window.removeEventListener('afterprint', onAfter); done(); };
         window.addEventListener('afterprint', onAfter, { once: true });
-        setTimeout(resolve, 60000); // fallback timeout
+        setTimeout(done, 15000);
         const companyName = (settings.company || 'InvoiceKu').replace(/[\/\\:*?"<>|]/g, '');
         const docNo       = (payload.noDoc || '').replace(/[\/\\:*?"<>|]/g, '');
         const origTitle   = document.title;
@@ -2941,16 +2954,15 @@ async function _executeSaveOrPrint(payload, execMode, isOverwrite) {
         } catch(e) {
           showToast('🖨️ Dicetak & Tersimpan! No: ' + finalNo, 'success');
         }
-        try {
-          resetForm();
-        } catch(e) {
-          console.error('resetForm error:', e);
-        }
+        // FIX: resetForm() sudah null-safe — tidak perlu dibungkus try-catch
+        resetForm();
         _refreshHistoryIfOpen();
       }
     }
   } finally {
-    setTimeout(startAutoRefresh, 3000);
+    // FIX: Naikkan delay dari 3s → 6s agar refreshDocNumber() dari resetForm()
+    // punya cukup waktu selesai sebelum backgroundRefresh pertama jalan.
+    setTimeout(startAutoRefresh, 6000);
   }
 }
 
@@ -3811,36 +3823,45 @@ function deleteItem(idx) {
 // ══════════════════════════════════════════════
 function confirmReset() { if (confirm('Reset semua data formulir?')) resetForm(); }
 function resetForm() {
-  document.getElementById('client-name').value = '';
-  document.getElementById('client-phone').value = '';
-  document.getElementById('client-email').value = '';
-  document.getElementById('client-address').value = '';
-  document.getElementById('notes').value = '';
-  document.getElementById('discount').value = settings.defaultDiscount || '0';
-  document.getElementById('tax').value = settings.defaultTax || '0';
-  document.getElementById('inv-ref-search').value = '';
-  document.getElementById('inv-ref-info').style.display = 'none';
-  document.getElementById('use-inv-ref-toggle').checked = false;
-  document.getElementById('inv-ref-body').style.display = 'none';
+  // ── Helper null-safe ───────────────────────────────────────────
+  const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+  const setDisp = (id, val) => { const el = document.getElementById(id); if (el) el.style.display = val; };
+  const setProp = (id, prop, val) => { const el = document.getElementById(id); if (el) el[prop] = val; };
+
+  // ── 1. Bersihkan semua field utama — HARUS BERJALAN PERTAMA ────
+  setVal('client-name', '');
+  setVal('client-phone', '');
+  setVal('client-email', '');
+  setVal('client-address', '');
+  setVal('notes', '');
+  setVal('discount', settings.defaultDiscount || '0');
+  setVal('tax', settings.defaultTax || '0');
+  setVal('inv-ref-search', '');
+  setDisp('inv-ref-info', 'none');
+  setProp('use-inv-ref-toggle', 'checked', false);
+  setDisp('inv-ref-body', 'none');
+
+  // ── 2. Reset state array & render ulang ────────────────────────
   items = []; itemIdCounter = 0;
   invoicePayments = []; manualPayCounter = 0;
-  renderPaymentChips();
-  renderPaymentRows();
-  addItem(); addItem();
+  try { renderPaymentChips(); } catch(e) { console.error('renderPaymentChips error:', e); }
+  try { renderPaymentRows(); } catch(e) { console.error('renderPaymentRows error:', e); }
+  try { addItem(); addItem(); } catch(e) { console.error('addItem error:', e); }
 
-  // Reset today date
+  // ── 3. Reset tanggal ───────────────────────────────────────────
   const today = new Date().toISOString().split('T')[0];
-  document.getElementById('inv-date').value = today;
+  setVal('inv-date', today);
   if (mode === 'invoice') {
     const due = new Date(); due.setDate(due.getDate()+14);
-    document.getElementById('due-date').value = due.toISOString().split('T')[0];
+    setVal('due-date', due.toISOString().split('T')[0]);
   } else {
-    document.getElementById('paid-date').value = today;
-    document.getElementById('pay-status').value = 'Lunas';
+    setVal('paid-date', today);
+    setVal('pay-status', 'Lunas');
   }
 
-  // Nomor dokumen baru berbasis tanggal hari ini
-  // FIX: Reset flag agar refreshDocNumber tidak terblokir oleh request sebelumnya
+  // ── 4. Nomor dokumen baru — naikkan version agar fetch lama tidak menimpa ──
+  // _docNumberLoading = false TIDAK perlu lagi karena refreshDocNumber()
+  // kini pakai version-stamp, tapi tetap di-reset untuk keamanan.
   _docNumberLoading = false;
   refreshDocNumber();
 
