@@ -22,7 +22,7 @@ const HEADERS = [
   'No. Dokumen', 'Jenis', 'Tgl Terbit', 'Tgl Jatuh Tempo/Bayar',
   'Nama Pelanggan', 'No. HP', 'Email', 'Alamat', 'Detail Item',
   'Subtotal', 'Diskon(%)', 'PPN(%)', 'Total', 'Metode Bayar',
-  'Bank/eWallet', 'No. Rekening', 'Atas Nama', 'Catatan', 'Status', 'Timestamp'
+  'Bank/eWallet', 'No. Rekening', 'Atas Nama', 'Catatan', 'Status', 'Timestamp', 'InvRef'
 ];
 
 const CUSTOMER_HEADERS = ['id', 'name', 'phone', 'email', 'address', 'note'];
@@ -104,6 +104,66 @@ function ensureSheet(ss, name, headers) {
 }
 
 // ────────────────────────────────────────────
+// UTIL – Pastikan sheet InvoiceKu + migrasi kolom baru (InvRef, dll)
+// ────────────────────────────────────────────
+function ensureInvoiceSheet(ss) {
+  let sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_NAME);
+    sheet.appendRow(HEADERS);
+    sheet.getRange(1, 1, 1, HEADERS.length)
+      .setBackground('#1e2d42').setFontColor('#ffffff').setFontWeight('bold');
+    sheet.setFrozenRows(1);
+    return sheet;
+  }
+  // Migrasi: tambah kolom yang belum ada (misal InvRef)
+  const existingHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const missing = HEADERS.filter(h => !existingHeaders.includes(h));
+  if (missing.length > 0) {
+    const startCol = existingHeaders.length + 1;
+    missing.forEach((h, i) => {
+      const col = startCol + i;
+      sheet.getRange(1, col).setValue(h)
+        .setBackground('#1e2d42').setFontColor('#ffffff').setFontWeight('bold');
+    });
+  }
+  return sheet;
+}
+
+/**
+ * Buat array row berdasarkan header aktual sheet sehingga aman
+ * meski kolom baru ditambahkan di kemudian hari.
+ */
+function buildInvoiceRow(headers, d, noDoc, timestamp) {
+  return headers.map(h => {
+    switch (h) {
+      case 'No. Dokumen':           return noDoc                  || '';
+      case 'Jenis':                 return d.jenis                || '';
+      case 'Tgl Terbit':            return d.tglTerbit            || '';
+      case 'Tgl Jatuh Tempo/Bayar': return d.tglJatuhTempo        || '';
+      case 'Nama Pelanggan':        return d.namaPelanggan        || '';
+      case 'No. HP':                return d.noHp                 || '';
+      case 'Email':                 return d.email                || '';
+      case 'Alamat':                return d.alamat               || '';
+      case 'Detail Item':           return d.detailItem           || '';
+      case 'Subtotal':              return d.subtotal             || 0;
+      case 'Diskon(%)':             return d.diskon               || 0;
+      case 'PPN(%)':                return d.ppn                  || 0;
+      case 'Total':                 return d.total                || 0;
+      case 'Metode Bayar':          return d.metodeBayar          || '';
+      case 'Bank/eWallet':          return d.bankEwallet          || '';
+      case 'No. Rekening':          return d.noRekening           || '';
+      case 'Atas Nama':             return d.atasNama             || '';
+      case 'Catatan':               return d.catatan              || '';
+      case 'Status':                return d.status               || 'Belum Bayar';
+      case 'Timestamp':             return timestamp              || new Date().toISOString();
+      case 'InvRef':                return d.invRef               || '';
+      default:                      return '';
+    }
+  });
+}
+
+// ────────────────────────────────────────────
 // GET – ambil semua data (invoices + customers + items)
 // ────────────────────────────────────────────
 function doGet(e) {
@@ -162,59 +222,116 @@ function doPost(e) {
     const data = JSON.parse(e.postData.contents);
 
     // ══════════════════════════════
-    // ── INVOICE: SAVE (tambah baru) ──
+    // ── INVOICE: SAVE ATOMIC (nomor otomatis + simpan dalam 1 lock) ──
+    // Ini adalah aksi utama saat user klik Simpan / Cetak & Simpan.
+    // Menggunakan LockService agar tidak ada 2 user dapat nomor yang sama.
+    // ══════════════════════════════
+    if (data.action === 'saveInvoiceAtomic') {
+      const lock = LockService.getScriptLock();
+      try { lock.waitLock(10000); }
+      catch(e) { return output({ success: false, message: 'Server padat, coba lagi sebentar.' }); }
+
+      try {
+        const sheet   = ensureInvoiceSheet(ss);
+        const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+        // ── Hitung nomor dokumen berikutnya ──
+        const settingsSheet = ensureSheet(ss, SETTINGS_SHEET, SETTINGS_HEADERS);
+        const sValues       = settingsSheet.getDataRange().getValues();
+        const prefix        = data.prefix   || 'INV';
+        const datePart      = data.datePart || '';
+        const counterKey    = 'counter_' + prefix.toLowerCase() + '_' + datePart;
+
+        let nextVal = 1;
+        let found   = false;
+        for (let i = 1; i < sValues.length; i++) {
+          if (String(sValues[i][0]) === counterKey) {
+            nextVal = (parseInt(sValues[i][1]) || 0) + 1;
+            settingsSheet.getRange(i + 1, 2).setValue(nextVal);
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          settingsSheet.appendRow([counterKey, 1]);
+          nextVal = 1;
+        }
+
+        const noDoc = prefix + '-' + datePart + String(nextVal).padStart(3, '0');
+
+        // ── Simpan baris invoice ──
+        sheet.appendRow(buildInvoiceRow(headers, data, noDoc, new Date().toISOString()));
+
+        return output({ success: true, noDoc, counter: nextVal });
+
+      } finally {
+        lock.releaseLock();
+      }
+    }
+
+    // ══════════════════════════════
+    // ── PEEK NEXT COUNTER (pratinjau nomor, TANPA increment) ──
+    // ══════════════════════════════
+    if (data.action === 'peekNextCounter') {
+      const sheet  = ensureSheet(ss, SETTINGS_SHEET, SETTINGS_HEADERS);
+      const values = sheet.getDataRange().getValues();
+      const prefix      = data.prefix   || 'INV';
+      const datePart    = data.datePart || '';
+      const counterKey  = 'counter_' + prefix.toLowerCase() + '_' + datePart;
+
+      let currentVal = 0;
+      for (let i = 1; i < values.length; i++) {
+        if (String(values[i][0]) === counterKey) {
+          currentVal = parseInt(values[i][1]) || 0;
+          break;
+        }
+      }
+      const nextVal = currentVal + 1;
+      const noDoc   = prefix + '-' + datePart + String(nextVal).padStart(3, '0');
+      return output({ success: true, noDoc, counter: nextVal });
+    }
+
+    // ══════════════════════════════
+    // ── INVOICE: SAVE MANUAL (pakai noDoc dari frontend) ──
     // ══════════════════════════════
     if (data.action === 'save') {
-      let sheet = ss.getSheetByName(SHEET_NAME);
-      if (!sheet) {
-        sheet = ss.insertSheet(SHEET_NAME);
-        sheet.appendRow(HEADERS);
-      }
-      sheet.appendRow([
-        data.noDoc        || '',
-        data.jenis        || '',
-        data.tglTerbit    || '',
-        data.tglJatuhTempo|| '',
-        data.namaPelanggan|| '',
-        data.noHp         || '',
-        data.email        || '',
-        data.alamat       || '',
-        data.detailItem   || '',
-        data.subtotal     || 0,
-        data.diskon       || 0,
-        data.ppn          || 0,
-        data.total        || 0,
-        data.metodeBayar  || '',
-        data.bankEwallet  || '',
-        data.noRekening   || '',
-        data.atasNama     || '',
-        data.catatan      || '',
-        data.status       || 'Belum Bayar',
-        new Date().toISOString()
-      ]);
+      const sheet   = ensureInvoiceSheet(ss);
+      const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+      sheet.appendRow(buildInvoiceRow(headers, data, data.noDoc, new Date().toISOString()));
       return output({ success: true, message: 'Data disimpan: ' + data.noDoc });
     }
 
     // ══════════════════════════════
-    // ── INVOICE: UPDATE ──
+    // ── INVOICE: UPDATE (header-aware) ──
     // ══════════════════════════════
     if (data.action === 'update') {
-      const sheet = ss.getSheetByName(SHEET_NAME);
-      if (!sheet) return output({ success: false, message: 'Sheet invoice tidak ditemukan' });
+      const sheet = ensureInvoiceSheet(ss);
       const values = sheet.getDataRange().getValues();
+      const headers = values[0];
+
+      // Buat map header → index kolom (1-based)
+      const colOf = {};
+      headers.forEach((h, i) => { colOf[h] = i + 1; });
+
       for (let i = 1; i < values.length; i++) {
         if (String(values[i][0]) === String(data.noDoc)) {
           const row = i + 1;
-          if (data.tglTerbit    !== undefined) sheet.getRange(row, 3).setValue(data.tglTerbit);
-          if (data.tglJatuhTempo!== undefined) sheet.getRange(row, 4).setValue(data.tglJatuhTempo);
-          if (data.namaPelanggan!== undefined) sheet.getRange(row, 5).setValue(data.namaPelanggan);
-          if (data.noHp         !== undefined) sheet.getRange(row, 6).setValue(data.noHp);
-          if (data.email        !== undefined) sheet.getRange(row, 7).setValue(data.email);
-          if (data.diskon       !== undefined) sheet.getRange(row, 11).setValue(data.diskon);
-          if (data.ppn          !== undefined) sheet.getRange(row, 12).setValue(data.ppn);
-          if (data.metodeBayar  !== undefined) sheet.getRange(row, 14).setValue(data.metodeBayar);
-          if (data.catatan      !== undefined) sheet.getRange(row, 18).setValue(data.catatan);
-          if (data.status       !== undefined) sheet.getRange(row, 19).setValue(data.status);
+          const set = (h, v) => { if (colOf[h] && v !== undefined) sheet.getRange(row, colOf[h]).setValue(v); };
+          set('Tgl Terbit',            data.tglTerbit);
+          set('Tgl Jatuh Tempo/Bayar', data.tglJatuhTempo);
+          set('Nama Pelanggan',        data.namaPelanggan);
+          set('No. HP',                data.noHp);
+          set('Email',                 data.email);
+          set('Alamat',                data.alamat);
+          set('Detail Item',           data.detailItem);
+          set('Subtotal',              data.subtotal);
+          set('Diskon(%)',             data.diskon);
+          set('PPN(%)',                data.ppn);
+          set('Total',                 data.total);
+          set('Metode Bayar',          data.metodeBayar);
+          set('Catatan',               data.catatan);
+          set('Status',                data.status);
+          set('InvRef',                data.invRef);
           return output({ success: true, message: 'Data diperbarui: ' + data.noDoc });
         }
       }
@@ -376,6 +493,8 @@ function doPost(e) {
 
     // ══════════════════════════════
     // ── COUNTER: AMBIL NOMOR URUT BERIKUTNYA (ATOMIK) ──
+    // Dipakai jika frontend ingin nomor saja tanpa langsung simpan data.
+    // Untuk simpan + nomor sekaligus, gunakan saveInvoiceAtomic.
     // ══════════════════════════════
     if (data.action === 'getNextCounter') {
       // Gunakan LockService agar multi-user tidak tabrakan
@@ -450,28 +569,20 @@ function doPost(e) {
 }
 
 // ────────────────────────────────────────────
-// UTIL – inisialisasi semua header (jalankan manual 1x)
+// UTIL – inisialisasi semua header (jalankan manual 1x, atau otomatis saat pertama kali)
 // ────────────────────────────────────────────
 function initSheet() {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
-  // Sheet InvoiceKu
-  let sheet = ss.getSheetByName(SHEET_NAME);
-  if (!sheet) sheet = ss.insertSheet(SHEET_NAME);
-  const firstRow = sheet.getRange(1, 1, 1, HEADERS.length).getValues()[0];
-  if (firstRow.every(v => v === '')) {
-    sheet.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
-    sheet.getRange(1, 1, 1, HEADERS.length)
-      .setBackground('#1e2d42').setFontColor('#ffffff').setFontWeight('bold');
-    sheet.setFrozenRows(1);
-    Logger.log('Header InvoiceKu dibuat!');
-  } else { Logger.log('Header InvoiceKu sudah ada, skip.'); }
+  // Sheet InvoiceKu (dengan migrasi kolom otomatis)
+  ensureInvoiceSheet(ss);
+  Logger.log('Sheet InvoiceKu siap (dengan migrasi kolom).');
 
   // Sheet Customers
   ensureSheet(ss, CUSTOMER_SHEET, CUSTOMER_HEADERS);
   Logger.log('Sheet Customers siap.');
 
-  // Sheet Items (migrasi otomatis tambah kolom baru jika belum ada)
+  // Sheet Items
   ensureSheet(ss, ITEMS_SHEET, ITEMS_HEADERS);
   Logger.log('Sheet Items siap.');
 
