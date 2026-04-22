@@ -545,6 +545,93 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 .pm-db-item .pm-detail { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
 .pm-db-list { display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow-y: auto; }
 
+/* ══════════════════════════════════
+   DASHBOARD PAGE
+══════════════════════════════════ */
+.dashboard-page { padding: 20px 24px; display: flex; flex-direction: column; gap: 20px; }
+
+/* Hero greeting */
+.dash-hero { background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 60%, #3a5a8a 100%); border-radius: 16px; padding: 20px 24px; color: #fff; display: flex; align-items: center; justify-content: space-between; position: relative; overflow: hidden; }
+.dash-hero::before { content: ''; position: absolute; right: -40px; top: -40px; width: 200px; height: 200px; background: rgba(232,168,56,0.12); border-radius: 50%; }
+.dash-hero::after { content: ''; position: absolute; right: 40px; bottom: -60px; width: 140px; height: 140px; background: rgba(255,255,255,0.05); border-radius: 50%; }
+.dash-hero-text h2 { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
+.dash-hero-text p { font-size: 12px; color: rgba(255,255,255,0.65); }
+.dash-hero-badge { background: var(--accent); color: var(--navy); font-size: 11px; font-weight: 800; padding: 6px 14px; border-radius: 20px; white-space: nowrap; z-index: 1; }
+
+/* Filter pills */
+.dash-filter-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.dash-filter-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-right: 4px; }
+.dash-filter-pill { padding: 6px 14px; border: 1.5px solid var(--border); border-radius: 20px; font-family: inherit; font-size: 11px; font-weight: 600; color: var(--text-muted); background: var(--surface); cursor: pointer; transition: all .2s; }
+.dash-filter-pill.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+.dash-filter-pill:not(.active):hover { border-color: var(--steel); color: var(--navy); }
+
+/* KPI cards */
+.dash-kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.dash-kpi-card { background: var(--surface); border-radius: 14px; padding: 16px 18px; border: 1.5px solid var(--border); position: relative; overflow: hidden; transition: box-shadow .2s, transform .2s; cursor: default; }
+.dash-kpi-card:hover { box-shadow: var(--shadow); transform: translateY(-2px); }
+.dash-kpi-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 14px 14px 0 0; }
+.dash-kpi-card.gross::before { background: linear-gradient(90deg, #2980b9, #6dd5fa); }
+.dash-kpi-card.net::before { background: linear-gradient(90deg, var(--success), #56ab2f); }
+.dash-kpi-card.orders::before { background: linear-gradient(90deg, var(--accent), #f5a623); }
+.dash-kpi-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 10px; }
+.dash-kpi-card.gross .dash-kpi-icon { background: #e8f4fd; }
+.dash-kpi-card.net .dash-kpi-icon { background: #e8f8f0; }
+.dash-kpi-card.orders .dash-kpi-icon { background: #fef9ec; }
+.dash-kpi-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.dash-kpi-value { font-size: 18px; font-weight: 800; color: var(--navy); line-height: 1.1; }
+.dash-kpi-value.small { font-size: 22px; }
+.dash-kpi-sub { font-size: 10px; color: var(--text-muted); margin-top: 4px; }
+.dash-kpi-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; margin-top: 6px; }
+.dash-kpi-badge.up { background: #e8f8f0; color: var(--success); }
+.dash-kpi-badge.down { background: #fde8e8; color: var(--danger); }
+.dash-kpi-badge.neutral { background: var(--surface-2); color: var(--text-muted); }
+
+/* Chart section */
+.dash-chart-section { background: var(--surface); border-radius: 14px; padding: 18px 20px; border: 1.5px solid var(--border); }
+.dash-section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.dash-section-title { font-size: 13px; font-weight: 800; color: var(--navy); }
+.dash-section-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.dash-chart-wrap { position: relative; height: 180px; }
+#dash-chart { width: 100%; height: 100%; }
+
+/* Recent orders table */
+.dash-orders-section { background: var(--surface); border-radius: 14px; border: 1.5px solid var(--border); overflow: hidden; }
+.dash-orders-header { padding: 16px 18px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.dash-orders-table-wrap { overflow-x: auto; }
+.dash-orders-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.dash-orders-table thead th { padding: 10px 14px; text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); background: var(--surface-2); border-bottom: 1px solid var(--border); white-space: nowrap; }
+.dash-orders-table tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; }
+.dash-orders-table tbody tr:last-child { border-bottom: none; }
+.dash-orders-table tbody tr:hover { background: var(--surface-2); }
+.dash-orders-table tbody td { padding: 10px 14px; color: var(--text); vertical-align: middle; }
+.dash-orders-table .td-nodoc { font-weight: 700; color: var(--navy); white-space: nowrap; }
+.dash-orders-table .td-customer { font-weight: 600; max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dash-orders-table .td-item { max-width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-muted); }
+.dash-orders-table .td-price { font-weight: 700; color: var(--navy); white-space: nowrap; }
+.dash-orders-table .td-date { white-space: nowrap; color: var(--text-muted); }
+.dash-status-pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 700; white-space: nowrap; }
+.dash-status-pill.working { background: #fff3e0; color: #e67e22; }
+.dash-status-pill.paid { background: #e8f8f0; color: var(--success); }
+.dash-orders-empty { padding: 32px; text-align: center; color: var(--text-muted); font-size: 12px; }
+.dash-orders-empty .empty-icon { font-size: 28px; margin-bottom: 8px; }
+
+/* Loading shimmer for dashboard */
+.dash-shimmer { background: linear-gradient(90deg, var(--surface-2) 25%, var(--border) 50%, var(--surface-2) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px; height: 28px; }
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+@media (max-width: 680px) {
+  .dash-kpi-grid { grid-template-columns: 1fr 1fr; }
+  .dash-kpi-card:last-child { grid-column: 1/-1; }
+  .dashboard-page { padding: 14px 14px; }
+  .dash-hero { padding: 16px 18px; }
+  .dash-hero-text h2 { font-size: 16px; }
+}
+
+.dash-chart-filter-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.dash-chart-pill { padding: 4px 11px; border: 1.5px solid var(--border); border-radius: 20px; font-family: inherit; font-size: 10px; font-weight: 700; color: var(--text-muted); background: var(--surface-2); cursor: pointer; transition: all .18s; }
+.dash-chart-pill.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+.dash-chart-pill:not(.active):hover { border-color: var(--steel); color: var(--navy); background: var(--surface); }
+
 /* ── PRINT ── */
 @media print {
   /* Folio F4: 21.6cm x 33cm, margin cukup lega */
@@ -642,7 +729,8 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
     <div class="topbar-title">Invoice<span>Ku</span></div>
   </div>
   <div class="tab-group">
-    <button class="tab-btn active" id="tab-invoice" onclick="switchMode('invoice')">📄 Invoice</button>
+    <button class="tab-btn" id="tab-dashboard" onclick="showPage('dashboard')">🏠 Dashboard</button>
+    <button class="tab-btn" id="tab-invoice" onclick="switchMode('invoice')">📄 Invoice</button>
     <button class="tab-btn" id="tab-receipt" onclick="switchMode('receipt')">✅ Nota Pelunasan</button>
     <button class="tab-btn" id="tab-history" onclick="showPage('history')">📊 Riwayat</button>
     <button class="tab-btn" id="tab-customers" onclick="showPage('customers')">👥 Customer</button>
@@ -656,7 +744,10 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 <!-- BOTTOM NAV (mobile only) -->
 <div class="refresh-chip" id="refresh-chip"><span class="rc-dot"></span><span id="refresh-chip-text">Memperbarui...</span></div>
 <nav class="bottom-nav" id="bottom-nav">
-  <button class="bn-item active" id="bn-invoice" onclick="switchMode('invoice')">
+  <button class="bn-item" id="bn-dashboard" onclick="showPage('dashboard')">
+    <span class="bn-icon">🏠</span><span>Dashboard</span>
+  </button>
+  <button class="bn-item" id="bn-invoice" onclick="switchMode('invoice')">
     <span class="bn-icon">📄</span><span>Invoice</span>
   </button>
   <button class="bn-item" id="bn-receipt" onclick="switchMode('receipt')">
@@ -900,6 +991,111 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
     </div><!-- /preview-scroll -->
   </div><!-- /preview-panel -->
 </div><!-- /app-container -->
+
+<!-- ══ DASHBOARD PAGE ══ -->
+<div class="full-page" id="page-dashboard">
+  <div class="dashboard-page">
+
+    <!-- Hero -->
+    <div class="dash-hero">
+      <div class="dash-hero-text">
+        <h2 id="dash-greeting">📊 Ringkasan Bisnis</h2>
+        <p id="dash-hero-sub">Pantau kinerja penjualan Anda secara real-time</p>
+      </div>
+      <div class="dash-hero-badge" id="dash-date-badge">—</div>
+    </div>
+
+    <!-- Filter -->
+    <div class="dash-filter-row">
+      <span class="dash-filter-label">Filter:</span>
+      <button class="dash-filter-pill" onclick="setDashFilter('daily',this)">Harian</button>
+      <button class="dash-filter-pill" onclick="setDashFilter('weekly',this)">Mingguan</button>
+      <button class="dash-filter-pill active" onclick="setDashFilter('monthly',this)">Bulanan</button>
+      <button class="dash-filter-pill" onclick="setDashFilter('yearly',this)">Tahunan</button>
+      <button class="dash-filter-pill" onclick="setDashFilter('all',this)">Keseluruhan</button>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="dash-kpi-grid">
+      <div class="dash-kpi-card gross">
+        <div class="dash-kpi-icon">💰</div>
+        <div class="dash-kpi-label">Pendapatan Kotor</div>
+        <div class="dash-kpi-value" id="dash-gross">—</div>
+        <div class="dash-kpi-sub">Total seluruh invoice masuk</div>
+        <div class="dash-kpi-badge neutral" id="dash-gross-badge">dari nota lunas</div>
+      </div>
+      <div class="dash-kpi-card net">
+        <div class="dash-kpi-icon">📈</div>
+        <div class="dash-kpi-label">Pendapatan Bersih</div>
+        <div class="dash-kpi-value" id="dash-net">—</div>
+        <div class="dash-kpi-sub">Setelah diskon &amp; pajak</div>
+        <div class="dash-kpi-badge neutral" id="dash-net-badge">dari nota lunas</div>
+      </div>
+      <div class="dash-kpi-card orders">
+        <div class="dash-kpi-icon">🛒</div>
+        <div class="dash-kpi-label">Total Order</div>
+        <div class="dash-kpi-value small" id="dash-orders">—</div>
+        <div class="dash-kpi-sub">Invoice dibuat pada periode ini</div>
+        <div class="dash-kpi-badge neutral" id="dash-orders-badge">invoice</div>
+      </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="dash-chart-section">
+      <div class="dash-section-header">
+        <div>
+          <div class="dash-section-title">📉 Grafik Performa Penjualan</div>
+          <div class="dash-section-sub" id="dash-chart-sub">Pendapatan per periode</div>
+        </div>
+        <div id="dash-chart-legend" style="display:flex;gap:12px;font-size:10px;font-weight:700;color:var(--text-muted)">
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#2980b9;display:inline-block"></span>Pendapatan</span>
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:var(--accent);display:inline-block"></span>Order</span>
+        </div>
+      </div>
+      <!-- Chart-specific filter -->
+      <div class="dash-chart-filter-row">
+        <button class="dash-chart-pill" onclick="setDashChartFilter('daily',this)">Harian</button>
+        <button class="dash-chart-pill" onclick="setDashChartFilter('weekly',this)">Mingguan</button>
+        <button class="dash-chart-pill active" onclick="setDashChartFilter('monthly',this)">Bulanan</button>
+        <button class="dash-chart-pill" onclick="setDashChartFilter('yearly',this)">Tahunan</button>
+        <button class="dash-chart-pill" onclick="setDashChartFilter('all',this)">Semua</button>
+      </div>
+      <div class="dash-chart-wrap">
+        <canvas id="dash-chart"></canvas>
+      </div>
+    </div>
+
+    <!-- Recent Orders -->
+    <div class="dash-orders-section">
+      <div class="dash-orders-header">
+        <div>
+          <div class="dash-section-title">🗂️ Order Terbaru</div>
+          <div class="dash-section-sub">Diambil dari data invoice</div>
+        </div>
+        <button onclick="showPage('history')" style="padding:6px 14px;background:var(--navy);color:#fff;border:none;border-radius:8px;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer">Lihat Semua →</button>
+      </div>
+      <div class="dash-orders-table-wrap">
+        <table class="dash-orders-table">
+          <thead>
+            <tr>
+              <th>No. Invoice</th>
+              <th>Customer</th>
+              <th>Item / Layanan</th>
+              <th>Qty</th>
+              <th>Harga</th>
+              <th>Tgl Dibuat</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="dash-orders-tbody">
+            <tr><td colspan="7" class="dash-orders-empty"><div class="empty-icon">📂</div><div>Belum ada data invoice</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
 
 <!-- ══ HISTORY PAGE ══ -->
 <div class="full-page" id="page-history">
@@ -1641,6 +1837,9 @@ async function refreshDocNumber() {
   renderPaymentChips();
   loadCloudData(); // ← Unduh customers & items dari Spreadsheet saat halaman dibuka
 
+  // Buka Dashboard sebagai halaman awal
+  showPage('dashboard');
+
   document.addEventListener('click', function(e) {
     if (!e.target.closest('.autocomplete-wrap') && !e.target.closest('#inv-ref-wrap')) {
       document.querySelectorAll('.autocomplete-dropdown').forEach(d => d.style.display = 'none');
@@ -1722,6 +1921,9 @@ async function backgroundRefresh() {
       data.data.forEach(r => { cloudMap[r['No. Dokumen']] = r; });
       const localOnly = allHistoryData.filter(r => !cloudMap[r['No. Dokumen']]);
       allHistoryData = [...Object.values(cloudMap), ...localOnly];
+      // Refresh dashboard otomatis setelah data cloud masuk
+      const dashPage = document.getElementById('page-dashboard');
+      if (dashPage && dashPage.classList.contains('active')) renderDashboard();
     }
 
     // Payment methods
@@ -1802,6 +2004,7 @@ function showPage(p) {
   if (p === 'history') loadHistory();
   if (p === 'customers') renderCustomers();
   if (p === 'items') renderItems();
+  if (p === 'dashboard') renderDashboard();
 }
 
 // ══════════════════════════════════════════════
@@ -1821,6 +2024,7 @@ function searchInvoiceRef() {
   const dd = document.getElementById('inv-ref-dropdown');
   if (!q) { dd.style.display = 'none'; return; }
   const invoices = allHistoryData.filter(r => r['Jenis'] === 'invoice' &&
+    r['Status'] !== 'Lunas' &&
     ((r['No. Dokumen']||'').toLowerCase().includes(q) || (r['Nama Pelanggan']||'').toLowerCase().includes(q)));
   if (invoices.length === 0) { dd.style.display = 'none'; return; }
   dd.innerHTML = invoices.slice(0,8).map(r => `
@@ -2804,6 +3008,10 @@ function _refreshHistoryIfOpen() {
   if (historyPage && historyPage.classList.contains('active')) {
     loadHistory();
   }
+  const dashPage = document.getElementById('page-dashboard');
+  if (dashPage && dashPage.classList.contains('active')) {
+    renderDashboard();
+  }
 }
 
 async function saveToDatabase() {
@@ -2912,6 +3120,9 @@ async function loadHistory() {
   loading.style.display = 'none';
   renderHistoryAccordion(allHistoryData);
   updateStats(allHistoryData);
+  // Refresh dashboard data jika terbuka
+  const dashPage = document.getElementById('page-dashboard');
+  if (dashPage && dashPage.classList.contains('active')) renderDashboard();
 }
 
 function switchHistoryTab(tab, btn) {
@@ -3861,6 +4072,367 @@ function _getOrCreatePortal() {
   return p;
 }
 
+// ══════════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════════
+let _dashFilter = 'monthly';
+let _dashChartFilter = 'monthly';
+let _dashChartInstance = null;
+
+function setDashFilter(filter, btn) {
+  _dashFilter = filter;
+  document.querySelectorAll('.dash-filter-pill').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderDashboard();
+}
+
+function setDashChartFilter(filter, btn) {
+  _dashChartFilter = filter;
+  document.querySelectorAll('.dash-chart-pill').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const invoices = allHistoryData.filter(r => r['Jenis'] === 'invoice');
+  const receipts = allHistoryData.filter(r => r['Jenis'] === 'receipt' && r['Status'] === 'Lunas');
+  _renderDashChart(invoices, receipts);
+}
+
+function _filterDashData(data, filter) {
+  const now = new Date();
+  return data.filter(r => {
+    if (!r['Tgl Terbit']) return false;
+    const d = new Date(r['Tgl Terbit']);
+    if (isNaN(d)) return false;
+    if (filter === 'daily') {
+      return d.toDateString() === now.toDateString();
+    } else if (filter === 'weekly') {
+      const ms = now - d;
+      return ms >= 0 && ms <= 7 * 86400000;
+    } else if (filter === 'monthly') {
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    } else if (filter === 'yearly') {
+      return d.getFullYear() === now.getFullYear();
+    }
+    return true; // all
+  });
+}
+
+function renderDashboard() {
+  // Update date badge
+  const now = new Date();
+  const dayNames = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+  const monthNames = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  document.getElementById('dash-date-badge').textContent =
+    dayNames[now.getDay()] + ', ' + now.getDate() + ' ' + monthNames[now.getMonth()] + ' ' + now.getFullYear();
+
+  const filterLabels = { daily:'Hari Ini', weekly:'7 Hari Terakhir', monthly:'Bulan Ini', yearly:'Tahun Ini', all:'Semua Waktu' };
+  document.getElementById('dash-hero-sub').textContent = 'Kinerja penjualan — ' + (filterLabels[_dashFilter]||'');
+
+  if (!allHistoryData || allHistoryData.length === 0) {
+    _setDashEmpty();
+    _renderDashOrders([]);
+    _renderDashChart([]);
+    return;
+  }
+
+  const invoices = allHistoryData.filter(r => r['Jenis'] === 'invoice');
+  const receipts = allHistoryData.filter(r => r['Jenis'] === 'receipt' && r['Status'] === 'Lunas');
+
+  const filteredInv  = _filterDashData(invoices, _dashFilter);
+  const filteredRec  = _filterDashData(receipts, _dashFilter);
+
+  // Pendapatan kotor: sum total dari nota lunas (sesuai filter)
+  const gross = filteredRec.reduce((s, r) => s + (parseFloat(r['Total'])||0), 0);
+
+  // Pendapatan bersih: gross - diskon dari nota lunas
+  const net = filteredRec.reduce((s, r) => {
+    const total = parseFloat(r['Total'])||0;
+    return s + total;
+  }, 0);
+  // Actually net = total setelah diskon & pajak sudah dihitung (nilai 'Total' sudah bersih)
+  // Gross = subtotal sebelum diskon
+  const grossRaw = filteredRec.reduce((s, r) => s + (parseFloat(r['Subtotal'])||parseFloat(r['Total'])||0), 0);
+
+  // Total order = jumlah invoice pada periode ini
+  const totalOrders = filteredInv.length;
+
+  // Render KPI
+  document.getElementById('dash-gross').textContent = formatRp(grossRaw || gross);
+  document.getElementById('dash-net').textContent   = formatRp(gross);
+  document.getElementById('dash-orders').textContent = totalOrders;
+
+  const paidCount = filteredRec.length;
+  const unpaidCount = filteredInv.filter(r => r['Status'] !== 'Lunas').length;
+
+  document.getElementById('dash-gross-badge').textContent = paidCount + ' nota lunas';
+  document.getElementById('dash-gross-badge').className = 'dash-kpi-badge ' + (paidCount > 0 ? 'up' : 'neutral');
+
+  document.getElementById('dash-net-badge').textContent = 'setelah diskon & pajak';
+  document.getElementById('dash-net-badge').className = 'dash-kpi-badge neutral';
+
+  document.getElementById('dash-orders-badge').textContent = unpaidCount + ' belum lunas';
+  document.getElementById('dash-orders-badge').className = 'dash-kpi-badge ' + (unpaidCount > 0 ? 'down' : 'up');
+
+  // Render recent orders table (all invoices sorted newest first, limit 15)
+  const sortedInv = invoices.slice().sort((a, b) => {
+    const da = new Date(a['Tgl Terbit']||0), db = new Date(b['Tgl Terbit']||0);
+    return db - da;
+  });
+  _renderDashOrders(sortedInv.slice(0, 15));
+
+  // Render chart
+  _renderDashChart(invoices, receipts);
+}
+
+function _setDashEmpty() {
+  document.getElementById('dash-gross').textContent   = formatRp(0);
+  document.getElementById('dash-net').textContent     = formatRp(0);
+  document.getElementById('dash-orders').textContent  = '0';
+}
+
+function _renderDashOrders(invoices) {
+  const tbody = document.getElementById('dash-orders-tbody');
+  if (!invoices || invoices.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" class="dash-orders-empty"><div class="empty-icon">📂</div><div>Belum ada data invoice tersimpan</div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = invoices.map(row => {
+    const noDoc   = row['No. Dokumen'] || '—';
+    const client  = row['Nama Pelanggan'] || '—';
+    const detail  = row['Detail Item'] || '';
+    const status  = row['Status'] || '';
+    const tgl     = row['Tgl Terbit'] ? formatDate(row['Tgl Terbit']) : '—';
+    const total   = parseFloat(row['Total'])||0;
+
+    // Parse first item
+    let firstItem = '—', firstQty = '—', firstPrice = '—';
+    const segs = detail.split(';').filter(Boolean);
+    if (segs.length > 0) {
+      const seg = segs[0].trim();
+      const m = seg.match(/^(.+?)\s*\((\d+(?:\.\d+)?)x(.+)\)$/);
+      if (m) {
+        firstItem  = m[1].trim();
+        firstQty   = m[2];
+        firstPrice = formatRp(parseRp(m[3]));
+      } else {
+        firstItem = seg;
+      }
+      if (segs.length > 1) firstItem += ` +${segs.length-1} lainnya`;
+    }
+
+    const isPaid = status === 'Lunas';
+    const statusHtml = isPaid
+      ? `<span class="dash-status-pill paid">✅ Paid</span>`
+      : `<span class="dash-status-pill working">⏳ On Working</span>`;
+
+    return `<tr>
+      <td class="td-nodoc">${escHtml(noDoc)}</td>
+      <td class="td-customer">${escHtml(client)}</td>
+      <td class="td-item" title="${escHtml(detail)}">${escHtml(firstItem)}</td>
+      <td>${escHtml(firstQty)}</td>
+      <td class="td-price">${firstPrice !== '—' ? firstPrice : formatRp(total)}</td>
+      <td class="td-date">${tgl}</td>
+      <td>${statusHtml}</td>
+    </tr>`;
+  }).join('');
+}
+
+function _renderDashChart(invoices, receipts) {
+  const canvas = document.getElementById('dash-chart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  // Build chart data based on filter
+  const now = new Date();
+  let labels = [], revData = [], orderData = [];
+
+  if (_dashChartFilter === 'daily') {
+    // Last 24 hours by hour
+    for (let h = 23; h >= 0; h--) {
+      const hr = new Date(now); hr.setHours(now.getHours()-h, 0, 0, 0);
+      labels.push(hr.getHours() + ':00');
+      const inv = (invoices||[]).filter(r => {
+        const d = new Date(r['Tgl Terbit']||0);
+        return d.getHours() === hr.getHours() && d.toDateString() === hr.toDateString();
+      });
+      const rec = (receipts||[]).filter(r => {
+        const d = new Date(r['Tgl Terbit']||0);
+        return d.getHours() === hr.getHours() && d.toDateString() === hr.toDateString();
+      });
+      orderData.push(inv.length);
+      revData.push(rec.reduce((s,r)=>(s+(parseFloat(r['Total'])||0)),0));
+    }
+  } else if (_dashChartFilter === 'weekly') {
+    const dayNames = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+    for (let d = 6; d >= 0; d--) {
+      const day = new Date(now); day.setDate(now.getDate()-d); day.setHours(0,0,0,0);
+      labels.push(dayNames[day.getDay()]);
+      const inv = (invoices||[]).filter(r => {
+        const rd = new Date(r['Tgl Terbit']||0); rd.setHours(0,0,0,0);
+        return rd.getTime() === day.getTime();
+      });
+      const rec = (receipts||[]).filter(r => {
+        const rd = new Date(r['Tgl Terbit']||0); rd.setHours(0,0,0,0);
+        return rd.getTime() === day.getTime();
+      });
+      orderData.push(inv.length);
+      revData.push(rec.reduce((s,r)=>(s+(parseFloat(r['Total'])||0)),0));
+    }
+  } else if (_dashChartFilter === 'monthly') {
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+    for (let d = 1; d <= daysInMonth; d++) {
+      labels.push(d % 5 === 0 || d === 1 ? String(d) : '');
+      const inv = (invoices||[]).filter(r => {
+        const rd = new Date(r['Tgl Terbit']||0);
+        return rd.getDate()===d && rd.getMonth()===now.getMonth() && rd.getFullYear()===now.getFullYear();
+      });
+      const rec = (receipts||[]).filter(r => {
+        const rd = new Date(r['Tgl Terbit']||0);
+        return rd.getDate()===d && rd.getMonth()===now.getMonth() && rd.getFullYear()===now.getFullYear();
+      });
+      orderData.push(inv.length);
+      revData.push(rec.reduce((s,r)=>(s+(parseFloat(r['Total'])||0)),0));
+    }
+  } else if (_dashChartFilter === 'yearly') {
+    const mNames = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+    for (let m = 0; m < 12; m++) {
+      labels.push(mNames[m]);
+      const inv = (invoices||[]).filter(r => {
+        const rd = new Date(r['Tgl Terbit']||0);
+        return rd.getMonth()===m && rd.getFullYear()===now.getFullYear();
+      });
+      const rec = (receipts||[]).filter(r => {
+        const rd = new Date(r['Tgl Terbit']||0);
+        return rd.getMonth()===m && rd.getFullYear()===now.getFullYear();
+      });
+      orderData.push(inv.length);
+      revData.push(rec.reduce((s,r)=>(s+(parseFloat(r['Total'])||0)),0));
+    }
+  } else {
+    // All: by month from oldest to now
+    const allDates = [...(invoices||[]), ...(receipts||[])].map(r => new Date(r['Tgl Terbit']||0)).filter(d => !isNaN(d));
+    if (allDates.length === 0) { _drawEmptyChart(ctx, canvas); return; }
+    const minDate = new Date(Math.min(...allDates));
+    const months = [];
+    let cur = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+    while (cur <= now) {
+      months.push(new Date(cur));
+      cur.setMonth(cur.getMonth()+1);
+    }
+    if (months.length === 0) months.push(new Date(now.getFullYear(), now.getMonth(), 1));
+    const mNames = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+    months.forEach(mo => {
+      labels.push(mNames[mo.getMonth()] + "'" + String(mo.getFullYear()).slice(2));
+      const inv = (invoices||[]).filter(r => {
+        const rd = new Date(r['Tgl Terbit']||0);
+        return rd.getMonth()===mo.getMonth() && rd.getFullYear()===mo.getFullYear();
+      });
+      const rec = (receipts||[]).filter(r => {
+        const rd = new Date(r['Tgl Terbit']||0);
+        return rd.getMonth()===mo.getMonth() && rd.getFullYear()===mo.getFullYear();
+      });
+      orderData.push(inv.length);
+      revData.push(rec.reduce((s,r)=>(s+(parseFloat(r['Total'])||0)),0));
+    });
+  }
+
+  _drawBarChart(ctx, canvas, labels, revData, orderData);
+}
+
+function _drawEmptyChart(ctx, canvas) {
+  canvas.width = canvas.offsetWidth || 400;
+  canvas.height = canvas.offsetHeight || 180;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#bbb';
+  ctx.font = '12px Plus Jakarta Sans, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('Belum ada data untuk ditampilkan', canvas.width/2, canvas.height/2);
+}
+
+function _drawBarChart(ctx, canvas, labels, revData, orderData) {
+  const W = canvas.offsetWidth || 600;
+  const H = canvas.offsetHeight || 180;
+  canvas.width = W;
+  canvas.height = H;
+
+  const pad = { top: 10, right: 16, bottom: 36, left: 60 };
+  const chartW = W - pad.left - pad.right;
+  const chartH = H - pad.top - pad.bottom;
+
+  ctx.clearRect(0, 0, W, H);
+
+  const maxRev = Math.max(...revData, 1);
+  const maxOrd = Math.max(...orderData, 1);
+  const n = labels.length;
+  const barW = Math.max(4, Math.min(28, (chartW / n) * 0.55));
+  const gap  = chartW / n;
+
+  // Grid lines
+  ctx.strokeStyle = '#e8edf3';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.top + chartH - (chartH * i / 4);
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + chartW, y); ctx.stroke();
+    const val = (maxRev * i / 4);
+    ctx.fillStyle = '#8a9bb0';
+    ctx.font = '9px Plus Jakarta Sans, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(val >= 1000000 ? (val/1000000).toFixed(1)+'jt' : val >= 1000 ? (val/1000).toFixed(0)+'rb' : val.toFixed(0), pad.left - 4, y + 3);
+  }
+
+  // Bars
+  for (let i = 0; i < n; i++) {
+    const cx = pad.left + gap * i + gap / 2;
+
+    // Revenue bar (blue)
+    const revH = revData[i] > 0 ? Math.max(2, (revData[i] / maxRev) * chartH) : 0;
+    const revY = pad.top + chartH - revH;
+    const grad = ctx.createLinearGradient(0, revY, 0, revY + revH);
+    grad.addColorStop(0, '#4a90d9');
+    grad.addColorStop(1, '#1e5f9b');
+    ctx.fillStyle = grad;
+    const rx = cx - barW / 2 - 1;
+    _roundRect(ctx, rx, revY, barW, revH, 3);
+    ctx.fill();
+
+    // Order bar (amber)
+    const ordH = orderData[i] > 0 ? Math.max(2, (orderData[i] / maxOrd) * chartH * 0.5) : 0;
+    const ordY = pad.top + chartH - ordH;
+    ctx.fillStyle = '#e8a838';
+    _roundRect(ctx, cx + 2, ordY, Math.max(3, barW * 0.5), ordH, 2);
+    ctx.fill();
+
+    // Label
+    if (labels[i]) {
+      ctx.fillStyle = '#8a9bb0';
+      ctx.font = '9px Plus Jakarta Sans, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(labels[i], cx, H - 8);
+    }
+  }
+
+  // X axis line
+  ctx.strokeStyle = '#d4dbe5';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(pad.left, pad.top + chartH);
+  ctx.lineTo(pad.left + chartW, pad.top + chartH);
+  ctx.stroke();
+}
+
+function _roundRect(ctx, x, y, w, h, r) {
+  if (h <= 0) return;
+  r = Math.min(r, h/2, w/2);
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y);
+  ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+  ctx.lineTo(x+w, y+h);
+  ctx.lineTo(x, y+h);
+  ctx.lineTo(x, y+r);
+  ctx.quadraticCurveTo(x, y, x+r, y);
+  ctx.closePath();
+}
+
+// ══════════════════════════════════════════════
 function _closePortal() {
   const p = document.getElementById('edit-item-portal');
   if (p) { p.classList.remove('open'); p.innerHTML = ''; }
@@ -4007,6 +4579,10 @@ function showToast(msg, type='') {
   }
 
   window.addEventListener('resize', scaleInvoiceDoc);
+  window.addEventListener('resize', function() {
+    const dashPage = document.getElementById('page-dashboard');
+    if (dashPage && dashPage.classList.contains('active')) renderDashboard();
+  });
   // Jalankan setelah semua konten siap
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', scaleInvoiceDoc);
