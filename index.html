@@ -1197,15 +1197,6 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
         </div>
         <span class="toggle-label">Tampilkan Nama Pimpinan di Dokumen</span>
       </label>
-      <!-- Toggle auto refresh -->
-      <label class="toggle-wrap" style="cursor:pointer">
-        <div class="toggle-switch">
-          <input type="checkbox" id="s-auto-refresh">
-          <div class="toggle-track"></div>
-        </div>
-        <span class="toggle-label">Auto Refresh Data Cloud (setiap 30 detik)</span>
-      </label>
-      <div id="s-auto-refresh-hint" style="font-size:10px;color:var(--text-muted);margin-top:-6px;padding-left:44px">Refresh otomatis data pelanggan, item, dan riwayat dari Spreadsheet. <strong>Default: Mati.</strong></div>
       <div class="field">
         <label>Logo Perusahaan</label>
         <div class="logo-upload-wrap">
@@ -1602,15 +1593,10 @@ async function loadCloudData() {
         scriptUrl:    SCRIPT_URL,
         logoDataUrl:  settings.logoDataUrl  || cs.logoDataUrl  || '',
         stampDataUrl: settings.stampDataUrl || cs.stampDataUrl || '',
-        // Cloud menyimpan nilai boolean sebagai string "true"/"false" — konversi balik ke boolean
-        autoRefresh:  cs.autoRefresh === true || cs.autoRefresh === 'true',
-        showSigner:   cs.showSigner  === true || cs.showSigner  === 'true',
       };
       localStorage.setItem('invoiceku_settings', JSON.stringify(settings));
       applySettings();
       updateSaveButton();
-      // Terapkan auto-refresh sesuai setting dari cloud
-      if (settings.autoRefresh) { startAutoRefresh(); } else { stopAutoRefresh(); }
     }
 
     // ── Riwayat Invoice & Nota: isi allHistoryData sejak awal ──
@@ -1801,19 +1787,13 @@ function persistDocCounter(noDoc) {
 }
 
 let _docNumberLoading = false;
-let _docNumberVersion = 0; // FIX: version-stamp agar response lama (stale) tidak menimpa reset
 
 /**
  * Tampilkan ESTIMASI nomor berikutnya (peek — tidak increment counter).
  * Hanya untuk display. Nomor final dikonfirmasi saat save.
- * FIX: Setiap pemanggilan mendapat versi unik. Jika ada pemanggilan baru
- * sebelum fetch selesai, response lama diabaikan secara otomatis.
  */
 async function refreshDocNumber() {
-  // Naikkan versi — semua fetch sebelumnya yang masih pending akan diabaikan
-  _docNumberVersion++;
-  const myVersion = _docNumberVersion;
-
+  if (_docNumberLoading) return;
   _docNumberLoading = true;
 
   const dateStr  = document.getElementById('inv-date').value;
@@ -1833,18 +1813,14 @@ async function refreshDocNumber() {
       body: JSON.stringify({ action: 'peekNextCounter', prefix, datePart })
     });
     const data = await res.json();
-    // FIX: Hanya terapkan hasil jika versi masih cocok (tidak ada pemanggilan baru)
-    if (myVersion === _docNumberVersion && data.success && data.noDoc) {
+    if (data.success && data.noDoc) {
       field.value = data.noDoc;
       updatePreview();
     }
   } catch(e) {
     // Offline — tetap pakai estimasi lokal
   } finally {
-    // FIX: Hanya lepas lock jika kita masih versi terbaru
-    if (myVersion === _docNumberVersion) {
-      _docNumberLoading = false;
-    }
+    _docNumberLoading = false;
   }
 }
 
@@ -1904,6 +1880,7 @@ function insertSup(char) {
 let _refreshInterval  = null;
 let _lastRefreshEtag  = '';   // simple hash to detect changes
 const REFRESH_INTERVAL = 30000; // 30 detik
+let _resetInProgress  = false; // FIX: flag agar backgroundRefresh tidak bentrok dengan resetForm
 
 function startAutoRefresh() {
   if (_refreshInterval) return; // already running
@@ -1915,6 +1892,8 @@ function stopAutoRefresh() {
 }
 
 async function backgroundRefresh() {
+  // FIX: Jangan jalankan refresh jika sedang dalam proses reset form
+  if (_resetInProgress) return;
   const chip     = document.getElementById('refresh-chip');
   const chipText = document.getElementById('refresh-chip-text');
   if (chip) { chip.classList.add('show'); chipText.textContent = 'Memperbarui…'; }
@@ -1985,8 +1964,8 @@ async function backgroundRefresh() {
   }
 }
 
-// ── Auto-refresh hanya dijalankan jika setting diaktifkan (default: mati) ──
-setTimeout(function() { if (settings.autoRefresh === true) startAutoRefresh(); }, 5000);
+// ── Mulai auto-refresh setelah halaman siap ──
+setTimeout(startAutoRefresh, 5000); // mulai 5 detik setelah init
 
 // ══════════════════════════════════════════════
 // NAV
@@ -2014,9 +1993,8 @@ function switchMode(m) {
     // Reset toggle
     document.getElementById('use-inv-ref-toggle').checked = false;
     document.getElementById('inv-ref-body').style.display = 'none';
-    // FIX: Bump version agar refreshDocNumber tidak terblokir saat pindah menu
+    // FIX: Reset flag agar refreshDocNumber tidak terblokir saat pindah menu
     _docNumberLoading = false;
-    _docNumberVersion++;
     refreshDocNumber();
   } else {
     document.getElementById('tab-receipt').classList.add('active');
@@ -2027,9 +2005,8 @@ function switchMode(m) {
     document.getElementById('inv-ref-wrap').style.display = '';
     document.getElementById('paid-date').value = new Date().toISOString().split('T')[0];
     document.getElementById('pay-status').value = 'Lunas';
-    // FIX: Bump version agar refreshDocNumber tidak terblokir saat pindah menu
+    // FIX: Reset flag agar refreshDocNumber tidak terblokir saat pindah menu
     _docNumberLoading = false;
-    _docNumberVersion++;
     refreshDocNumber();
   }
   updatePreview();
@@ -2650,8 +2627,7 @@ function openSettings() {
   document.getElementById('s-logo-emoji').value = settings.logoEmoji || '';
   document.getElementById('s-default-discount').value = settings.defaultDiscount || '0';
   document.getElementById('s-default-tax').value = settings.defaultTax || '0';
-  document.getElementById('s-show-signer').checked = settings.showSigner === true || settings.showSigner === 'true';
-  document.getElementById('s-auto-refresh').checked = settings.autoRefresh === true || settings.autoRefresh === 'true';
+  document.getElementById('s-show-signer').checked = settings.showSigner === true;
 
   const prev = document.getElementById('logo-preview-box');
   if (settings.logoDataUrl) prev.innerHTML = `<img src="${settings.logoDataUrl}" alt="logo" style="max-width:100%;max-height:100%;object-fit:contain">`;
@@ -2688,13 +2664,10 @@ function saveSettings() {
     defaultDiscount: document.getElementById('s-default-discount').value,
     defaultTax:      document.getElementById('s-default-tax').value,
     showSigner:      document.getElementById('s-show-signer').checked,
-    autoRefresh:     document.getElementById('s-auto-refresh').checked,
   };
   localStorage.setItem('invoiceku_settings', JSON.stringify(settings));
   applySettings();
   updateSaveButton();
-  // Terapkan auto-refresh sesuai setting baru
-  if (settings.autoRefresh) { startAutoRefresh(); } else { stopAutoRefresh(); }
   syncCloudSettings(settings);
   closeSettings();
   showToast('Pengaturan disimpan!', 'success');
@@ -2937,9 +2910,12 @@ async function _executeSaveOrPrint(payload, execMode, isOverwrite) {
           } catch(e) {
             showToast('☁️ Tersimpan ke Spreadsheet! No: ' + finalNo, 'success');
           }
-          // FIX: resetForm() sudah null-safe — tidak perlu dibungkus try-catch
-          // agar error tidak tertelan diam-diam dan reset dijamin berjalan
-          resetForm();
+          // Reset form selalu dijalankan setelah simpan berhasil
+          try {
+            resetForm();
+          } catch(e) {
+            console.error('resetForm error:', e);
+          }
           _refreshHistoryIfOpen();
         }
         // Jika false (gagal), _doCloudSave sudah tampilkan alert — tidak reset form
@@ -2949,14 +2925,10 @@ async function _executeSaveOrPrint(payload, execMode, isOverwrite) {
 
     } else { // print
       updatePreview();
-      // FIX: Timeout fallback 60s → 15s agar form tidak membeku lama
-      // jika afterprint tidak terpicu (umum di browser mobile/Android).
       await new Promise(resolve => {
-        let settled = false;
-        const done = () => { if (!settled) { settled = true; resolve(); } };
-        const onAfter = () => { window.removeEventListener('afterprint', onAfter); done(); };
+        const onAfter = () => { window.removeEventListener('afterprint', onAfter); resolve(); };
         window.addEventListener('afterprint', onAfter, { once: true });
-        setTimeout(done, 15000);
+        setTimeout(resolve, 60000); // fallback timeout
         const companyName = (settings.company || 'InvoiceKu').replace(/[\/\\:*?"<>|]/g, '');
         const docNo       = (payload.noDoc || '').replace(/[\/\\:*?"<>|]/g, '');
         const origTitle   = document.title;
@@ -2972,14 +2944,16 @@ async function _executeSaveOrPrint(payload, execMode, isOverwrite) {
         } catch(e) {
           showToast('🖨️ Dicetak & Tersimpan! No: ' + finalNo, 'success');
         }
-        // FIX: resetForm() sudah null-safe — tidak perlu dibungkus try-catch
-        resetForm();
+        try {
+          resetForm();
+        } catch(e) {
+          console.error('resetForm error:', e);
+        }
         _refreshHistoryIfOpen();
       }
     }
   } finally {
-    // FIX: Naikkan delay dari 3s → 6s agar refreshDocNumber() dari resetForm()
-    // punya cukup waktu selesai sebelum backgroundRefresh pertama jalan.
+    // FIX: Naikkan delay agar resetForm() + refreshDocNumber() async selesai lebih dulu
     setTimeout(startAutoRefresh, 6000);
   }
 }
@@ -3027,7 +3001,8 @@ async function _doCloudSave(payload, isOverwrite) {
         if (result.noDoc) {
           finalNo = result.noDoc;
           persistDocCounter(finalNo);
-          document.getElementById('inv-number').value = finalNo;
+          // FIX: Tidak set inv-number di sini — resetForm() akan memanggil refreshDocNumber()
+          // yang mengisi nomor baru. Menulis di sini bisa bentrok dan biarkan nomor lama terlihat sejenak.
         }
       } else {
         errMsg = result.message || 'Penyimpanan gagal';
@@ -3841,49 +3816,55 @@ function deleteItem(idx) {
 // ══════════════════════════════════════════════
 function confirmReset() { if (confirm('Reset semua data formulir?')) resetForm(); }
 function resetForm() {
-  // ── Helper null-safe ───────────────────────────────────────────
-  const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
-  const setDisp = (id, val) => { const el = document.getElementById(id); if (el) el.style.display = val; };
-  const setProp = (id, prop, val) => { const el = document.getElementById(id); if (el) el[prop] = val; };
+  // FIX: Set flag agar backgroundRefresh tidak jalan bersamaan
+  _resetInProgress = true;
+  try {
+  document.getElementById('client-name').value = '';
+  document.getElementById('client-phone').value = '';
+  document.getElementById('client-email').value = '';
+  document.getElementById('client-address').value = '';
+  document.getElementById('notes').value = '';
+  document.getElementById('discount').value = settings.defaultDiscount || '0';
+  document.getElementById('tax').value = settings.defaultTax || '0';
 
-  // ── 1. Bersihkan semua field utama — HARUS BERJALAN PERTAMA ────
-  setVal('client-name', '');
-  setVal('client-phone', '');
-  setVal('client-email', '');
-  setVal('client-address', '');
-  setVal('notes', '');
-  setVal('discount', settings.defaultDiscount || '0');
-  setVal('tax', settings.defaultTax || '0');
-  setVal('inv-ref-search', '');
-  setDisp('inv-ref-info', 'none');
-  setProp('use-inv-ref-toggle', 'checked', false);
-  setDisp('inv-ref-body', 'none');
+  // FIX: Null-guard untuk elemen yang hanya muncul di mode Nota Pelunasan
+  const invRefSearch = document.getElementById('inv-ref-search');
+  if (invRefSearch) invRefSearch.value = '';
+  const invRefInfo = document.getElementById('inv-ref-info');
+  if (invRefInfo) invRefInfo.style.display = 'none';
+  const useInvRefToggle = document.getElementById('use-inv-ref-toggle');
+  if (useInvRefToggle) useInvRefToggle.checked = false;
+  const invRefBody = document.getElementById('inv-ref-body');
+  if (invRefBody) invRefBody.style.display = 'none';
 
-  // ── 2. Reset state array & render ulang ────────────────────────
   items = []; itemIdCounter = 0;
   invoicePayments = []; manualPayCounter = 0;
-  try { renderPaymentChips(); } catch(e) { console.error('renderPaymentChips error:', e); }
-  try { renderPaymentRows(); } catch(e) { console.error('renderPaymentRows error:', e); }
-  try { addItem(); addItem(); } catch(e) { console.error('addItem error:', e); }
+  renderPaymentChips();
+  renderPaymentRows();
+  addItem(); addItem();
 
-  // ── 3. Reset tanggal ───────────────────────────────────────────
+  // Reset today date
   const today = new Date().toISOString().split('T')[0];
-  setVal('inv-date', today);
+  document.getElementById('inv-date').value = today;
   if (mode === 'invoice') {
     const due = new Date(); due.setDate(due.getDate()+14);
-    setVal('due-date', due.toISOString().split('T')[0]);
+    document.getElementById('due-date').value = due.toISOString().split('T')[0];
   } else {
-    setVal('paid-date', today);
-    setVal('pay-status', 'Lunas');
+    document.getElementById('paid-date').value = today;
+    document.getElementById('pay-status').value = 'Lunas';
   }
 
-  // ── 4. Nomor dokumen baru — naikkan version agar fetch lama tidak menimpa ──
-  // _docNumberLoading = false TIDAK perlu lagi karena refreshDocNumber()
-  // kini pakai version-stamp, tapi tetap di-reset untuk keamanan.
+  // Nomor dokumen baru berbasis tanggal hari ini
+  // FIX: Reset flag agar refreshDocNumber tidak terblokir oleh request sebelumnya
   _docNumberLoading = false;
   refreshDocNumber();
 
   updatePreview();
+  } finally {
+    // FIX: Lepas flag setelah semua sinkron selesai.
+    // refreshDocNumber() async — beri jeda 500ms agar fetch pertama tidak bentrok.
+    setTimeout(() => { _resetInProgress = false; }, 500);
+  }
 }
 
 // ══════════════════════════════════════════════
