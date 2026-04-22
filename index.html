@@ -492,16 +492,16 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
   display: inline-block;
   font-size: 9px;
   font-weight: 800;
-  background: linear-gradient(135deg, #dce8ff, #c8d9ff);
-  color: #1a40b0;
-  border: 1.5px solid #93b4f5;
+  background: linear-gradient(135deg, #e8eaed, #d8dce2);
+  color: #4a5568;
+  border: 1.5px solid #b0b8c4;
   border-radius: 20px;
   padding: 2px 9px;
   margin-left: 6px;
   vertical-align: middle;
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  box-shadow: 0 1px 4px rgba(26,64,176,0.18);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.10);
 }
 .acc-items-table td.td-qty {
   text-align: center;
@@ -810,9 +810,9 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
   align-items: center;
   margin-left: 7px;
   padding: 2px 9px 2px 8px;
-  background: linear-gradient(135deg, #dce8ff, #c8d9ff);
-  color: #1a40b0;
-  border: 1.5px solid #93b4f5;
+  background: linear-gradient(135deg, #e8eaed, #d8dce2);
+  color: #4a5568;
+  border: 1.5px solid #b0b8c4;
   border-radius: 20px;
   font-size: 9px;
   font-weight: 800;
@@ -820,7 +820,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
   white-space: nowrap;
   vertical-align: middle;
   gap: 3px;
-  box-shadow: 0 1px 4px rgba(26,64,176,0.18);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.10);
   line-height: 1.5;
   text-transform: uppercase;
 }
@@ -2317,12 +2317,7 @@ function selectInvoiceRef(noDoc) {
       const m = seg.match(/^(.+?)\s*\((\d+(?:\.\d+)?)x(.+)\)$/);
       if (m) {
         // FIX: parseFloat agar qty desimal (1.5, 2.75) tidak terpotong menjadi integer
-        // FIX: ekstrak varian dari format "NAMA [VARIAN]" agar tidak dianggap bagian dari nama item
-        const rawName = m[1].trim();
-        const varMatch = rawName.match(/^(.*?)\s*\[(.+?)\]$/);
-        const parsedName    = varMatch ? varMatch[1].trim() : rawName;
-        const parsedVariant = varMatch ? varMatch[2].trim() : '';
-        addItem(parsedName, parseFloat(m[2]), parseRp(m[3]), parsedVariant);
+        addItem(m[1].trim(), parseFloat(m[2]), parseRp(m[3]));
       } else {
         // Fallback: hanya nama, tanpa qty/harga — tampilkan toast peringatan
         addItem(seg, 1, 0);
@@ -4425,12 +4420,8 @@ function initEditItems(detailStr) {
     detailStr.split(';').forEach(seg => {
       seg = seg.trim(); if (!seg) return;
       const m = seg.match(/^(.+?)\s*\((\d+(?:\.\d+)?)x(.+)\)$/);
-      if (m) {
-        // FIX: ekstrak varian dari format "NAMA [VARIAN]" agar tidak dianggap bagian dari nama item
-        const rawN = m[1].trim();
-        const varM = rawN.match(/^(.*?)\s*\[(.+?)\]$/);
-        _editItems.push({ id: ++_editItemCounter, name: varM ? varM[1].trim() : rawN, variant: varM ? varM[2].trim() : '', qty: parseFloat(m[2])||1, price: parseRp(m[3]) });
-      } else _editItems.push({ id: ++_editItemCounter, name: seg, variant: '', qty: 1, price: 0 });
+      if (m) _editItems.push({ id: ++_editItemCounter, name: m[1].trim(), qty: parseFloat(m[2])||1, price: parseRp(m[3]) });
+      else   _editItems.push({ id: ++_editItemCounter, name: seg, qty: 1, price: 0 });
     });
   }
   renderEditItems();
