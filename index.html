@@ -396,166 +396,16 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 .acc-date { color: var(--text-muted); font-size: 11px; white-space: nowrap; }
 .acc-total { font-weight: 800; color: var(--navy); white-space: nowrap; }
 .acc-actions { display: flex; gap: 3px; flex-shrink: 0; flex-wrap: nowrap; }
-.acc-body { display: none; padding: 14px 16px 16px 16px; touch-action: pan-y; }
+.acc-body { display: none; padding: 14px 16px 14px 40px; background: var(--surface-2); border-top: 1px solid var(--border); touch-action: pan-y; }
 .acc-card.open .acc-body { display: block; }
-/* ── HISTORY ACCORDION BODY — REDESIGNED ── */
-.acc-body {
-  background: linear-gradient(160deg, #f0f4fb 0%, #eef1f8 100%);
-  border-top: 2px solid var(--border);
-}
-.acc-body-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin-bottom: 12px;
-}
-.acc-detail-box {
-  background: var(--surface);
-  border-radius: 10px;
-  padding: 11px 14px;
-  border: 1px solid #dce4ef;
-  box-shadow: 0 1px 4px rgba(30,45,66,0.06);
-}
-.acc-detail-box h5 {
-  font-size: 9px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  color: var(--steel);
-  margin-bottom: 7px;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-.acc-detail-box p { font-size: 11px; color: var(--text); line-height: 1.65; }
-
-/* Items table — fully redesigned */
-.acc-items-section {
-  background: var(--surface);
-  border-radius: 10px;
-  border: 1px solid #dce4ef;
-  overflow: hidden;
-  box-shadow: 0 1px 4px rgba(30,45,66,0.06);
-  margin-bottom: 10px;
-}
-.acc-items-section-title {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 9px 14px;
-  background: linear-gradient(90deg, var(--navy) 0%, var(--navy-mid) 100%);
-  font-size: 10px;
-  font-weight: 800;
-  color: #fff;
-  text-transform: uppercase;
-  letter-spacing: 0.7px;
-}
-.acc-items-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12.5px;
-}
-.acc-items-table thead tr {
-  background: linear-gradient(90deg, #2a4d7a 0%, #3a6090 100%);
-}
-.acc-items-table thead th {
-  padding: 11px 16px;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  color: rgba(255,255,255,0.9);
-  border-bottom: none;
-}
-.acc-items-table thead th:nth-child(1) { width: 42%; text-align: left; }
-.acc-items-table thead th:nth-child(2) { width: 10%; text-align: center; }
-.acc-items-table thead th:nth-child(3) { width: 24%; text-align: right; }
-.acc-items-table thead th:nth-child(4) { width: 24%; text-align: right; }
-.acc-items-table tbody tr:nth-child(even) { background: #f5f8fc; }
-.acc-items-table tbody tr:nth-child(odd) { background: #fff; }
-.acc-items-table tbody tr:hover { background: #edf2fb; transition: background .15s; }
-.acc-items-table tbody td {
-  padding: 13px 16px;
-  border-bottom: 1px solid #e8eef6;
-  vertical-align: middle;
-  line-height: 1.5;
-}
-.acc-items-table tbody tr:last-child td { border-bottom: none; }
-.acc-items-table td.td-item-name {
-  font-weight: 600;
-  color: var(--navy);
-  word-break: break-word;
-}
-/* Variant chip — tampil di bawah nama item, bukan inline */
-.acc-items-table td.td-item-name .item-variant {
-  display: block;
-  margin-top: 5px;
-  width: fit-content;
-  font-size: 9.5px;
-  font-weight: 700;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
-  background: linear-gradient(135deg, #fef6e4, #fdefc4);
-  color: #8a5a00;
-  border: 1.5px solid #e8c050;
-  border-radius: 5px;
-  padding: 2px 8px 2px 6px;
-  line-height: 1.6;
-}
-.acc-items-table td.td-item-name .item-variant::before {
-  content: '◈ ';
-  opacity: 0.7;
-}
-.acc-items-table td.td-qty {
-  text-align: center;
-  font-weight: 700;
-  color: var(--steel);
-  font-size: 13px;
-}
-.acc-items-table td.td-price-unit {
-  text-align: right;
-  color: var(--text-muted);
-  font-size: 12px;
-}
-.acc-items-table td.td-total {
-  text-align: right;
-  font-weight: 800;
-  color: var(--navy);
-  font-size: 13px;
-}
-.acc-items-table tfoot tr {
-  background: linear-gradient(90deg, #f0f4fb, #e8edf7);
-  border-top: 2px solid #c8d5e8;
-}
-.acc-items-table tfoot td {
-  padding: 11px 16px;
-  font-size: 13px;
-  font-weight: 800;
-  color: var(--navy);
-}
-
-/* Catatan box */
-.acc-catatan-box {
-  background: linear-gradient(135deg, #fffbf0, #fff8e4);
-  border: 1.5px solid #f0d080;
-  border-radius: 10px;
-  padding: 10px 14px;
-  display: flex;
-  align-items: flex-start;
-  gap: 9px;
-  box-shadow: 0 1px 4px rgba(232,168,56,0.10);
-}
-.acc-catatan-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
-.acc-catatan-content {}
-.acc-catatan-label {
-  font-size: 9px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.7px;
-  color: #b07a10;
-  margin-bottom: 3px;
-}
-.acc-catatan-text { font-size: 11.5px; color: #5a4010; line-height: 1.6; }
+.acc-body-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.acc-detail-box { background: var(--surface); border-radius: 8px; padding: 10px 12px; border: 1px solid var(--border); }
+.acc-detail-box h5 { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 6px; }
+.acc-detail-box p { font-size: 11px; color: var(--text); line-height: 1.6; }
+.acc-items-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 8px; }
+.acc-items-table th { background: var(--navy); color: #fff; padding: 5px 8px; text-align: left; font-size: 10px; }
+.acc-items-table td { padding: 5px 8px; border-bottom: 1px solid var(--border); }
+.acc-items-table tr:last-child td { border-bottom: none; }
 
 .badge { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
 .badge-unpaid { background: #fde8e8; color: #c0392b; }
@@ -769,18 +619,86 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 .doi-wrap { display: flex; align-items: center; gap: 5px; }
 .doi-toggle { width: 20px; height: 20px; border: none; background: var(--navy); color: #fff; border-radius: 4px; cursor: pointer; font-size: 9px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: background .15s; padding: 0; }
 .doi-toggle:hover { background: var(--steel); }
-.doi-detail-row { background: #f8fafd; border-bottom: 1px solid var(--border); }
+.doi-detail-row { background: #f0f5fb; border-bottom: 1px solid var(--border); }
 .doi-detail-row td { padding: 0 !important; }
-.doi-detail-inner { padding: 6px 14px 10px 28px; display: none; }
+.doi-detail-inner { padding: 10px 18px 14px 32px; display: none; }
 .doi-detail-inner.open { display: block; }
-.doi-detail-table { width: 100%; border-collapse: collapse; font-size: 11px; }
-.doi-detail-table th { padding: 4px 8px; background: var(--navy); color: #fff; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; text-align: left; }
-.doi-detail-table th:nth-child(2),
-.doi-detail-table th:nth-child(3) { text-align: center; }
-.doi-detail-table td { padding: 5px 8px; border-bottom: 1px solid var(--border); color: var(--text); }
-.doi-detail-table td:nth-child(2) { text-align: center; }
-.doi-detail-table td:nth-child(3) { text-align: center; font-weight: 700; color: var(--navy); }
+
+/* Tabel detail item */
+.doi-detail-table { width: 100%; border-collapse: collapse; font-size: 12px; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(30,45,66,0.08); }
+.doi-detail-table thead tr { background: linear-gradient(90deg, var(--navy) 0%, var(--navy-mid) 100%); }
+.doi-detail-table th {
+  padding: 9px 14px;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(255,255,255,0.9);
+  text-align: left;
+  white-space: nowrap;
+}
+.doi-detail-table th:nth-child(2) { text-align: center; width: 10%; }
+.doi-detail-table th:nth-child(3) { text-align: right; width: 22%; }
+.doi-detail-table th:nth-child(4) { text-align: right; width: 22%; }
+.doi-detail-table tbody tr:nth-child(even) { background: #f4f8fd; }
+.doi-detail-table tbody tr:nth-child(odd)  { background: #fff; }
+.doi-detail-table tbody tr:hover { background: #e8f0fb; transition: background .12s; }
+.doi-detail-table td {
+  padding: 11px 14px;
+  border-bottom: 1px solid #e4ecf5;
+  vertical-align: middle;
+  line-height: 1.5;
+  color: var(--text);
+}
 .doi-detail-table tr:last-child td { border-bottom: none; }
+.doi-detail-table td:nth-child(2) { text-align: center; font-weight: 700; color: var(--steel); }
+.doi-detail-table td:nth-child(3) { text-align: right; color: var(--text-muted); }
+.doi-detail-table td:nth-child(4) { text-align: right; font-weight: 800; color: var(--navy); font-size: 12.5px; }
+.doi-detail-table tfoot tr { background: linear-gradient(90deg, #eaf0f9, #e2eaf6); border-top: 2px solid #c4d4ea; }
+.doi-detail-table tfoot td { padding: 9px 14px; font-weight: 800; font-size: 12px; color: var(--navy); }
+
+/* Variant chip — tampil sebagai tag di bawah nama item */
+.doi-item-name { font-weight: 600; color: var(--navy); }
+.doi-variant-chip {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #fef6e4, #fdefc4);
+  color: #7a4f00;
+  border: 1.5px solid #e0b840;
+  border-radius: 4px;
+  padding: 2px 7px;
+  line-height: 1.6;
+}
+.doi-variant-chip::before { content: '◈ '; opacity: 0.65; }
+
+/* Catatan section di bawah tabel */
+.doi-catatan-wrap {
+  margin-top: 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  background: linear-gradient(135deg, #fffbf0, #fff8e4);
+  border: 1.5px solid #e8c050;
+  border-radius: 8px;
+  padding: 10px 14px;
+  box-shadow: 0 1px 4px rgba(232,168,56,0.10);
+}
+.doi-catatan-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+.doi-catatan-body {}
+.doi-catatan-label {
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: #9a6a00;
+  margin-bottom: 3px;
+}
+.doi-catatan-text { font-size: 11.5px; color: #5a3e00; line-height: 1.6; }
+
 .doi-multi-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 9px; font-weight: 700; background: var(--navy); color: #fff; padding: 1px 6px; border-radius: 10px; white-space: nowrap; }
 
 /* Loading shimmer for dashboard */
@@ -881,13 +799,6 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
   .topbar { padding: 0 12px; gap: 8px; }
   .stats-grid { grid-template-columns: 1fr 1fr; }
   .acc-body-grid { grid-template-columns: 1fr; }
-  .acc-items-table thead th:nth-child(1) { width: 40%; }
-  .acc-items-table thead th:nth-child(2) { width: 10%; }
-  .acc-items-table thead th:nth-child(3) { width: 25%; }
-  .acc-items-table thead th:nth-child(4) { width: 25%; }
-  .acc-items-table tbody td, .acc-items-table thead th { padding: 9px 10px; font-size: 10.5px; }
-  .acc-items-table tfoot td { padding: 9px 10px; }
-  .acc-catatan-box { flex-direction: row; }
   .modal { width: 95vw; }
   .modal-wide { width: 95vw; }
   .modal-xl { width: 95vw; }
@@ -3450,90 +3361,27 @@ function renderHistoryAccordion(data) {
       <div class="acc-body">
         <div class="acc-body-grid">
           <div class="acc-detail-box">
-            <h5>👤 Data Customer</h5>
+            <h5>Data Customer</h5>
             <p><strong>${escHtml(client)}</strong><br>${escHtml(row['No. HP']||'—')}<br>${escHtml(row['Email']||'')}<br>${escHtml(row['Alamat']||'')}</p>
           </div>
           <div class="acc-detail-box">
-            <h5>💰 Ringkasan Keuangan</h5>
-            <p>Subtotal: <strong>${formatRp(row['Subtotal']||0)}</strong><br>Diskon: ${formatRp(row['Diskon(Rp)']||row['Diskon(%)']*1||0)}<br>PPN: ${row['PPN(%)']}%<br><br><span style="font-size:13px;font-weight:800;color:var(--navy)">Total: ${formatRp(total)}</span></p>
+            <h5>Ringkasan Keuangan</h5>
+            <p>Subtotal: ${formatRp(row['Subtotal']||0)}<br>Diskon: ${formatRp(row['Diskon(Rp)']||row['Diskon(%)']*1||0)}<br>PPN: ${row['PPN(%)']}%<br><strong>Total: ${formatRp(total)}</strong></p>
           </div>
           <div class="acc-detail-box">
-            <h5>🏦 Metode Pembayaran</h5>
+            <h5>Pembayaran</h5>
             <p>${formatPaymentDisplay(row['Metode Bayar']||'—')}</p>
           </div>
         </div>
-
-        <div class="acc-items-section">
-          <div class="acc-items-section-title">📦 Daftar Item / Layanan</div>
+        <div class="acc-detail-box" style="margin-top:10px">
+          <h5>Item / Layanan</h5>
           <table class="acc-items-table">
-            <thead>
-              <tr>
-                <th>Item / Layanan</th>
-                <th style="text-align:center">Qty</th>
-                <th style="text-align:right">Harga Satuan</th>
-                <th style="text-align:right">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${(function(){
-                if (!items2.length) return `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);font-style:italic;padding:14px">Tidak ada item</td></tr>`;
-                return items2.map(seg => {
-                  seg = seg.trim();
-                  const m = seg.match(/^(.+?)\s*\((\d+(?:\.\d+)?)x(Rp[\s\S]+?)\)$/);
-                  if (m) {
-                    const rawName = m[1].trim();
-                    const qty     = parseFloat(m[2]);
-                    const harga   = parseRp(m[3]);
-                    const tot     = qty * harga;
-                    // Pisahkan variant jika ada [...]
-                    const vmatch  = rawName.match(/^(.*?)\s*\[(.+?)\]$/);
-                    const namePart    = vmatch ? vmatch[1].trim() : rawName;
-                    const variantPart = vmatch ? vmatch[2].trim() : '';
-                    const nameCell = variantPart
-                      ? `${escHtml(namePart)}<span class="item-variant">${escHtml(variantPart)}</span>`
-                      : escHtml(namePart);
-                    const qtyDisp = Number.isInteger(qty) ? qty : qty.toFixed(2).replace(/\.?0+$/,'');
-                    return `<tr>
-                      <td class="td-item-name">${nameCell}</td>
-                      <td class="td-qty">${qtyDisp}</td>
-                      <td class="td-price-unit">${formatRp(harga)}</td>
-                      <td class="td-total">${formatRp(tot)}</td>
-                    </tr>`;
-                  } else {
-                    return `<tr>
-                      <td class="td-item-name">${escHtml(seg)}</td>
-                      <td class="td-qty" colspan="2" style="text-align:center;color:var(--text-muted)">—</td>
-                      <td class="td-total">—</td>
-                    </tr>`;
-                  }
-                }).join('');
-              })()}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td colspan="3" style="text-align:right;color:var(--steel);font-size:11px">Grand Total</td>
-                <td style="text-align:right;font-size:13px;font-weight:800;color:var(--accent-dark)">${formatRp(total)}</td>
-              </tr>
-            </tfoot>
+            <thead><tr><th>Item</th><th>Detail</th></tr></thead>
+            <tbody>${items2.map(it => `<tr><td colspan="2">${escHtml(it.trim())}</td></tr>`).join('')}</tbody>
           </table>
+          ${row['Catatan'] ? `<p style="margin-top:6px;font-size:11px;color:var(--text-muted)">📝 ${escHtml(row['Catatan'])}</p>` : ''}
+          ${row['InvRef'] ? `<p style="margin-top:4px;font-size:11px;color:var(--info)">🔗 Ref Invoice: ${escHtml(row['InvRef'])}</p>` : ''}
         </div>
-
-        ${(row['Catatan']||row['InvRef']) ? `<div style="display:flex;flex-direction:column;gap:8px">
-          ${row['Catatan'] ? `<div class="acc-catatan-box">
-            <div class="acc-catatan-icon">📝</div>
-            <div class="acc-catatan-content">
-              <div class="acc-catatan-label">Catatan</div>
-              <div class="acc-catatan-text">${escHtml(row['Catatan'])}</div>
-            </div>
-          </div>` : ''}
-          ${row['InvRef'] ? `<div class="acc-catatan-box" style="background:linear-gradient(135deg,#eaf3ff,#dff0ff);border-color:#90c0f0">
-            <div class="acc-catatan-icon">🔗</div>
-            <div class="acc-catatan-content">
-              <div class="acc-catatan-label" style="color:#1a5ba8">Referensi Invoice</div>
-              <div class="acc-catatan-text" style="color:#1a3a6a">${escHtml(row['InvRef'])}</div>
-            </div>
-          </div>` : ''}
-        </div>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -4689,16 +4537,24 @@ function _renderDashOrders(invoices) {
     });
   }
 
+  // Pisah nama item dan variant dari format "Nama [Variant]"
+  function splitVariant(name) {
+    const vm = name.match(/^(.*?)\s*\[(.+?)\]$/);
+    return vm ? { label: vm[1].trim(), variant: vm[2].trim() } : { label: name, variant: '' };
+  }
+
   let rowsHtml = '';
   invoices.forEach((row, idx) => {
     const noDoc   = row['No. Dokumen'] || '—';
     const client  = row['Nama Pelanggan'] || '—';
     const detail  = row['Detail Item'] || '';
     const status  = row['Status'] || '';
+    const catatan = row['Catatan'] || '';
     const tgl     = row['Tgl Terbit'] ? formatDate(row['Tgl Terbit']) : '—';
     const total   = parseFloat(row['Total'])||0;
     const parsedItems = parseItemSegs(detail);
     const isMulti = parsedItems.length > 1;
+    const hasDropdown = isMulti || !!catatan;
     const dropId  = 'doi-' + idx;
 
     // Kolom item: jika multi tampilkan "nama +N lainnya" + tombol dropdown
@@ -4707,14 +4563,20 @@ function _renderDashOrders(invoices) {
       itemCell  = '—'; qtyCell = '—'; priceCell = formatRp(total);
     } else if (!isMulti) {
       const it = parsedItems[0];
-      itemCell  = escHtml(it.name);
+      const sv = splitVariant(it.name);
+      const varChip = sv.variant ? `<span class="doi-variant-chip">${escHtml(sv.variant)}</span>` : '';
+      itemCell  = catatan
+        ? `<div class="doi-wrap"><div><span class="doi-item-name">${escHtml(sv.label)}</span>${varChip?'<br>'+varChip:''}</div><button class="doi-toggle" onclick="toggleDoiDropdown('${escJs(dropId)}')" title="Lihat detail & catatan">▼</button></div>`
+        : `<div><span class="doi-item-name">${escHtml(sv.label)}</span>${varChip?'<br>'+varChip:''}</div>`;
       qtyCell   = escHtml(it.qty);
       priceCell = it.priceStr !== '—' ? it.priceStr : formatRp(total);
     } else {
       const first = parsedItems[0];
+      const sv = splitVariant(first.name);
+      const varChip = sv.variant ? `<br><span class="doi-variant-chip">${escHtml(sv.variant)}</span>` : '';
       itemCell  = `<div class="doi-wrap">
-        <span>${escHtml(first.name)}</span>
-        <span class="doi-multi-badge">+${parsedItems.length-1} lainnya</span>
+        <div><span class="doi-item-name">${escHtml(sv.label)}</span>${varChip}
+        <span class="doi-multi-badge">+${parsedItems.length-1} lainnya</span></div>
         <button class="doi-toggle" onclick="toggleDoiDropdown('${escJs(dropId)}')" title="Lihat semua item">▼</button>
       </div>`;
       qtyCell   = `<span style="color:var(--text-muted);font-style:italic;font-size:10px">n/a</span>`;
@@ -4737,21 +4599,47 @@ function _renderDashOrders(invoices) {
       <td>${statusHtml}</td>
     </tr>`;
 
-    // Baris detail dropdown (hanya untuk multi-item)
-    if (isMulti) {
-      const detailRows = parsedItems.map(it => `
-        <tr>
-          <td>${escHtml(it.name)}</td>
-          <td style="text-align:center">${escHtml(it.qty)}</td>
-          <td style="text-align:right;font-weight:700;color:var(--navy)">${it.priceStr}</td>
-        </tr>`).join('');
+    // Baris detail dropdown (multi-item ATAU ada catatan)
+    if (hasDropdown) {
+      const detailRows = parsedItems.map(it => {
+        const sv  = splitVariant(it.name);
+        const varChip = sv.variant ? `<br><span class="doi-variant-chip">${escHtml(sv.variant)}</span>` : '';
+        const qty = parseFloat(it.qty) || 0;
+        const tot = qty > 0 ? formatRp(qty * it.price) : '—';
+        return `<tr>
+          <td><span class="doi-item-name">${escHtml(sv.label)}</span>${varChip}</td>
+          <td>${escHtml(it.qty)}</td>
+          <td>${it.priceStr}</td>
+          <td>${tot}</td>
+        </tr>`;
+      }).join('');
+
+      const catatanHtml = catatan ? `
+        <div class="doi-catatan-wrap">
+          <div class="doi-catatan-icon">📝</div>
+          <div class="doi-catatan-body">
+            <div class="doi-catatan-label">Catatan</div>
+            <div class="doi-catatan-text">${escHtml(catatan)}</div>
+          </div>
+        </div>` : '';
+
       rowsHtml += `<tr class="doi-detail-row">
         <td colspan="7">
           <div class="doi-detail-inner" id="${escHtml(dropId)}">
-            <table class="doi-detail-table">
-              <thead><tr><th>Item / Layanan</th><th>Qty</th><th style="text-align:right">Harga Satuan</th></tr></thead>
+            ${parsedItems.length > 0 ? `<table class="doi-detail-table">
+              <thead><tr>
+                <th>Item / Layanan</th>
+                <th>Qty</th>
+                <th style="text-align:right">Harga Satuan</th>
+                <th style="text-align:right">Total</th>
+              </tr></thead>
               <tbody>${detailRows}</tbody>
-            </table>
+              <tfoot><tr>
+                <td colspan="3" style="text-align:right;color:var(--steel);font-size:10.5px;font-weight:600">Grand Total</td>
+                <td style="text-align:right;color:var(--accent-dark);font-size:13px">${formatRp(total)}</td>
+              </tr></tfoot>
+            </table>` : ''}
+            ${catatanHtml}
           </div>
         </td>
       </tr>`;
