@@ -1021,14 +1021,14 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
         <div class="dash-kpi-icon">💰</div>
         <div class="dash-kpi-label">Pendapatan Kotor</div>
         <div class="dash-kpi-value" id="dash-gross">—</div>
-        <div class="dash-kpi-sub">Total seluruh invoice masuk</div>
+        <div class="dash-kpi-sub">Total pembayaran masuk dari nota lunas</div>
         <div class="dash-kpi-badge neutral" id="dash-gross-badge">dari nota lunas</div>
       </div>
       <div class="dash-kpi-card net">
         <div class="dash-kpi-icon">📈</div>
         <div class="dash-kpi-label">Pendapatan Bersih</div>
         <div class="dash-kpi-value" id="dash-net">—</div>
-        <div class="dash-kpi-sub">Setelah diskon &amp; pajak</div>
+        <div class="dash-kpi-sub">Laba bersih setelah potong modal &amp; diskon</div>
         <div class="dash-kpi-badge neutral" id="dash-net-badge">dari nota lunas</div>
       </div>
       <div class="dash-kpi-card orders">
@@ -2007,6 +2007,8 @@ function switchMode(m) {
     refreshDocNumber();
   }
   updatePreview();
+  // FIX PREVIEW BUG: Panggil ulang scale setelah main-app terlihat
+  setTimeout(function() { if (window.scaleInvoiceDoc) window.scaleInvoiceDoc(); }, 80);
 }
 
 function showPage(p) {
@@ -3193,10 +3195,13 @@ function renderHistoryAccordion(data) {
       badgeHtml = `<span class="badge ${badgeCls}">${status}</span>`;
     }
 
-    const editBtn    = isInvoiceTab
+    // Jika invoice sudah LUNAS: nonaktifkan edit & hapus, hanya cetak ulang yang tersedia
+    const isLunasInvoice = isInvoiceTab && status === 'Lunas';
+    const editBtn    = (isInvoiceTab && !isLunasInvoice)
       ? `<button class="btn-sm btn-sm-info"   onclick="openEdit('${escJs(noDoc)}')"   title="Edit">✏️</button>` : '';
     const reprintBtn = `<button class="btn-sm btn-sm-warning" onclick="printFromHistory('${escJs(noDoc)}')" title="Cetak Ulang">🖨️</button>`;
-    const delBtn     = `<button class="btn-sm btn-sm-danger"  onclick="openDelete('${escJs(noDoc)}')"  title="Hapus">🗑️</button>`;
+    const delBtn     = !isLunasInvoice
+      ? `<button class="btn-sm btn-sm-danger"  onclick="openDelete('${escJs(noDoc)}')"  title="Hapus">🗑️</button>` : '';
 
     return `<div class="acc-card" id="acc-${noDoc.replace(/[^a-z0-9]/gi,'_')}">
       <div class="acc-header" onclick="toggleAcc(this)">
@@ -4147,6 +4152,58 @@ let _dashFilter = 'monthly';
 let _dashChartFilter = 'monthly';
 let _dashChartInstance = null;
 
+/**
+ * Parse tanggal dari format DD/MM/YYYY atau YYYY-MM-DD menjadi timestamp (ms).
+ * Dipakai untuk sort & filter agar format spreadsheet (DD/MM/YYYY) tidak jadi Invalid Date.
+ */
+function parseDateSafe(s) {
+  if (!s || s === '—') return 0;
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(String(s))) {
+    const [d, mo, yr] = String(s).split('/');
+    return new Date(+yr, +mo - 1, +d).getTime() || 0;
+  }
+  return new Date(s).getTime() || 0;
+}
+
+/**
+ * Hitung Pendapatan Bersih (laba bersih) dari nota pelunasan.
+ * Formula per nota:
+ *   laba_item = (harga_jual_invoice - harga_beli_katalog) × qty
+ *   laba_kotor = Σ laba_item
+ *   pendapatan_bersih = laba_kotor − diskon
+ *   (PPN dianggap pass-through: dipungut dari customer, disetor ke pemerintah)
+ */
+function _calcNetIncome(receipts) {
+  let totalNet = 0;
+  for (const r of receipts) {
+    const detailStr = r['Detail Item'] || '';
+    const diskon    = parseFloat(r['Diskon(Rp)'] || r['Diskon(%)'] || 0);
+
+    let labaKotor = 0;
+    detailStr.split(';').filter(Boolean).forEach(seg => {
+      seg = seg.trim();
+      const m = seg.match(/^(.+?)\s*\((\d+(?:\.\d+)?)x(.+)\)$/);
+      if (!m) return;
+      const fullName  = m[1].trim();
+      const qty       = parseFloat(m[2]) || 0;
+      const sellPrice = parseRp(m[3]);
+
+      // Pisahkan nama item dan varian — misal "Stempel [3cm]" → name="Stempel" variant="3cm"
+      const namePart = fullName.replace(/\s*\[.*?\]\s*$/, '').trim();
+
+      // Cari harga beli dari katalog
+      const cat = catalogItems.find(c => c.name === namePart);
+      const buyPrice = cat ? (parseFloat(cat.buyPrice) || 0) : 0;
+
+      labaKotor += (sellPrice - buyPrice) * qty;
+    });
+
+    // Kurangi diskon dari laba kotor
+    totalNet += Math.max(0, labaKotor - diskon);
+  }
+  return totalNet;
+}
+
 function setDashFilter(filter, btn) {
   _dashFilter = filter;
   document.querySelectorAll('.dash-filter-pill').forEach(b => b.classList.remove('active'));
@@ -4212,12 +4269,12 @@ function renderDashboard() {
   const filteredInv  = _filterDashData(invoices, _dashFilter);
   const filteredRec  = _filterDashData(receipts, _dashFilter);
 
-  // Pendapatan kotor (Gross): sum Subtotal sebelum diskon & pajak
-  const grossRaw = filteredRec.reduce((s, r) => s + (parseFloat(r['Subtotal'])||parseFloat(r['Total'])||0), 0);
+  // Pendapatan kotor (Gross): sum Total dari nota lunas
+  const grossRaw = filteredRec.reduce((s, r) => s + (parseFloat(r['Total'])||0), 0);
 
-  // Pendapatan bersih (Net): sum Total setelah diskon & pajak sudah dihitung
-  // Nilai 'Total' di database sudah final (bersih), tidak perlu hitung ulang.
-  const gross = filteredRec.reduce((s, r) => s + (parseFloat(r['Total'])||0), 0);
+  // Pendapatan bersih (Net): laba satuan (harga jual di invoice - harga beli di katalog)
+  // dipotong diskon per nota. PPN adalah pass-through ke pemerintah, tidak dihitung.
+  const gross = _calcNetIncome(filteredRec);
 
   // Total order = jumlah invoice pada periode ini
   const totalOrders = filteredInv.length;
@@ -4233,17 +4290,16 @@ function renderDashboard() {
   document.getElementById('dash-gross-badge').textContent = paidCount + ' nota lunas';
   document.getElementById('dash-gross-badge').className = 'dash-kpi-badge ' + (paidCount > 0 ? 'up' : 'neutral');
 
-  document.getElementById('dash-net-badge').textContent = 'setelah diskon & pajak';
-  document.getElementById('dash-net-badge').className = 'dash-kpi-badge neutral';
+  document.getElementById('dash-net-badge').textContent = 'laba bersih (jual−beli−diskon)';
+  document.getElementById('dash-net-badge').className = 'dash-kpi-badge ' + (gross > 0 ? 'up' : 'neutral');
 
   document.getElementById('dash-orders-badge').textContent = unpaidCount + ' belum lunas';
   document.getElementById('dash-orders-badge').className = 'dash-kpi-badge ' + (unpaidCount > 0 ? 'down' : 'up');
 
   // Render recent orders table (filtered invoices sorted newest first, limit 15)
-  // BUG FIX: sebelumnya pakai `invoices` (semua), seharusnya `filteredInv` (sesuai filter periode)
+  // Gunakan parseDateSafe agar format DD/MM/YYYY dari spreadsheet ter-sort dengan benar
   const sortedInv = filteredInv.slice().sort((a, b) => {
-    const da = new Date(a['Tgl Terbit']||0), db = new Date(b['Tgl Terbit']||0);
-    return db - da;
+    return parseDateSafe(b['Tgl Terbit']) - parseDateSafe(a['Tgl Terbit']);
   });
   _renderDashOrders(sortedInv.slice(0, 15));
 
@@ -4647,20 +4703,23 @@ function showToast(msg, type='') {
     doc.style.zoom = scale;
   }
 
+  // Expose globally agar bisa dipanggil dari switchMode
+  window.scaleInvoiceDoc = scaleInvoiceDoc;
+
   window.addEventListener('resize', scaleInvoiceDoc);
   window.addEventListener('resize', function() {
     const dashPage = document.getElementById('page-dashboard');
     if (dashPage && dashPage.classList.contains('active')) renderDashboard();
   });
-  // Jalankan setelah semua konten siap
+  // Jalankan setelah semua konten siap — dengan sedikit delay agar layout sudah terbentuk
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', scaleInvoiceDoc);
+    document.addEventListener('DOMContentLoaded', function() { setTimeout(scaleInvoiceDoc, 80); });
   } else {
-    scaleInvoiceDoc();
+    setTimeout(scaleInvoiceDoc, 80);
   }
   // Panggil ulang saat tab aktif (perpindahan halaman)
   document.addEventListener('visibilitychange', function () {
-    if (!document.hidden) scaleInvoiceDoc();
+    if (!document.hidden) setTimeout(scaleInvoiceDoc, 80);
   });
 })();
 </script>
