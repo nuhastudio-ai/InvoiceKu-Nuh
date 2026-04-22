@@ -762,22 +762,22 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 <!-- BOTTOM NAV (mobile only) -->
 <div class="refresh-chip" id="refresh-chip"><span class="rc-dot"></span><span id="refresh-chip-text">Memperbarui...</span></div>
 <nav class="bottom-nav" id="bottom-nav">
-  <button class="bn-item" id="bn-dashboard" onclick="showPage('dashboard')">
+  <button class="bn-item" id="bn-dashboard" onclick="navigateTo('/')">
     <span class="bn-icon">🏠</span><span>Dashboard</span>
   </button>
-  <button class="bn-item" id="bn-invoice" onclick="switchMode('invoice')">
+  <button class="bn-item" id="bn-invoice" onclick="navigateTo('/invoice')">
     <span class="bn-icon">📄</span><span>Invoice</span>
   </button>
-  <button class="bn-item" id="bn-receipt" onclick="switchMode('receipt')">
+  <button class="bn-item" id="bn-receipt" onclick="navigateTo('/nota-lunas')">
     <span class="bn-icon">✅</span><span>Nota</span>
   </button>
-  <button class="bn-item" id="bn-history" onclick="showPage('history')">
+  <button class="bn-item" id="bn-history" onclick="navigateTo('/history')">
     <span class="bn-icon">📊</span><span>Riwayat</span>
   </button>
-  <button class="bn-item" id="bn-customers" onclick="showPage('customers')">
+  <button class="bn-item" id="bn-customers" onclick="navigateTo('/customer')">
     <span class="bn-icon">👥</span><span>Customer</span>
   </button>
-  <button class="bn-item" id="bn-items" onclick="showPage('items')">
+  <button class="bn-item" id="bn-items" onclick="navigateTo('/items')">
     <span class="bn-icon">📦</span><span>Item</span>
   </button>
   <button class="bn-item" id="bn-settings" onclick="openSettings()">
@@ -4921,6 +4921,7 @@ const ROUTE_MAP = {
   '/nota-lunas': () => switchMode('receipt'),
   '/history':    () => showPage('history'),
   '/customer':   () => showPage('customers'),
+  '/items':      () => showPage('items'),
 };
 
 function navigateTo(path) {
