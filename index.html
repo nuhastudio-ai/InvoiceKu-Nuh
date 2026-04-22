@@ -2901,8 +2901,18 @@ async function _executeSaveOrPrint(payload, execMode, isOverwrite) {
       try {
         const finalNo = await _doCloudSave(payload, isOverwrite);
         if (finalNo) {
-          showSuccessPopup('save', finalNo);
-          resetForm();
+          // Tampilkan notifikasi sukses (dengan fallback toast jika popup gagal)
+          try {
+            showSuccessPopup('save', finalNo);
+          } catch(e) {
+            showToast('☁️ Tersimpan ke Spreadsheet! No: ' + finalNo, 'success');
+          }
+          // Reset form selalu dijalankan setelah simpan berhasil
+          try {
+            resetForm();
+          } catch(e) {
+            console.error('resetForm error:', e);
+          }
           _refreshHistoryIfOpen();
         }
         // Jika false (gagal), _doCloudSave sudah tampilkan alert — tidak reset form
@@ -2926,8 +2936,16 @@ async function _executeSaveOrPrint(payload, execMode, isOverwrite) {
 
       const finalNo = await _doCloudSave(payload, isOverwrite);
       if (finalNo) {
-        showSuccessPopup('print', finalNo);
-        resetForm();
+        try {
+          showSuccessPopup('print', finalNo);
+        } catch(e) {
+          showToast('🖨️ Dicetak & Tersimpan! No: ' + finalNo, 'success');
+        }
+        try {
+          resetForm();
+        } catch(e) {
+          console.error('resetForm error:', e);
+        }
         _refreshHistoryIfOpen();
       }
     }
@@ -2975,15 +2993,18 @@ async function _doCloudSave(payload, isOverwrite) {
         invRef:        payload.invRef || ''
       });
       cloudOk = result.success === true;
-      if (cloudOk && result.noDoc) {
-        finalNo = result.noDoc;
-        persistDocCounter(finalNo);
-        document.getElementById('inv-number').value = finalNo;
-        updatePreview();
+      if (cloudOk) {
+        if (result.noDoc) {
+          finalNo = result.noDoc;
+          persistDocCounter(finalNo);
+          document.getElementById('inv-number').value = finalNo;
+        }
       } else {
         errMsg = result.message || 'Penyimpanan gagal';
       }
     } catch(e) { errMsg = e.message || 'Koneksi gagal'; }
+    // updatePreview dipanggil di luar try-catch agar tidak mencampuri error handling cloud
+    if (cloudOk) { try { updatePreview(); } catch(e) {} }
   }
 
   if (!cloudOk) {
