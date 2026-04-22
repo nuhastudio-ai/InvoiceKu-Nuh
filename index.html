@@ -747,12 +747,12 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
     <div class="topbar-title">Invoice<span>Ku</span></div>
   </div>
   <div class="tab-group">
-    <button class="tab-btn" id="tab-dashboard" onclick="showPage('dashboard')">🏠 Dashboard</button>
-    <button class="tab-btn" id="tab-invoice" onclick="switchMode('invoice')">📄 Invoice</button>
-    <button class="tab-btn" id="tab-receipt" onclick="switchMode('receipt')">✅ Nota Pelunasan</button>
-    <button class="tab-btn" id="tab-history" onclick="showPage('history')">📊 Riwayat</button>
-    <button class="tab-btn" id="tab-customers" onclick="showPage('customers')">👥 Customer</button>
-    <button class="tab-btn" id="tab-items" onclick="showPage('items')">📦 Item &amp; Layanan</button>
+    <button class="tab-btn" id="tab-dashboard" onclick="navigateTo('/')">🏠 Dashboard</button>
+    <button class="tab-btn" id="tab-invoice" onclick="navigateTo('/invoice')">📄 Invoice</button>
+    <button class="tab-btn" id="tab-receipt" onclick="navigateTo('/nota-lunas')">✅ Nota Pelunasan</button>
+    <button class="tab-btn" id="tab-history" onclick="navigateTo('/history')">📊 Riwayat</button>
+    <button class="tab-btn" id="tab-customers" onclick="navigateTo('/customer')">👥 Customer</button>
+    <button class="tab-btn" id="tab-items" onclick="navigateTo('/items')">📦 Item &amp; Layanan</button>
   </div>
   <div class="topbar-actions">
     <button class="btn-icon" title="Pengaturan" onclick="openSettings()">⚙️</button>
@@ -762,22 +762,22 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 <!-- BOTTOM NAV (mobile only) -->
 <div class="refresh-chip" id="refresh-chip"><span class="rc-dot"></span><span id="refresh-chip-text">Memperbarui...</span></div>
 <nav class="bottom-nav" id="bottom-nav">
-  <button class="bn-item" id="bn-dashboard" onclick="showPage('dashboard')">
+  <button class="bn-item" id="bn-dashboard" onclick="navigateTo('/')">
     <span class="bn-icon">🏠</span><span>Dashboard</span>
   </button>
-  <button class="bn-item" id="bn-invoice" onclick="switchMode('invoice')">
+  <button class="bn-item" id="bn-invoice" onclick="navigateTo('/invoice')">
     <span class="bn-icon">📄</span><span>Invoice</span>
   </button>
-  <button class="bn-item" id="bn-receipt" onclick="switchMode('receipt')">
+  <button class="bn-item" id="bn-receipt" onclick="navigateTo('/nota-lunas')">
     <span class="bn-icon">✅</span><span>Nota</span>
   </button>
-  <button class="bn-item" id="bn-history" onclick="showPage('history')">
+  <button class="bn-item" id="bn-history" onclick="navigateTo('/history')">
     <span class="bn-icon">📊</span><span>Riwayat</span>
   </button>
-  <button class="bn-item" id="bn-customers" onclick="showPage('customers')">
+  <button class="bn-item" id="bn-customers" onclick="navigateTo('/customer')">
     <span class="bn-icon">👥</span><span>Customer</span>
   </button>
-  <button class="bn-item" id="bn-items" onclick="showPage('items')">
+  <button class="bn-item" id="bn-items" onclick="navigateTo('/items')">
     <span class="bn-icon">📦</span><span>Item</span>
   </button>
   <button class="bn-item" id="bn-settings" onclick="openSettings()">
@@ -1884,8 +1884,8 @@ async function refreshDocNumber() {
   renderPaymentChips();
   loadCloudData(); // ← Unduh customers & items dari Spreadsheet saat halaman dibuka
 
-  // Buka Dashboard sebagai halaman awal
-  showPage('dashboard');
+  // Buka halaman sesuai URL saat ini (routing)
+  handleCurrentRoute();
 
   document.addEventListener('click', function(e) {
     if (!e.target.closest('.autocomplete-wrap') && !e.target.closest('#inv-ref-wrap')) {
@@ -4857,6 +4857,57 @@ function showToast(msg, type='') {
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 3500);
 }
+
+// ══════════════════════════════════════════════
+// URL ROUTING
+// Sinkronisasi URL ↔ halaman aktif
+// ══════════════════════════════════════════════
+(function() {
+  /**
+   * Peta URL path → fungsi aktivasi halaman
+   * Semua route dikelola di satu tempat, mudah ditambah.
+   */
+  var ROUTES = {
+    '/':           function() { showPage('dashboard'); },
+    '/invoice':    function() { switchMode('invoice'); },
+    '/nota-lunas': function() { switchMode('receipt'); },
+    '/history':    function() { showPage('history'); },
+    '/customer':   function() { showPage('customers'); },
+    '/items':      function() { showPage('items'); }
+  };
+
+  /**
+   * Baca pathname saat ini dan aktifkan halaman yang sesuai.
+   * Jika path tidak dikenal → fallback ke dashboard.
+   */
+  window.handleCurrentRoute = function() {
+    var path = window.location.pathname.replace(/\/$/, '') || '/';
+    var handler = ROUTES[path] || ROUTES['/'];
+    handler();
+  };
+
+  /**
+   * Navigasi ke path tertentu:
+   * 1. Update URL di browser (tanpa reload)
+   * 2. Aktifkan halaman yang sesuai
+   * Tidak melakukan apa-apa jika path sudah sama (cegah re-render tidak perlu).
+   */
+  window.navigateTo = function(path) {
+    var current = window.location.pathname.replace(/\/$/, '') || '/';
+    if (current === path) return; // sudah di halaman ini
+    history.pushState({ path: path }, '', path);
+    var handler = ROUTES[path] || ROUTES['/'];
+    handler();
+  };
+
+  /**
+   * Handle tombol back/forward browser.
+   * popstate dipancarkan saat pushState/replaceState di-navigate browser.
+   */
+  window.addEventListener('popstate', function() {
+    window.handleCurrentRoute();
+  });
+})();
 
 // ══════════════════════════════════════════════
 // CLOSE MODALS ON OVERLAY
