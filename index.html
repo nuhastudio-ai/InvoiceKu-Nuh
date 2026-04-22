@@ -4911,6 +4911,35 @@ function showToast(msg, type='') {
     if (!document.hidden) setTimeout(scaleInvoiceDoc, 80);
   });
 })();
+
+// ══════════════════════════════════════════
+// URL ROUTING — sinkronisasi URL ↔ halaman
+// ══════════════════════════════════════════
+const ROUTE_MAP = {
+  '/':           () => showPage('dashboard'),
+  '/invoice':    () => switchMode('invoice'),
+  '/nota-lunas': () => switchMode('receipt'),
+  '/history':    () => showPage('history'),
+  '/customer':   () => showPage('customers'),
+};
+
+function navigateTo(path) {
+  const handler = ROUTE_MAP[path] || ROUTE_MAP['/'];
+  history.pushState({}, '', path);
+  handler();
+}
+
+function handleCurrentRoute() {
+  const path = window.location.pathname;
+  const handler = ROUTE_MAP[path] || ROUTE_MAP['/'];
+  handler();
+}
+
+// Jalankan saat halaman pertama kali dibuka
+window.addEventListener('DOMContentLoaded', handleCurrentRoute);
+
+// Handle tombol back/forward browser
+window.addEventListener('popstate', handleCurrentRoute);
 </script>
 </body>
 </html>
