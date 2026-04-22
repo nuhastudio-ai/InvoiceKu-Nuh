@@ -747,12 +747,12 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
     <div class="topbar-title">Invoice<span>Ku</span></div>
   </div>
   <div class="tab-group">
-    <button class="tab-btn" id="tab-dashboard" onclick="showPage('dashboard')">🏠 Dashboard</button>
-    <button class="tab-btn" id="tab-invoice" onclick="switchMode('invoice')">📄 Invoice</button>
-    <button class="tab-btn" id="tab-receipt" onclick="switchMode('receipt')">✅ Nota Pelunasan</button>
-    <button class="tab-btn" id="tab-history" onclick="showPage('history')">📊 Riwayat</button>
-    <button class="tab-btn" id="tab-customers" onclick="showPage('customers')">👥 Customer</button>
-    <button class="tab-btn" id="tab-items" onclick="showPage('items')">📦 Item &amp; Layanan</button>
+    <button class="tab-btn" id="tab-dashboard" onclick="navigateTo('/')">🏠 Dashboard</button>
+    <button class="tab-btn" id="tab-invoice" onclick="navigateTo('/invoice')">📄 Invoice</button>
+    <button class="tab-btn" id="tab-receipt" onclick="navigateTo('/nota-lunas')">✅ Nota Pelunasan</button>
+    <button class="tab-btn" id="tab-history" onclick="navigateTo('/history')">📊 Riwayat</button>
+    <button class="tab-btn" id="tab-customers" onclick="navigateTo('/customer')">👥 Customer</button>
+    <button class="tab-btn" id="tab-items" onclick="navigateTo('/items')">📦 Item &amp; Layanan</button>
   </div>
   <div class="topbar-actions">
     <button class="btn-icon" title="Pengaturan" onclick="openSettings()">⚙️</button>
