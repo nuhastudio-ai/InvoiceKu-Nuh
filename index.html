@@ -775,30 +775,55 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 /* Detail row */
 .doi-detail-row { background: linear-gradient(180deg,#f0f5ff,#eaf0fb); border-bottom: 2px solid var(--border); }
 .doi-detail-row td { padding: 0 !important; }
-.doi-detail-inner { padding: 10px 16px 14px 20px; display: none; }
+.doi-detail-inner { padding: 16px 20px 18px 22px; display: none; }
 .doi-detail-inner.open { display: block; }
 
 /* Detail inner wrapper: table + note side by side */
-.doi-inner-grid { display: flex; flex-direction: column; gap: 10px; }
+.doi-inner-grid { display: flex; flex-direction: column; gap: 12px; }
 
 /* Detail table */
-.doi-detail-table { width: 100%; border-collapse: collapse; font-size: 11px; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 6px rgba(30,45,66,0.08); }
+.doi-detail-table { width: 100%; border-collapse: collapse; font-size: 12px; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 12px rgba(30,45,66,0.10); }
 .doi-detail-table thead tr { background: linear-gradient(90deg,#1e2d42,#2d4060); }
-.doi-detail-table th { padding: 7px 11px; color: rgba(255,255,255,0.9); font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; text-align: left; }
+.doi-detail-table th { padding: 10px 16px; color: rgba(255,255,255,0.9); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; text-align: left; }
 .doi-detail-table th:nth-child(2) { text-align: center; }
 .doi-detail-table th:nth-child(3),
 .doi-detail-table th:nth-child(4) { text-align: right; }
 .doi-detail-table tbody tr:nth-child(odd) { background: #fff; }
 .doi-detail-table tbody tr:nth-child(even) { background: #f4f7fb; }
 .doi-detail-table tbody tr:hover { background: #e8effe; transition: background .12s; }
-.doi-detail-table td { padding: 7px 11px; border-bottom: 1px solid #e4ebf5; color: var(--text); vertical-align: middle; }
+.doi-detail-table td { padding: 12px 16px; border-bottom: 1px solid #e4ebf5; color: var(--text); vertical-align: middle; line-height: 1.5; }
 .doi-detail-table td:nth-child(1) { font-weight: 600; color: var(--navy); }
-.doi-detail-table td:nth-child(2) { text-align: center; color: var(--steel); font-weight: 600; }
+.doi-detail-table td:nth-child(2) { text-align: center; color: var(--steel); font-weight: 700; }
 .doi-detail-table td:nth-child(3) { text-align: right; color: var(--text-muted); }
-.doi-detail-table td:nth-child(4) { text-align: right; font-weight: 800; color: var(--navy); }
+.doi-detail-table td:nth-child(4) { text-align: right; font-weight: 800; color: var(--navy); font-size: 13px; }
 .doi-detail-table tbody tr:last-child td { border-bottom: none; }
-.doi-detail-table tfoot tr { background: linear-gradient(90deg,#f0f4fb,#e8edf7); border-top: 2px solid #c5d3e8; }
-.doi-detail-table tfoot td { padding: 7px 11px; font-size: 11px; font-weight: 800; color: var(--navy); }
+.doi-detail-table tfoot tr { background: linear-gradient(90deg,#eef2fb,#e4ecf9); border-top: 2px solid #bfcfe8; }
+.doi-detail-table tfoot td { padding: 11px 16px; font-size: 12px; font-weight: 800; color: var(--navy); }
+
+/* Variant badge di dalam sel nama item tabel detail */
+.doi-variant-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 7px;
+  padding: 2px 8px 2px 7px;
+  background: linear-gradient(135deg, #e8f0fe, #d6e4ff);
+  color: #1a4dbf;
+  border: 1.5px solid #b0c8f8;
+  border-radius: 20px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  vertical-align: middle;
+  gap: 3px;
+  box-shadow: 0 1px 3px rgba(26,77,191,0.12);
+  line-height: 1.4;
+}
+.doi-variant-badge::before {
+  content: '\29C6';
+  font-size: 8px;
+  opacity: 0.7;
+}
 
 /* Note box in detail */
 .doi-note-box { display: flex; align-items: flex-start; gap: 8px; background: linear-gradient(135deg,#fffbf0,#fff8e4); border: 1.5px solid #f0d080; border-radius: 8px; padding: 9px 13px; box-shadow: 0 1px 4px rgba(232,168,56,0.10); }
@@ -4708,9 +4733,14 @@ function _renderDashOrders(invoices) {
       if (m) {
         const qty   = parseFloat(m[2]);
         const harga = parseRp(m[3]);
-        return { name: m[1].trim(), qty, harga, total: qty * harga, priceStr: formatRp(harga), totalStr: formatRp(qty * harga) };
+        const rawName = m[1].trim();
+        // Pisahkan nama dan varian: "Desain [easy]" → name="Desain", variant="easy"
+        const vm = rawName.match(/^(.*?)\s*\[(.+?)\]$/);
+        const itemName    = vm ? vm[1].trim() : rawName;
+        const itemVariant = vm ? vm[2].trim() : '';
+        return { name: itemName, variant: itemVariant, qty, harga, total: qty * harga, priceStr: formatRp(harga), totalStr: formatRp(qty * harga) };
       }
-      return { name: seg, qty: 0, harga: 0, total: 0, priceStr: '—', totalStr: '—' };
+      return { name: seg, variant: '', qty: 0, harga: 0, total: 0, priceStr: '—', totalStr: '—' };
     });
   }
 
@@ -4729,16 +4759,23 @@ function _renderDashOrders(invoices) {
     const dropId  = 'doi-' + idx;
     const hasDropdown = isMulti || hasSingle; // dropdown untuk semua jika ada item
 
+    // Helper: render nama + varian badge
+    function renderItemName(it) {
+      const varBadge = it.variant
+        ? `<span class="doi-variant-badge">${escHtml(it.variant)}</span>`
+        : '';
+      return `<span style="font-weight:600;color:var(--navy)">${escHtml(it.name)}</span>${varBadge}`;
+    }
+
     // Kolom item summary
     let itemSummary;
     if (parsedItems.length === 0) {
       itemSummary = '<span style="color:var(--text-muted);font-style:italic">—</span>';
     } else if (!isMulti) {
-      const it = parsedItems[0];
-      itemSummary = `<span style="font-weight:600;color:var(--navy)">${escHtml(it.name)}</span>`;
+      itemSummary = renderItemName(parsedItems[0]);
     } else {
       const first = parsedItems[0];
-      itemSummary = `<span style="font-weight:600;color:var(--navy)">${escHtml(first.name)}</span>
+      itemSummary = `${renderItemName(first)}
         <span class="doi-multi-badge">+${parsedItems.length-1} item</span>`;
     }
 
@@ -4772,11 +4809,14 @@ function _renderDashOrders(invoices) {
     if (hasDropdown) {
       const detailRows = parsedItems.map(it => {
         const qtyDisp = it.qty && Number.isInteger(it.qty) ? it.qty : (it.qty > 0 ? parseFloat(it.qty.toFixed(2)).toString() : '—');
+        const varBadge = it.variant
+          ? `<span class="doi-variant-badge">${escHtml(it.variant)}</span>`
+          : '';
         return `<tr>
-          <td>${escHtml(it.name)}</td>
+          <td><span style="font-weight:600;color:var(--navy)">${escHtml(it.name)}</span>${varBadge}</td>
           <td style="text-align:center">${qtyDisp}</td>
           <td style="text-align:right">${it.priceStr}</td>
-          <td style="text-align:right;font-weight:800;color:var(--navy)">${it.totalStr}</td>
+          <td style="text-align:right;font-weight:800;color:var(--navy);font-size:13px">${it.totalStr}</td>
         </tr>`;
       }).join('');
 
