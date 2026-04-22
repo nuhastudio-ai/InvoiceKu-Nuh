@@ -1197,6 +1197,15 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
         </div>
         <span class="toggle-label">Tampilkan Nama Pimpinan di Dokumen</span>
       </label>
+      <!-- Toggle auto refresh -->
+      <label class="toggle-wrap" style="cursor:pointer">
+        <div class="toggle-switch">
+          <input type="checkbox" id="s-auto-refresh">
+          <div class="toggle-track"></div>
+        </div>
+        <span class="toggle-label">Auto Refresh Data Cloud (setiap 30 detik)</span>
+      </label>
+      <div id="s-auto-refresh-hint" style="font-size:10px;color:var(--text-muted);margin-top:-6px;padding-left:44px">Refresh otomatis data pelanggan, item, dan riwayat dari Spreadsheet. <strong>Default: Mati.</strong></div>
       <div class="field">
         <label>Logo Perusahaan</label>
         <div class="logo-upload-wrap">
@@ -1593,10 +1602,15 @@ async function loadCloudData() {
         scriptUrl:    SCRIPT_URL,
         logoDataUrl:  settings.logoDataUrl  || cs.logoDataUrl  || '',
         stampDataUrl: settings.stampDataUrl || cs.stampDataUrl || '',
+        // Cloud menyimpan nilai boolean sebagai string "true"/"false" — konversi balik ke boolean
+        autoRefresh:  cs.autoRefresh === true || cs.autoRefresh === 'true',
+        showSigner:   cs.showSigner  === true || cs.showSigner  === 'true',
       };
       localStorage.setItem('invoiceku_settings', JSON.stringify(settings));
       applySettings();
       updateSaveButton();
+      // Terapkan auto-refresh sesuai setting dari cloud
+      if (settings.autoRefresh) { startAutoRefresh(); } else { stopAutoRefresh(); }
     }
 
     // ── Riwayat Invoice & Nota: isi allHistoryData sejak awal ──
@@ -1971,8 +1985,8 @@ async function backgroundRefresh() {
   }
 }
 
-// ── Mulai auto-refresh setelah halaman siap ──
-setTimeout(startAutoRefresh, 5000); // mulai 5 detik setelah init
+// ── Auto-refresh hanya dijalankan jika setting diaktifkan (default: mati) ──
+setTimeout(function() { if (settings.autoRefresh === true) startAutoRefresh(); }, 5000);
 
 // ══════════════════════════════════════════════
 // NAV
@@ -2636,7 +2650,8 @@ function openSettings() {
   document.getElementById('s-logo-emoji').value = settings.logoEmoji || '';
   document.getElementById('s-default-discount').value = settings.defaultDiscount || '0';
   document.getElementById('s-default-tax').value = settings.defaultTax || '0';
-  document.getElementById('s-show-signer').checked = settings.showSigner === true;
+  document.getElementById('s-show-signer').checked = settings.showSigner === true || settings.showSigner === 'true';
+  document.getElementById('s-auto-refresh').checked = settings.autoRefresh === true || settings.autoRefresh === 'true';
 
   const prev = document.getElementById('logo-preview-box');
   if (settings.logoDataUrl) prev.innerHTML = `<img src="${settings.logoDataUrl}" alt="logo" style="max-width:100%;max-height:100%;object-fit:contain">`;
@@ -2673,10 +2688,13 @@ function saveSettings() {
     defaultDiscount: document.getElementById('s-default-discount').value,
     defaultTax:      document.getElementById('s-default-tax').value,
     showSigner:      document.getElementById('s-show-signer').checked,
+    autoRefresh:     document.getElementById('s-auto-refresh').checked,
   };
   localStorage.setItem('invoiceku_settings', JSON.stringify(settings));
   applySettings();
   updateSaveButton();
+  // Terapkan auto-refresh sesuai setting baru
+  if (settings.autoRefresh) { startAutoRefresh(); } else { stopAutoRefresh(); }
   syncCloudSettings(settings);
   closeSettings();
   showToast('Pengaturan disimpan!', 'success');
