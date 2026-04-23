@@ -572,6 +572,56 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 .spinner { width: 24px; height: 24px; border: 3px solid var(--border); border-top-color: var(--navy); border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto 10px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ── DELETE LOADING STATE ── */
+.btn-danger.loading { pointer-events: none; opacity: 0.7; position: relative; min-width: 110px; }
+.btn-danger.loading::after {
+  content: '';
+  display: inline-block;
+  width: 14px; height: 14px;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+.delete-loading-info {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-top: 6px;
+}
+.delete-loading-info.show { display: flex; }
+.delete-loading-info .dl-spinner {
+  width: 14px; height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--navy);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  flex-shrink: 0;
+}
+/* Delete success inline message */
+.delete-success-msg {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--success);
+  background: #e6f4ea;
+  border: 1.5px solid #a5d6a7;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-top: 4px;
+}
+.delete-success-msg.show { display: flex; }
+
 .history-empty { text-align: center; padding: 50px 20px; color: var(--text-muted); }
 .history-empty .empty-icon { font-size: 40px; margin-bottom: 10px; }
 .history-empty h4 { font-size: 15px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
@@ -1679,9 +1729,16 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
   <div class="modal" style="max-width:400px">
     <h2>🗑️ Hapus Dokumen?</h2>
     <p style="font-size:13px;color:var(--text-muted);line-height:1.6;margin-bottom:4px">Dokumen <strong id="delete-nodoc-label"></strong> akan dihapus. Dokumen lain yang terkait <strong>tidak</strong> ikut terhapus.</p>
-    <div class="modal-actions">
+    <div class="delete-loading-info" id="delete-loading-info">
+      <div class="dl-spinner"></div>
+      <span>Sedang menghapus, mohon tunggu...</span>
+    </div>
+    <div class="delete-success-msg" id="delete-success-msg">
+      ✅ <span id="delete-success-text">Dokumen berhasil dihapus!</span>
+    </div>
+    <div class="modal-actions" id="delete-modal-actions">
       <button class="btn-secondary" onclick="closeDeleteModal()">Batal</button>
-      <button class="btn-danger" onclick="confirmDelete()">🗑️ Hapus</button>
+      <button class="btn-danger" id="btn-confirm-delete" onclick="confirmDelete()">🗑️ Hapus</button>
     </div>
   </div>
 </div>
@@ -3718,6 +3775,17 @@ async function saveEdit() {
 function openDelete(noDoc) {
   pendingDeleteDoc = noDoc;
   document.getElementById('delete-nodoc-label').textContent = noDoc;
+  // Reset state modal ke kondisi awal
+  const btnConfirm   = document.getElementById('btn-confirm-delete');
+  const loadingInfo  = document.getElementById('delete-loading-info');
+  const successMsg   = document.getElementById('delete-success-msg');
+  const modalActions = document.getElementById('delete-modal-actions');
+  const btnBatal     = modalActions ? modalActions.querySelector('.btn-secondary') : null;
+  if (btnConfirm)  { btnConfirm.classList.remove('loading'); btnConfirm.disabled = false; btnConfirm.innerHTML = '🗑️ Hapus'; }
+  if (loadingInfo) loadingInfo.classList.remove('show');
+  if (successMsg)  successMsg.classList.remove('show');
+  if (modalActions) modalActions.style.display = '';
+  if (btnBatal)    btnBatal.disabled = false;
   document.getElementById('delete-modal').classList.add('open');
 }
 function closeDeleteModal() { document.getElementById('delete-modal').classList.remove('open'); }
@@ -3728,10 +3796,31 @@ async function confirmDelete() {
   if (!rowToDelete) { closeDeleteModal(); return; }
   const jenis = rowToDelete['Jenis'];
 
+  // ── Tampilkan loading state ──
+  const btnConfirm   = document.getElementById('btn-confirm-delete');
+  const loadingInfo  = document.getElementById('delete-loading-info');
+  const successMsg   = document.getElementById('delete-success-msg');
+  const successText  = document.getElementById('delete-success-text');
+  const modalActions = document.getElementById('delete-modal-actions');
+  const btnBatal     = modalActions ? modalActions.querySelector('.btn-secondary') : null;
+
+  if (btnConfirm)  { btnConfirm.classList.add('loading'); btnConfirm.disabled = true; btnConfirm.textContent = 'Menghapus...'; }
+  if (loadingInfo) loadingInfo.classList.add('show');
+  if (btnBatal)    btnBatal.disabled = true;
+
   try {
     const result = await _fetchGAS({ action: 'delete', noDoc, jenis });
-    if (!result.success) { alert('Gagal hapus dari Spreadsheet: ' + (result.message||'Error')); return; }
+    if (!result.success) {
+      if (btnConfirm)  { btnConfirm.classList.remove('loading'); btnConfirm.disabled = false; btnConfirm.innerHTML = '🗑️ Hapus'; }
+      if (loadingInfo) loadingInfo.classList.remove('show');
+      if (btnBatal)    btnBatal.disabled = false;
+      alert('Gagal hapus dari Spreadsheet: ' + (result.message||'Error'));
+      return;
+    }
   } catch(e) {
+    if (btnConfirm)  { btnConfirm.classList.remove('loading'); btnConfirm.disabled = false; btnConfirm.innerHTML = '🗑️ Hapus'; }
+    if (loadingInfo) loadingInfo.classList.remove('show');
+    if (btnBatal)    btnBatal.disabled = false;
     alert('Koneksi gagal. Coba lagi.\n' + e.message);
     return;
   }
@@ -3745,9 +3834,11 @@ async function confirmDelete() {
       try { await _fetchGAS({ action: 'update', noDoc: invRef, status: 'Belum Bayar' }); } catch(e) {}
       const invIdx = allHistoryData.findIndex(r => r['No. Dokumen'] === invRef && r['Jenis'] === 'invoice');
       if (invIdx >= 0) allHistoryData[invIdx]['Status'] = 'Belum Bayar';
-      // Reset timer: beri jeda 3 detik sebelum backgroundRefresh berjalan lagi
+      // FIX: Hanya restart auto-refresh jika setting memang ON
       stopAutoRefresh();
-      setTimeout(startAutoRefresh, 3000);
+      if (settings.autoRefresh === true) {
+        setTimeout(startAutoRefresh, 3000);
+      }
     }
   }
 
@@ -3757,10 +3848,20 @@ async function confirmDelete() {
   // Perbarui dashboard jika sedang aktif
   const dashPageDel = document.getElementById('page-dashboard');
   if (dashPageDel && dashPageDel.classList.contains('active')) renderDashboard();
-  closeDeleteModal();
+
+  // ── Tampilkan pesan sukses di dalam modal, lalu tutup otomatis ──
+  if (loadingInfo) loadingInfo.classList.remove('show');
+  if (modalActions) modalActions.style.display = 'none';
   const restoredRef = (jenis === 'receipt' && rowToDelete['Status'] === 'Lunas' && rowToDelete['InvRef'])
     ? ` · Invoice ${rowToDelete['InvRef']} → Belum Bayar` : '';
-  showToast(`🗑️ ${noDoc} dihapus${restoredRef}`, 'warning');
+  if (successMsg && successText) {
+    successText.textContent = `${noDoc} berhasil dihapus!${restoredRef}`;
+    successMsg.classList.add('show');
+  }
+  setTimeout(() => {
+    closeDeleteModal();
+    showToast(`🗑️ ${noDoc} dihapus${restoredRef}`, 'warning');
+  }, 1400);
 }
 
 // ══════════════════════════════════════════════
