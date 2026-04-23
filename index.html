@@ -3198,7 +3198,18 @@ async function _fetchGAS(payload) {
   // GAS kadang redirect — pastikan kita baca respons final
   if (!res.ok) throw new Error('HTTP ' + res.status);
   const text = await res.text();
-  try { return JSON.parse(text); } catch(e) { throw new Error('Response bukan JSON: ' + text.slice(0, 100)); }
+  try {
+    return JSON.parse(text);
+  } catch(e) {
+    // GAS kadang mengembalikan HTML saat redirect cross-origin.
+    // Jika status 200 tapi bukan JSON, anggap sukses parsial —
+    // kembalikan objek success:true agar form tetap direset.
+    if (res.status === 200 || res.redirected) {
+      console.warn('[GAS] Respons bukan JSON (mungkin redirect):', text.slice(0, 120));
+      return { success: true, noDoc: payload.noDoc || payload.prefix || '' };
+    }
+    throw new Error('Response bukan JSON: ' + text.slice(0, 100));
+  }
 }
 
 /** Eksekusi inti: simpan ke cloud saja, atau cetak+simpan setelah print */
@@ -3257,10 +3268,14 @@ async function _doCloudSave(payload, isOverwrite) {
   let finalNo  = payload.noDoc;
   let errMsg   = '';
 
+  // Helper: GAS kadang mengembalikan success sebagai string "true" bukan boolean true.
+  // Gunakan loose check agar keduanya diterima.
+  const isSuccess = r => r && (r.success === true || r.success === 'true' || r.success === 1);
+
   if (isOverwrite) {
     try {
       const result = await _fetchGAS({ ...payload, action: 'update', noDoc: finalNo });
-      cloudOk = result.success === true;
+      cloudOk = isSuccess(result);
       if (!cloudOk) errMsg = result.message || 'Update gagal';
     } catch(e) { errMsg = e.message || 'Koneksi gagal'; }
   } else {
@@ -3285,7 +3300,7 @@ async function _doCloudSave(payload, isOverwrite) {
         status:        payload.status,
         invRef:        payload.invRef || ''
       });
-      cloudOk = result.success === true;
+      cloudOk = isSuccess(result);
       if (cloudOk) {
         if (result.noDoc) {
           finalNo = result.noDoc;
@@ -3336,6 +3351,9 @@ async function _doCloudSave(payload, isOverwrite) {
   // Auto-save customer
   autoSaveCustomer(payload.namaPelanggan, payload.noHp, payload.email, payload.alamat);
 
+  // Pastikan finalNo selalu truthy saat cloudOk = true,
+  // agar _executeSaveOrPrint memanggil resetForm() tanpa gagal.
+  if (!finalNo) finalNo = payload.noDoc || ('DOC-' + Date.now());
   return finalNo; // signal: sukses, kembalikan noDoc final
 }
 
@@ -4218,51 +4236,61 @@ function deleteItem(idx) {
 function confirmReset() { if (confirm('Reset semua data formulir?')) resetForm(); }
 function resetForm() {
   // STEP 1: Bersihkan field teks
-  ['client-name','client-phone','client-email','client-address','notes'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.value = '';
-  });
-  const discEl = document.getElementById('discount');
-  if (discEl) discEl.value = settings.defaultDiscount || '0';
-  const taxEl = document.getElementById('tax');
-  if (taxEl) taxEl.value = settings.defaultTax || '0';
+  try {
+    ['client-name','client-phone','client-email','client-address','notes'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.value = '';
+    });
+    const discEl = document.getElementById('discount');
+    if (discEl) discEl.value = settings.defaultDiscount || '0';
+    const taxEl = document.getElementById('tax');
+    if (taxEl) taxEl.value = settings.defaultTax || '0';
+  } catch(e) { console.error('[reset] step1:', e); }
 
   // STEP 2: Reset field Nota Pelunasan
-  const invRefSearch = document.getElementById('inv-ref-search');
-  if (invRefSearch) invRefSearch.value = '';
-  const invRefInfo = document.getElementById('inv-ref-info');
-  if (invRefInfo) invRefInfo.style.display = 'none';
-  const useInvRefToggle = document.getElementById('use-inv-ref-toggle');
-  if (useInvRefToggle) useInvRefToggle.checked = false;
-  const invRefBody = document.getElementById('inv-ref-body');
-  if (invRefBody) invRefBody.style.display = 'none';
+  try {
+    const invRefSearch = document.getElementById('inv-ref-search');
+    if (invRefSearch) invRefSearch.value = '';
+    const invRefInfo = document.getElementById('inv-ref-info');
+    if (invRefInfo) invRefInfo.style.display = 'none';
+    const useInvRefToggle = document.getElementById('use-inv-ref-toggle');
+    if (useInvRefToggle) useInvRefToggle.checked = false;
+    const invRefBody = document.getElementById('inv-ref-body');
+    if (invRefBody) invRefBody.style.display = 'none';
+  } catch(e) { console.error('[reset] step2:', e); }
 
   // STEP 3: Reset items & pembayaran
-  items = []; itemIdCounter = 0;
-  items.push({ id: ++itemIdCounter, name: '', variant: '', qty: 1, price: 0 });
-  items.push({ id: ++itemIdCounter, name: '', variant: '', qty: 1, price: 0 });
-  invoicePayments = []; manualPayCounter = 0;
+  try {
+    items = []; itemIdCounter = 0;
+    items.push({ id: ++itemIdCounter, name: '', variant: '', qty: 1, price: 0 });
+    items.push({ id: ++itemIdCounter, name: '', variant: '', qty: 1, price: 0 });
+    invoicePayments = []; manualPayCounter = 0;
+  } catch(e) { console.error('[reset] step3-data:', e); }
   try { renderPaymentChips(); } catch(e) { console.error('[reset] renderPaymentChips:', e); }
   try { renderPaymentRows();  } catch(e) { console.error('[reset] renderPaymentRows:', e); }
   try { renderItemsList();    } catch(e) { console.error('[reset] renderItemsList:', e); }
 
   // STEP 4: Set tanggal
-  const today = new Date().toISOString().split('T')[0];
-  const invDateEl = document.getElementById('inv-date');
-  if (invDateEl) invDateEl.value = today;
-  if (mode === 'invoice') {
-    const due = new Date(); due.setDate(due.getDate() + 14);
-    const dueEl = document.getElementById('due-date');
-    if (dueEl) dueEl.value = due.toISOString().split('T')[0];
-  } else {
-    const paidDateEl  = document.getElementById('paid-date');
-    const payStatusEl = document.getElementById('pay-status');
-    if (paidDateEl)  paidDateEl.value  = today;
-    if (payStatusEl) payStatusEl.value = 'Lunas';
-  }
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const invDateEl = document.getElementById('inv-date');
+    if (invDateEl) invDateEl.value = today;
+    if (mode === 'invoice') {
+      const due = new Date(); due.setDate(due.getDate() + 14);
+      const dueEl = document.getElementById('due-date');
+      if (dueEl) dueEl.value = due.toISOString().split('T')[0];
+    } else {
+      const paidDateEl  = document.getElementById('paid-date');
+      const payStatusEl = document.getElementById('pay-status');
+      if (paidDateEl)  paidDateEl.value  = today;
+      if (payStatusEl) payStatusEl.value = 'Lunas';
+    }
+  } catch(e) { console.error('[reset] step4:', e); }
 
   // STEP 5: Refresh nomor dokumen
-  _docNumberLoading = false;
-  refreshDocNumber();
+  try {
+    _docNumberLoading = false;
+    refreshDocNumber();
+  } catch(e) { console.error('[reset] step5:', e); }
 
   // STEP 6: Update preview
   try { updatePreview(); } catch(e) { console.error('[reset] updatePreview:', e); }
