@@ -3215,23 +3215,21 @@ async function _executeSaveOrPrint(payload, execMode, isOverwrite) {
       try {
         const finalNo = await _doCloudSave(payload, isOverwrite);
         if (finalNo) {
-          // BUG FIX: Schedule resetForm DULU (unconditional) sebelum blok notifikasi.
-          // Jika showToast di dalam catch-block notifikasi ikut throw, microtask reset
-          // sudah masuk ke queue dan tetap berjalan.
-          Promise.resolve().then(() => {
+          // FIX: Gunakan setTimeout (macrotask) agar seluruh kode sinkron,
+          // finally-block, popup, dan refresh selesai lebih dulu sebelum reset.
+          // Promise.resolve().then() (microtask) terbukti tidak cukup andal
+          // karena _resetInProgress bisa masih true saat microtask dieksekusi.
+          setTimeout(() => {
             try {
               if (!resetForm()) {
                 try { showToast('⚠️ Reset form otomatis gagal — klik 🗑 Reset manual.', 'warning'); } catch(e3) {}
               }
             } catch(e2) { console.error('[resetForm]', e2); }
-          });
+          }, 50);
           // Tampilkan notifikasi sukses (dengan fallback toast jika popup gagal)
           try {
             showSuccessPopup('save', finalNo);
           } catch(e) {
-            // BUG FIX: Bungkus toast fallback dalam try-catch tersendiri agar
-            // exception tidak menghalangi Promise.resolve().then(resetForm) yang
-            // sudah dijadwalkan di atas.
             try { showToast('☁️ Tersimpan ke Spreadsheet! No: ' + finalNo, 'success'); } catch(e2) {}
           }
           _refreshHistoryIfOpen();
@@ -3257,14 +3255,14 @@ async function _executeSaveOrPrint(payload, execMode, isOverwrite) {
 
       const finalNo = await _doCloudSave(payload, isOverwrite);
       if (finalNo) {
-        // BUG FIX: Schedule resetForm DULU (unconditional)
-        Promise.resolve().then(() => {
+        // FIX: Gunakan setTimeout (macrotask) agar lebih andal dari microtask
+        setTimeout(() => {
           try {
             if (!resetForm()) {
               try { showToast('⚠️ Reset form otomatis gagal — klik 🗑 Reset manual.', 'warning'); } catch(e3) {}
             }
           } catch(e2) { console.error('[resetForm]', e2); }
-        });
+        }, 50);
         try {
           showSuccessPopup('print', finalNo);
         } catch(e) {
@@ -4252,7 +4250,11 @@ function deleteItem(idx) {
 function confirmReset() { if (confirm('Reset semua data formulir?')) resetForm(); }
 function resetForm() {
   // Cegah concurrent reset jika dipanggil ganda
-  if (_resetInProgress) return true; // sedang berjalan, anggap ok
+  // FIX: return false (bukan true) agar pemanggil bisa tampilkan warning jika reset diblokir
+  if (_resetInProgress) {
+    console.warn('[resetForm] diblokir — sedang dalam proses reset sebelumnya.');
+    return false;
+  }
   _resetInProgress = true;
 
   try {
@@ -4321,7 +4323,8 @@ function resetForm() {
     return false; // sinyal ke pemanggil bahwa reset gagal
   } finally {
     // Lepas flag setelah semua sinkron selesai (refreshDocNumber() masih async)
-    setTimeout(() => { _resetInProgress = false; }, 500);
+    // FIX: Kurangi ke 100ms — 500ms terlalu lama dan bisa memblokir reset berikutnya
+    setTimeout(() => { _resetInProgress = false; }, 100);
   }
 }
 
