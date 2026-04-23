@@ -1831,7 +1831,7 @@ async function loadCloudData() {
       customers = data.customers.map(c => ({
         id:      c.id      || String(Date.now() + Math.random()),
         name:    c.name    || '',
-        phone:   c.phone   || '',
+        phone:   sanitizePhone(c.phone),   // ← pulihkan leading-zero yang distrip Sheets
         email:   c.email   || '',
         address: c.address || '',
         note:    c.note    || ''
@@ -2199,7 +2199,7 @@ async function backgroundRefresh() {
       if (newHash !== _lastRefreshEtag) { _lastRefreshEtag = newHash; changed = true; }
       customers = data.customers.map(c => ({
         id:c.id||String(Date.now()+Math.random()), name:c.name||'',
-        phone:c.phone||'', email:c.email||'', address:c.address||'', note:c.note||''
+        phone:sanitizePhone(c.phone), email:c.email||'', address:c.address||'', note:c.note||''
       }));
       localStorage.setItem('invoiceku_customers', JSON.stringify(customers));
       renderCustomers();
@@ -3385,6 +3385,25 @@ function markInvoiceLunas(invNo) {
 
 function normalizePhone(p) { return (p||'').replace(/\D/g,''); }
 
+/**
+ * Pulihkan leading-zero nomor HP Indonesia yang hilang akibat Google Sheets
+ * mengkonversi string "0856xxxx" menjadi angka 856xxxx.
+ * Aturan: jika digits-only, diawali 8 atau 9, panjang 9–12 digit → tambah "0" di depan.
+ * Nomor yang sudah benar (+62, 62xxx, 0xxx) dibiarkan apa adanya.
+ */
+function sanitizePhone(p) {
+  if (!p) return '';
+  const s = String(p).trim();
+  // Sudah benar: ada tanda +, atau diawali 0, atau diawali 62
+  if (/^\+/.test(s) || /^0/.test(s) || /^62/.test(s)) return s;
+  // Hanya digit, diawali 8 atau 9 (sisa setelah 0 distrip oleh Sheets), panjang 9-12
+  const digits = s.replace(/\D/g, '');
+  if (/^[89]/.test(digits) && digits.length >= 9 && digits.length <= 12) {
+    return '0' + digits;
+  }
+  return s;
+}
+
 function findCustomerByPhoneOrEmail(phone, email) {
   const ph = normalizePhone(phone);
   return customers.find(c => {
@@ -3693,7 +3712,7 @@ function openEdit(noDoc) {
   document.getElementById('edit-tgl-jatuh').value  = dateToInput(row['Tgl Jatuh Tempo/Bayar']);
   document.getElementById('edit-date2-label').textContent = isReceipt ? 'Tgl Bayar' : 'Jatuh Tempo';
   document.getElementById('edit-client').value   = row['Nama Pelanggan'] || '';
-  document.getElementById('edit-phone').value    = row['No. HP'] || '';
+  document.getElementById('edit-phone').value    = sanitizePhone(row['No. HP'] || '');
   document.getElementById('edit-email').value    = row['Email'] || '';
   document.getElementById('edit-discount').value = row['Diskon(Rp)'] || row['Diskon(%)'] || '0';
   document.getElementById('edit-tax').value      = row['PPN(%)'] || '0';
@@ -4379,7 +4398,7 @@ function buildInvoiceHTML(row) {
   const isReceipt = row['Jenis'] === 'receipt';
   const noDoc    = row['No. Dokumen'] || '—';
   const client   = row['Nama Pelanggan'] || '—';
-  const phone    = row['No. HP'] || '';
+  const phone    = sanitizePhone(row['No. HP'] || '');
   const email    = row['Email'] || '';
   const addr     = row['Alamat'] || '';
   const tgl      = formatDate(row['Tgl Terbit'] || '');
