@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
 <link rel="icon" id="dynamic-favicon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'><text y='32' font-size='32'>✦</text></svg>">
 <title>InvoiceKu – Manajemen Invoice & Pelunasan</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
@@ -66,17 +66,21 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
     border-top: 1px solid rgba(255,255,255,0.1);
     z-index: 300;
     padding: 0;
+    /* iOS safe area: gestur bar di iPhone tidak menimpa tombol */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
     box-shadow: 0 -4px 20px rgba(0,0,0,0.25);
   }
   .bn-item {
     flex: 1;
+    /* Pastikan area sentuh mengisi PENUH tinggi bar */
+    align-self: stretch;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 0;
+    /* Padding vertikal memperluas area sentuh ke atas & bawah */
+    padding: 10px 4px 8px;
     min-height: 60px;
-    align-self: stretch;
     border: none;
     background: transparent;
     color: rgba(255,255,255,0.5);
@@ -85,21 +89,27 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
     font-weight: 600;
     cursor: pointer;
     gap: 3px;
-    transition: all .2s;
+    transition: color .2s, background .2s;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
     letter-spacing: 0.2px;
     position: relative;
+    /* Pastikan tidak ada overflow yang memotong area sentuh */
+    overflow: visible;
+    /* Perluas area sentuh iOS secara eksplisit */
+    -webkit-user-select: none;
+    user-select: none;
   }
-  .bn-item .bn-icon { font-size: 20px; line-height: 1; }
+  .bn-item .bn-icon { font-size: 20px; line-height: 1; flex-shrink: 0; }
   .bn-item.active { color: var(--accent); }
   .bn-item.active .bn-icon { transform: translateY(-2px); }
-  .bn-item:not(.active):active { background: rgba(255,255,255,0.06); border-radius: 10px; }
+  .bn-item:not(.active):active { background: rgba(255,255,255,0.08); }
 
   /* Beri padding bawah pada konten agar tidak tertutup bottom nav */
-  .app-container, .full-page { padding-bottom: 64px !important; }
-  .form-panel { padding-bottom: 72px !important; }
-  .preview-scroll { padding-bottom: 72px !important; }
+  /* Memperhitungkan safe area agar tidak tertutup di iPhone */
+  .app-container, .full-page { padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)) !important; }
+  .form-panel { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important; }
+  .preview-scroll { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important; }
 
   /* Full-page harus bisa scroll mandiri */
   .full-page { overflow-y: auto !important; -webkit-overflow-scrolling: touch; height: calc(100vh - 56px) !important; }
