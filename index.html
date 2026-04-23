@@ -4319,7 +4319,15 @@ function buildInvoiceHTML(row) {
     // Parse: "Name [Variant] (qty x Rp price)"
     const m = seg.match(/^(.+?)\s*\((\d+(?:\.\d+)?)x(.+)\)$/);
     if (m) {
-      return `<tr><td style="padding:6px 10px;font-size:11px;border-bottom:1px solid #eaeef3">${escHtml(m[1].trim())}</td>
+      // FIX: ekstrak varian dari format "NAMA [VARIAN]" agar tampil sebagai badge, bukan teks biasa
+      const rawN  = m[1].trim();
+      const varM  = rawN.match(/^(.*?)\s*\[(.+?)\]$/);
+      const itemName    = varM ? varM[1].trim() : rawN;
+      const itemVariant = varM ? varM[2].trim() : '';
+      const variantBadge = itemVariant
+        ? `<span style="display:inline-flex;align-items:center;margin-left:6px;padding:2px 6px;background:linear-gradient(135deg,#dce8ff,#c8d9ff);color:#0e309f;border:0.5px solid #b8c8f0;border-radius:10px;font-size:8px;font-weight:700;letter-spacing:0.4px;white-space:nowrap;vertical-align:middle;text-transform:uppercase">${escHtml(itemVariant)}</span>`
+        : '';
+      return `<tr><td style="padding:6px 10px;font-size:11px;border-bottom:1px solid #eaeef3"><span style="font-weight:600;color:#1e2d42">${escHtml(itemName)}</span>${variantBadge}</td>
               <td style="padding:6px 10px;font-size:11px;border-bottom:1px solid #eaeef3;text-align:center">${parseFloat(m[2])}</td>
               <td style="padding:6px 10px;font-size:11px;border-bottom:1px solid #eaeef3;text-align:center">${escHtml(m[3].trim())}</td>
               <td style="padding:6px 10px;font-size:11px;border-bottom:1px solid #eaeef3;text-align:right;font-weight:600;color:#1e2d42">${formatRp(parseFloat(m[2]) * parseRp(m[3]))}</td></tr>`;
