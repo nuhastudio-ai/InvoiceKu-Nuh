@@ -3215,22 +3215,28 @@ async function _executeSaveOrPrint(payload, execMode, isOverwrite) {
       try {
         const finalNo = await _doCloudSave(payload, isOverwrite);
         if (finalNo) {
+          // BUG FIX: Schedule resetForm DULU (unconditional) sebelum blok notifikasi.
+          // Jika showToast di dalam catch-block notifikasi ikut throw, microtask reset
+          // sudah masuk ke queue dan tetap berjalan.
+          Promise.resolve().then(() => {
+            try {
+              if (!resetForm()) {
+                try { showToast('⚠️ Reset form otomatis gagal — klik 🗑 Reset manual.', 'warning'); } catch(e3) {}
+              }
+            } catch(e2) { console.error('[resetForm]', e2); }
+          });
           // Tampilkan notifikasi sukses (dengan fallback toast jika popup gagal)
           try {
             showSuccessPopup('save', finalNo);
           } catch(e) {
-            showToast('☁️ Tersimpan ke Spreadsheet! No: ' + finalNo, 'success');
+            // BUG FIX: Bungkus toast fallback dalam try-catch tersendiri agar
+            // exception tidak menghalangi Promise.resolve().then(resetForm) yang
+            // sudah dijadwalkan di atas.
+            try { showToast('☁️ Tersimpan ke Spreadsheet! No: ' + finalNo, 'success'); } catch(e2) {}
           }
-          // Reset form — dijalankan dalam microtask terpisah agar success popup
-          // sempat render sebelum DOM di-reset, menghindari konflik rendering
-          Promise.resolve().then(() => {
-            if (!resetForm()) {
-              showToast('⚠️ Reset form otomatis gagal — klik 🗑 Reset manual.', 'warning');
-            }
-          });
           _refreshHistoryIfOpen();
         }
-        // Jika false (gagal), _doCloudSave sudah tampilkan alert — tidak reset form
+        // Jika false (gagal), _doCloudSave sudah tampilkan notif — tidak reset form
       } finally {
         btn.disabled = false; btn.innerHTML = '💾 Simpan';
       }
@@ -3251,16 +3257,19 @@ async function _executeSaveOrPrint(payload, execMode, isOverwrite) {
 
       const finalNo = await _doCloudSave(payload, isOverwrite);
       if (finalNo) {
+        // BUG FIX: Schedule resetForm DULU (unconditional)
+        Promise.resolve().then(() => {
+          try {
+            if (!resetForm()) {
+              try { showToast('⚠️ Reset form otomatis gagal — klik 🗑 Reset manual.', 'warning'); } catch(e3) {}
+            }
+          } catch(e2) { console.error('[resetForm]', e2); }
+        });
         try {
           showSuccessPopup('print', finalNo);
         } catch(e) {
-          showToast('🖨️ Dicetak & Tersimpan! No: ' + finalNo, 'success');
+          try { showToast('🖨️ Dicetak & Tersimpan! No: ' + finalNo, 'success'); } catch(e2) {}
         }
-        Promise.resolve().then(() => {
-          if (!resetForm()) {
-            showToast('⚠️ Reset form otomatis gagal — klik 🗑 Reset manual.', 'warning');
-          }
-        });
         _refreshHistoryIfOpen();
       }
     }
@@ -3327,11 +3336,16 @@ async function _doCloudSave(payload, isOverwrite) {
   }
 
   if (!cloudOk) {
-    // Blokir — tampilkan alert, TIDAK simpan lokal
-    alert(`⚠️ Gagal menyimpan ke Spreadsheet.\n\nMohon tunggu, server sedang padat. Coba lagi dalam beberapa saat.\n\nDetail: ${errMsg}`);
+    // BUG FIX: Tampilkan toast error terlebih dahulu (selalu terlihat di semua browser),
+    // lalu jalankan alert() dalam setTimeout agar tidak memblokir rendering toast.
+    // Ini mencegah kondisi di mana alert() ter-block diam-diam di browser mobile/iframe
+    // sehingga user tidak sadar gagal dan mengira simpan sukses.
+    try { showToast('⚠️ Gagal menyimpan ke cloud. Coba lagi.', 'error'); } catch(e) {}
+    setTimeout(() => {
+      alert(`⚠️ Gagal menyimpan ke Spreadsheet.\\n\\nMohon tunggu, server sedang padat. Coba lagi dalam beberapa saat.\\n\\nDetail: ${errMsg}`);
+    }, 50);
     return false; // signal: gagal
   }
-
   // Update allHistoryData in-memory saja (bukan localStorage)
   const row = {
     'No. Dokumen': finalNo, 'Jenis': payload.jenis,
