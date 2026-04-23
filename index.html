@@ -989,6 +989,303 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
   .modal-wide { width: 95vw; }
   .modal-xl { width: 95vw; }
 }
+
+/* ══════════════════════════════════════════════
+   CLOUD UPLOAD OVERLAY — animasi saat menyimpan
+══════════════════════════════════════════════ */
+#cloud-upload-overlay {
+  position: fixed; inset: 0;
+  background: rgba(10, 18, 35, 0.78);
+  backdrop-filter: blur(6px);
+  z-index: 19999;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity .3s ease;
+}
+#cloud-upload-overlay.show { opacity: 1; pointer-events: all; }
+
+.cuo-card {
+  background: linear-gradient(145deg, #1a2a42, #243552);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 24px;
+  padding: 40px 44px 32px;
+  text-align: center;
+  width: 320px;
+  max-width: 90vw;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+  position: relative;
+  overflow: hidden;
+  transform: scale(0.88) translateY(16px);
+  transition: transform .35s cubic-bezier(.34,1.4,.64,1);
+}
+#cloud-upload-overlay.show .cuo-card { transform: scale(1) translateY(0); }
+
+/* Shimmer background sweep */
+.cuo-card::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(110deg,
+    transparent 20%, rgba(232,168,56,0.07) 50%, transparent 80%);
+  animation: cuo-shimmer 2.2s ease-in-out infinite;
+}
+@keyframes cuo-shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+/* Orbit ring arena */
+.cuo-orbit-arena {
+  position: relative;
+  width: 120px; height: 120px;
+  margin: 0 auto 24px;
+}
+
+/* Cloud SVG pulses */
+.cuo-cloud-icon {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 42px;
+  animation: cuo-cloud-pulse 1.8s ease-in-out infinite;
+  z-index: 2;
+  filter: drop-shadow(0 0 12px rgba(232,168,56,0.6));
+}
+@keyframes cuo-cloud-pulse {
+  0%,100% { transform: translate(-50%,-50%) scale(1);   opacity: 1; }
+  50%      { transform: translate(-50%,-50%) scale(1.12); opacity: 0.85; }
+}
+
+/* Orbiting dots */
+.cuo-orbit {
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  animation: cuo-spin linear infinite;
+}
+.cuo-orbit::before {
+  content: '';
+  position: absolute;
+  top: 4px; left: 50%; transform: translateX(-50%);
+  width: 10px; height: 10px;
+  border-radius: 50%;
+}
+.cuo-orbit-1 { animation-duration: 2s; }
+.cuo-orbit-1::before { background: var(--accent); box-shadow: 0 0 10px var(--accent); width: 10px; height: 10px; }
+.cuo-orbit-2 { animation-duration: 3s; animation-direction: reverse; }
+.cuo-orbit-2::before { background: #4fc3f7; box-shadow: 0 0 10px #4fc3f7; width: 8px; height: 8px; top: 8px; }
+.cuo-orbit-3 { animation-duration: 2.5s; }
+.cuo-orbit-3::before { background: #81c784; box-shadow: 0 0 8px #81c784; width: 7px; height: 7px; top: 6px; }
+
+@keyframes cuo-spin { to { transform: rotate(360deg); } }
+
+/* Pulse rings */
+.cuo-ring {
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(232,168,56,0.3);
+  animation: cuo-ring-expand 2s ease-out infinite;
+}
+.cuo-ring:nth-child(2) { animation-delay: 0.6s; border-color: rgba(79,195,247,0.25); }
+.cuo-ring:nth-child(3) { animation-delay: 1.2s; border-color: rgba(129,199,132,0.2); }
+@keyframes cuo-ring-expand {
+  0%   { transform: scale(0.5); opacity: 1; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
+/* Upload progress bar */
+.cuo-progress-wrap {
+  background: rgba(255,255,255,0.08);
+  border-radius: 20px;
+  height: 5px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+.cuo-progress-bar {
+  height: 100%;
+  border-radius: 20px;
+  background: linear-gradient(90deg, var(--accent), #4fc3f7, #81c784);
+  background-size: 200% 100%;
+  animation: cuo-bar-move 1.6s ease-in-out infinite;
+  width: 60%;
+  margin-left: -20%;
+}
+@keyframes cuo-bar-move {
+  0%   { margin-left: -20%; }
+  100% { margin-left: 120%; }
+}
+
+/* Packet particles flying up */
+.cuo-particles {
+  position: absolute; inset: 0; pointer-events: none; overflow: hidden; border-radius: 24px;
+}
+.cuo-particle {
+  position: absolute;
+  bottom: 0;
+  font-size: 10px;
+  opacity: 0;
+  animation: cuo-fly linear infinite;
+}
+.cuo-particle:nth-child(1)  { left: 18%; animation-duration: 2.1s; animation-delay: 0s; }
+.cuo-particle:nth-child(2)  { left: 38%; animation-duration: 2.5s; animation-delay: 0.5s; }
+.cuo-particle:nth-child(3)  { left: 58%; animation-duration: 1.9s; animation-delay: 1.0s; }
+.cuo-particle:nth-child(4)  { left: 76%; animation-duration: 2.3s; animation-delay: 0.3s; }
+.cuo-particle:nth-child(5)  { left: 30%; animation-duration: 2.7s; animation-delay: 0.8s; }
+@keyframes cuo-fly {
+  0%   { transform: translateY(0)   scale(1); opacity: 0.9; }
+  80%  { transform: translateY(-160px) scale(0.7); opacity: 0.5; }
+  100% { transform: translateY(-200px) scale(0.4); opacity: 0; }
+}
+
+.cuo-title {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 800;
+  margin-bottom: 6px;
+  letter-spacing: -0.3px;
+}
+.cuo-step {
+  color: rgba(255,255,255,0.55);
+  font-size: 12px;
+  min-height: 18px;
+  transition: opacity .3s;
+}
+.cuo-step.fade { opacity: 0; }
+
+/* ══════════════════════════════════════════════
+   SUCCESS POPUP — UPGRADE
+══════════════════════════════════════════════ */
+/* Override existing success-popup with premium design */
+.success-popup {
+  background: #fff;
+  border-radius: 24px !important;
+  padding: 0 !important;
+  width: 360px !important;
+  overflow: hidden !important;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.28) !important;
+  transform: scale(0.82) translateY(24px) !important;
+  transition: transform .38s cubic-bezier(.34,1.56,.64,1) !important;
+}
+.success-popup-overlay.show .success-popup {
+  transform: scale(1) translateY(0) !important;
+}
+
+/* Header gradient band */
+.sp-header {
+  padding: 32px 28px 24px;
+  position: relative;
+  overflow: hidden;
+}
+.sp-header-save  { background: linear-gradient(135deg, #1e3a5f 0%, #1a6340 100%); }
+.sp-header-print { background: linear-gradient(135deg, #1e3a5f 0%, #1a4a8c 100%); }
+
+/* Decorative circles in header */
+.sp-header::before {
+  content:''; position:absolute; right:-30px; top:-30px;
+  width:120px; height:120px; border-radius:50%;
+  background: rgba(255,255,255,0.07);
+}
+.sp-header::after {
+  content:''; position:absolute; left:-20px; bottom:-40px;
+  width:100px; height:100px; border-radius:50%;
+  background: rgba(255,255,255,0.05);
+}
+
+/* Animated check circle */
+.sp-check-wrap {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 14px;
+  position: relative; z-index: 1;
+  animation: sp-pop .5s cubic-bezier(.34,1.56,.64,1) both;
+}
+@keyframes sp-pop { from{transform:scale(0)} to{transform:scale(1)} }
+
+.sp-check-svg { width: 38px; height: 38px; }
+.sp-check-circle {
+  fill: none; stroke: rgba(255,255,255,0.35); stroke-width: 3;
+}
+.sp-check-tick {
+  fill: none; stroke: #fff; stroke-width: 4;
+  stroke-linecap: round; stroke-linejoin: round;
+  stroke-dasharray: 50; stroke-dashoffset: 50;
+  animation: sp-draw .5s .3s ease forwards;
+}
+@keyframes sp-draw { to { stroke-dashoffset: 0; } }
+
+/* Pulse ring around check */
+.sp-check-wrap::before {
+  content: '';
+  position: absolute; inset: -6px;
+  border-radius: 50%;
+  border: 3px solid rgba(255,255,255,0.25);
+  animation: sp-ring-out .7s .4s ease-out forwards;
+  opacity: 0;
+}
+@keyframes sp-ring-out {
+  0%   { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+.sp-header-title {
+  font-size: 19px; font-weight: 800; color: #fff;
+  margin-bottom: 4px;
+  position: relative; z-index: 1;
+}
+.sp-header-sub {
+  font-size: 12px; color: rgba(255,255,255,0.65);
+  line-height: 1.5;
+  position: relative; z-index: 1;
+}
+
+/* Body */
+.sp-body { padding: 20px 24px 24px; }
+.sp-nodoc-new {
+  display: flex; align-items: center; gap: 10px;
+  background: linear-gradient(135deg, #f0f7ff, #f5fff7);
+  border: 1.5px solid #c3ddf0;
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+.sp-nodoc-icon { font-size: 20px; flex-shrink: 0; }
+.sp-nodoc-label { font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.sp-nodoc-val { font-size: 15px; font-weight: 800; color: var(--navy); font-family: monospace; }
+
+.sp-meta-row {
+  display: flex; justify-content: space-between;
+  font-size: 11px; color: var(--text-muted);
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.sp-meta-item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.sp-meta-val { font-size: 13px; font-weight: 700; color: var(--navy); }
+
+.sp-actions-new { display: flex; gap: 8px; }
+.sp-btn-new {
+  flex: 1; padding: 11px 0; border-radius: 10px; border: none;
+  font-family: inherit; font-size: 13px; font-weight: 700;
+  cursor: pointer; transition: all .2s;
+}
+.sp-btn-ok {
+  background: var(--navy); color: #fff;
+}
+.sp-btn-ok:hover { background: var(--navy-mid); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(30,45,66,0.3); }
+
+/* Floating sparkles */
+.sp-sparkles { position: absolute; inset: 0; pointer-events: none; overflow: hidden; border-radius: 24px; }
+.sp-spark {
+  position: absolute;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  animation: sp-spark-fly .8s ease-out forwards;
+  opacity: 0;
+}
+@keyframes sp-spark-fly {
+  0%   { transform: translate(0,0) scale(1); opacity: 1; }
+  100% { transform: var(--spark-end) scale(0); opacity: 0; }
+}
 </style>
 </head>
 <body>
@@ -1754,13 +2051,78 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 </div>
 
 <!-- ══ SUCCESS POPUP ══ -->
+<!-- ══ CLOUD UPLOAD OVERLAY ══ -->
+<div id="cloud-upload-overlay">
+  <div class="cuo-card">
+    <div class="cuo-particles">
+      <span class="cuo-particle">📦</span>
+      <span class="cuo-particle">📄</span>
+      <span class="cuo-particle">✉️</span>
+      <span class="cuo-particle">💾</span>
+      <span class="cuo-particle">📊</span>
+    </div>
+    <div class="cuo-orbit-arena">
+      <div class="cuo-ring"></div>
+      <div class="cuo-ring"></div>
+      <div class="cuo-ring"></div>
+      <div class="cuo-orbit cuo-orbit-1"></div>
+      <div class="cuo-orbit cuo-orbit-2"></div>
+      <div class="cuo-orbit cuo-orbit-3"></div>
+      <div class="cuo-cloud-icon">☁️</div>
+    </div>
+    <div class="cuo-title">Mengirim ke Cloud…</div>
+    <div class="cuo-step" id="cuo-step">Mempersiapkan data invoice</div>
+    <div style="margin: 14px 0 10px">
+      <div class="cuo-progress-wrap">
+        <div class="cuo-progress-bar"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SUCCESS POPUP (upgraded) ══ -->
 <div class="success-popup-overlay" id="success-popup-overlay" onclick="closeSuccessPopup()">
   <div class="success-popup" id="success-popup" onclick="event.stopPropagation()">
-    <div class="sp-icon" id="sp-icon">✅</div>
-    <div class="sp-title" id="sp-title">Berhasil Disimpan!</div>
-    <div class="sp-nodoc" id="sp-nodoc"></div>
-    <div class="sp-subtitle" id="sp-subtitle"></div>
-    <div class="sp-actions" id="sp-actions"></div>
+    <div class="sp-sparkles" id="sp-sparkles"></div>
+    <div class="sp-header sp-header-save" id="sp-header">
+      <div class="sp-check-wrap">
+        <svg class="sp-check-svg" viewBox="0 0 52 52">
+          <circle class="sp-check-circle" cx="26" cy="26" r="22"/>
+          <polyline class="sp-check-tick" points="14,27 22,35 38,19"/>
+        </svg>
+      </div>
+      <div class="sp-header-title" id="sp-title">Berhasil Disimpan!</div>
+      <div class="sp-header-sub" id="sp-subtitle">Data invoice tersimpan ke database cloud.</div>
+    </div>
+    <div class="sp-body">
+      <div class="sp-nodoc-new">
+        <div class="sp-nodoc-icon" id="sp-nodoc-icon">📋</div>
+        <div>
+          <div class="sp-nodoc-label">No. Dokumen</div>
+          <div class="sp-nodoc-val" id="sp-nodoc">—</div>
+        </div>
+      </div>
+      <div class="sp-meta-row">
+        <div class="sp-meta-item">
+          <span>🕐</span>
+          <span class="sp-meta-val" id="sp-time">—</span>
+          <span>Waktu Simpan</span>
+        </div>
+        <div class="sp-meta-item">
+          <span>☁️</span>
+          <span class="sp-meta-val">Berhasil</span>
+          <span>Status Cloud</span>
+        </div>
+        <div class="sp-meta-item">
+          <span>🔒</span>
+          <span class="sp-meta-val">Aman</span>
+          <span>Enkripsi</span>
+        </div>
+      </div>
+      <div class="sp-actions-new" id="sp-actions">
+        <button class="sp-btn-new sp-btn-ok" onclick="closeSuccessPopup()">✓ Oke, Lanjutkan</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -3218,14 +3580,19 @@ async function _executeSaveOrPrint(payload, execMode, isOverwrite) {
   try {
     if (execMode === 'save') {
       const btn = document.getElementById('btn-save-db');
-      btn.disabled = true; btn.innerHTML = '⏳ Menyimpan...';
+      btn.disabled = true; btn.innerHTML = '⏳ Menyimpan…';
+      showCloudUploadOverlay();
       try {
         const finalNo = await _doCloudSave(payload, isOverwrite);
+        hideCloudUploadOverlay();
         if (finalNo) {
           resetForm();
-          showToast('☁️ Tersimpan! No: ' + finalNo, 'success');
+          showSuccessPopup('save', finalNo);
           _refreshHistoryIfOpen();
         }
+      } catch(e) {
+        hideCloudUploadOverlay();
+        throw e;
       } finally {
         btn.disabled = false; btn.innerHTML = '💾 Simpan';
       }
@@ -3244,11 +3611,18 @@ async function _executeSaveOrPrint(payload, execMode, isOverwrite) {
         window.addEventListener('afterprint', () => { document.title = origTitle; }, { once: true });
       });
 
-      const finalNo = await _doCloudSave(payload, isOverwrite);
-      if (finalNo) {
-        resetForm();
-        showToast('🖨️ Dicetak & Tersimpan! No: ' + finalNo, 'success');
-        _refreshHistoryIfOpen();
+      showCloudUploadOverlay();
+      try {
+        const finalNo = await _doCloudSave(payload, isOverwrite);
+        hideCloudUploadOverlay();
+        if (finalNo) {
+          resetForm();
+          showSuccessPopup('print', finalNo);
+          _refreshHistoryIfOpen();
+        }
+      } catch(e) {
+        hideCloudUploadOverlay();
+        throw e;
       }
     }
   } finally {
@@ -4318,26 +4692,110 @@ function resetForm() {
 // ══════════════════════════════════════════════
 // SUCCESS POPUP
 // ══════════════════════════════════════════════
+/* ── Cloud Upload Overlay helpers ── */
+const CUO_STEPS = [
+  'Memvalidasi data invoice…',
+  'Mengenkripsi payload…',
+  'Menghubungi server Google…',
+  'Menulis ke Spreadsheet…',
+  'Memverifikasi penyimpanan…',
+];
+let _cuoStepIdx = 0, _cuoStepTimer = null;
+
+function showCloudUploadOverlay() {
+  _cuoStepIdx = 0;
+  const el = document.getElementById('cuo-step');
+  if (el) el.textContent = CUO_STEPS[0];
+  document.getElementById('cloud-upload-overlay').classList.add('show');
+  _cuoStepTimer = setInterval(() => {
+    _cuoStepIdx = (_cuoStepIdx + 1) % CUO_STEPS.length;
+    const stepEl = document.getElementById('cuo-step');
+    if (!stepEl) return;
+    stepEl.classList.add('fade');
+    setTimeout(() => {
+      stepEl.textContent = CUO_STEPS[_cuoStepIdx];
+      stepEl.classList.remove('fade');
+    }, 280);
+  }, 1800);
+}
+
+function hideCloudUploadOverlay() {
+  clearInterval(_cuoStepTimer);
+  document.getElementById('cloud-upload-overlay').classList.remove('show');
+}
+
+/* ── Sparkle burst ── */
+function _spawnSparkles(containerId) {
+  const wrap = document.getElementById(containerId);
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  const colors = ['#e8a838','#4fc3f7','#81c784','#fff176','#ef9a9a'];
+  const dirs = [
+    'translate(-60px,-80px)', 'translate(60px,-80px)',
+    'translate(-90px,-40px)', 'translate(90px,-40px)',
+    'translate(-40px,-110px)', 'translate(40px,-110px)',
+    'translate(0px,-120px)', 'translate(-80px,-70px)', 'translate(80px,-70px)'
+  ];
+  dirs.forEach((dir, i) => {
+    const s = document.createElement('span');
+    s.className = 'sp-spark';
+    s.style.cssText = `
+      background:${colors[i%colors.length]};
+      left:50%; top:60%;
+      --spark-end:${dir};
+      animation-delay:${i*0.05}s;
+      animation-duration:${0.7+Math.random()*0.4}s;
+      width:${5+Math.random()*5}px; height:${5+Math.random()*5}px;
+    `;
+    wrap.appendChild(s);
+  });
+}
+
 function showSuccessPopup(type, noDoc) {
   const overlay = document.getElementById('success-popup-overlay');
-  const popup   = document.getElementById('success-popup');
+  const header  = document.getElementById('sp-header');
   const configs = {
-    save:  { icon:'☁️', title:'Tersimpan ke Spreadsheet!', sub:'Data invoice berhasil disimpan ke database cloud.', color:'type-save' },
-    print: { icon:'🖨️', title:'Dicetak & Tersimpan!',      sub:'Invoice berhasil dicetak dan disimpan ke database.', color:'type-print' },
+    save:  {
+      headerClass: 'sp-header-save',
+      title: '☁️ Tersimpan ke Cloud!',
+      sub:   'Data invoice berhasil disimpan ke Spreadsheet.',
+      icon:  '📋',
+    },
+    print: {
+      headerClass: 'sp-header-print',
+      title: '🖨️ Dicetak & Tersimpan!',
+      sub:   'Invoice berhasil dicetak dan disimpan ke cloud.',
+      icon:  '🖨️',
+    },
   };
   const cfg = configs[type] || configs.save;
-  popup.className = 'success-popup ' + cfg.color;
-  document.getElementById('sp-icon').textContent    = cfg.icon;
-  document.getElementById('sp-title').textContent   = cfg.title;
-  document.getElementById('sp-nodoc').textContent   = noDoc || '';
+
+  // Reset header class
+  header.className = 'sp-header ' + cfg.headerClass;
+  document.getElementById('sp-title').textContent    = cfg.title;
   document.getElementById('sp-subtitle').textContent = cfg.sub;
-  document.getElementById('sp-actions').innerHTML   =
-    `<button class="sp-btn sp-btn-primary" onclick="closeSuccessPopup()">Oke, Lanjutkan</button>`;
+  document.getElementById('sp-nodoc-icon').textContent = cfg.icon;
+  document.getElementById('sp-nodoc').textContent    = noDoc || '—';
+
+  // Set waktu simpan
+  const now = new Date();
+  document.getElementById('sp-time').textContent =
+    now.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' });
+
+  // Reset SVG tick animation
+  const tick = document.querySelector('.sp-check-tick');
+  if (tick) { tick.style.animation = 'none'; void tick.offsetWidth; tick.style.animation = ''; }
+  const wrap = document.querySelector('.sp-check-wrap');
+  if (wrap) { wrap.style.animation = 'none'; void wrap.offsetWidth; wrap.style.animation = ''; }
+
   overlay.classList.add('show');
-  // Auto-close setelah 4 detik
+  _spawnSparkles('sp-sparkles');
+
+  // Auto-close setelah 5 detik
   clearTimeout(overlay._autoClose);
-  overlay._autoClose = setTimeout(closeSuccessPopup, 4000);
+  overlay._autoClose = setTimeout(closeSuccessPopup, 5000);
 }
+
 function closeSuccessPopup() {
   const overlay = document.getElementById('success-popup-overlay');
   overlay.classList.remove('show');
